@@ -1,0 +1,40 @@
+# C++Builder / RAD Studio
+__history/
+__recovery/
+*.local
+*.identcache
+*.dsk
+*.tvsconfig
+*.stat
+*.tmp
+*.bak
+
+# Build output
+Win32/
+Win64/
+Debug/
+Release/
+
+# Compiled files
+*.exe
+*.dll
+*.bpl
+*.dcu
+*.obj
+*.o
+*.hpp
+*.tds
+*.map
+*.res
+
+# IDE files
+*.cbproj.local
+*.groupproj.local
+
+# User-specific settings
+*.cbproj.local
+*.groupproj.local
+
+# OS
+Thumbs.db
+Desktop.ini
