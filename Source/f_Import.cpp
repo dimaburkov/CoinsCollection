@@ -1,15 +1,14 @@
 //---------------------------------------------------------------------------
-
 #include <vcl.h>
 #pragma hdrstop
 
-#include "f_Main.h"
+#include "f_Import.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 #pragma resource "*.dfm"
-TfmMain *fmMain;
+TfmImport *fmImport;
 //---------------------------------------------------------------------------
-__fastcall TfmMain::TfmMain(TComponent* Owner)
+__fastcall TfmImport::TfmImport(TComponent* Owner)
 	: TForm(Owner)
 {
 }

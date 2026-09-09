@@ -1,22 +1,22 @@
 //---------------------------------------------------------------------------
-// Главное окно приложения: список коллекции. Пока пустая заготовка.
+// Карточка добавления / редактирования одной монеты. Пустая заготовка.
 //---------------------------------------------------------------------------
-#ifndef f_MainH
-#define f_MainH
+#ifndef f_CoinEditH
+#define f_CoinEditH
 //---------------------------------------------------------------------------
 #include <System.Classes.hpp>
 #include <Vcl.Controls.hpp>
 #include <Vcl.StdCtrls.hpp>
 #include <Vcl.Forms.hpp>
 //---------------------------------------------------------------------------
-class TfmMain : public TForm
+class TfmCoinEdit : public TForm
 {
 __published:	// IDE-managed Components
 private:	// User declarations
 public:		// User declarations
-	__fastcall TfmMain(TComponent* Owner);
+	__fastcall TfmCoinEdit(TComponent* Owner);
 };
 //---------------------------------------------------------------------------
-extern PACKAGE TfmMain *fmMain;
+extern PACKAGE TfmCoinEdit *fmCoinEdit;
 //---------------------------------------------------------------------------
 #endif

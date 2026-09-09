@@ -1,16 +1,17 @@
 //---------------------------------------------------------------------------
-
 #include <vcl.h>
 #pragma hdrstop
 
-#include "f_Main.h"
+#include "u_NumistaClient.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
-#pragma resource "*.dfm"
-TfmMain *fmMain;
 //---------------------------------------------------------------------------
-__fastcall TfmMain::TfmMain(TComponent* Owner)
-	: TForm(Owner)
+
+TNumistaClient::TNumistaClient()
+{
+}
+//---------------------------------------------------------------------------
+TNumistaClient::~TNumistaClient()
 {
 }
 //---------------------------------------------------------------------------

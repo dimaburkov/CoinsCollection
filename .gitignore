@@ -38,3 +38,6 @@ Release/
 # OS
 Thumbs.db
 Desktop.ini
+
+# Generated task docs (rebuild from Docs/Jobs/*.md via Docs/Jobs/build_docx.py)
+Docs/Jobs/*.docx
