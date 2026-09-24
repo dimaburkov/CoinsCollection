@@ -3,51 +3,59 @@
 #include <vcl.h>
 #pragma hdrstop
 
+#include <algorithm>
+#include <set>
+#include <shlwapi.h>
+#include <CommCtrl.h>
 #include "f_Main.h"
 #include "dm_Data.h"
 #include "u_AppConfig.h"
 #include "u_Translator.h"
+#include "versionConfig.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 #pragma resource "*.dfm"
+#pragma comment(lib, "shlwapi")
 TfmMain *fmMain;
 //---------------------------------------------------------------------------
 namespace
 {
-	int RowCount(TFDConnection *AConnection, const String &ATable)
+	// Ключи заголовков колонок (порядок = TItemColumn).
+	const wchar_t *const cColumnKeys[] =
 	{
-		// Имя таблицы — константа из кода или из схемы БД, не ввод пользователя.
-		return AConnection->ExecSQLScalar(L"SELECT COUNT(*) FROM \"" + ATable + L"\"");
-	}
-	//-----------------------------------------------------------------------
-	const TCoinRecord *FindById(const std::vector<TCoinRecord> &ARecords, int AId)
-	{
-		for (size_t i = 0; i < ARecords.size(); ++i)
-			if (ARecords[i].Id == AId)
-				return &ARecords[i];
-		return nullptr;
-	}
-	//-----------------------------------------------------------------------
-	// Накопитель результатов проверок self-test.
-	struct TChecks
-	{
-		String Text;
-		int    Failed;
-		TChecks() : Failed(0) {}
-		void Check(bool AOk, const String &AWhat)
-		{
-			Text += (AOk ? L"[OK]   " : L"[FAIL] ") + AWhat + L"\n";
-			if (!AOk)
-				++Failed;
-		}
+		L"Main.Column.Period", L"Main.Column.Currency", L"Main.Column.Denomination",
+		L"Main.Column.Year", L"Main.Column.Condition", L"Main.Column.Number", L"Main.Column.Value"
 	};
+	//-----------------------------------------------------------------------
+	// Строки — «как в Проводнике»: без учёта регистра, числа внутри по значению
+	// ("2 hryvni" < "10 hryven", "KM# 9" < "KM# 10").
+	int CompareStrings(const String &A, const String &B)
+	{
+		return StrCmpLogicalW(A.c_str(), B.c_str());
+	}
+	//-----------------------------------------------------------------------
+	template <typename T>
+	int CompareValues(T A, T B)
+	{
+		return A < B ? -1 : (B < A ? 1 : 0);
+	}
 }
 //---------------------------------------------------------------------------
 __fastcall TfmMain::TfmMain(TComponent* Owner)
-	: TForm(Owner)
+	: TForm(Owner),
+	  FSortColumn(icDenomination),
+	  FSortAscending(true),
+	  FLanguageToken(0)
 {
 	Translator().TranslateForm(this);
 	BuildLanguageMenu();
+	ApplyTexts();
+	FLanguageToken = Translator().Subscribe([this]() { ApplyTexts(); });
+}
+//---------------------------------------------------------------------------
+__fastcall TfmMain::~TfmMain()
+{
+	Translator().Unsubscribe(FLanguageToken);
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::FormCreate(TObject *Sender)
@@ -57,6 +65,29 @@ void __fastcall TfmMain::FormCreate(TObject *Sender)
 	FDatabase->EnsureSchema();
 
 	FRepository.reset(new TCoinRepository(FDatabase.get()));
+	LoadItems();
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::FormDestroy(TObject *Sender)
+{
+	lvItems->Items->Count = 0;
+	FItems.clear();
+	FRepository.reset();
+	if (FDatabase)
+		FDatabase->Close();
+	FDatabase.reset();
+}
+//---------------------------------------------------------------------------
+// Тексты, которые не берутся из .dfm напрямую: заголовки колонок, короткая
+// подпись кнопки импорта, строка состояния. Вызывается и при смене языка.
+void TfmMain::ApplyTexts()
+{
+	for (int i = 0; i < icCount && i < lvItems->Columns->Count; ++i)
+		lvItems->Columns->Items[i]->Caption = Tr(cColumnKeys[i]);
+	// Кнопка связана с actImport, но подпись у неё короче, чем пункт меню.
+	tbImport->Caption = Tr(L"Main.Toolbar.Import");
+	UpdateSortArrows();
+	UpdateStatus();
 }
 //---------------------------------------------------------------------------
 // Подпункты Settings -> Language: по одному на найденный Lang\*.ini.
@@ -95,178 +126,220 @@ void __fastcall TfmMain::LanguageClick(TObject *Sender)
 	AppConfig().Save();
 }
 //---------------------------------------------------------------------------
-void __fastcall TfmMain::FormDestroy(TObject *Sender)
+void __fastcall TfmMain::actExitExecute(TObject *Sender)
 {
-	FRepository.reset();
-	if (FDatabase)
-		FDatabase->Close();
-	FDatabase.reset();
+	Close();
 }
 //---------------------------------------------------------------------------
-// Временная проверка БД (убрать в задаче с реальным UI).
-void __fastcall TfmMain::btnSelfTestClick(TObject *Sender)
+void __fastcall TfmMain::actRefreshExecute(TObject *Sender)
 {
-	if (!FDatabase || !FDatabase->IsOpen() || !FRepository)
-	{
-		ShowMessage(Tr(L"Main.DbNotOpen"));
-		return;
-	}
-	ShowMessage(SchemaReport() + L"\n" + CrudReport());
+	LoadItems();
 }
 //---------------------------------------------------------------------------
-// Отчёт self-test: заголовки переводятся, описания проверок (временные) — нет.
-String TfmMain::SchemaReport()
+void __fastcall TfmMain::actAboutExecute(TObject *Sender)
 {
-	TFDConnection *conn = FDatabase->Connection();
-	String report = Tr(L"Main.SelfTest.Database") + L": " + AppConfig().DbPath
-		+ L"\n" + Tr(L"Main.SelfTest.SchemaVersion") + L": " + IntToStr(FDatabase->SchemaVersion())
-		+ L"\n" + Tr(L"Main.SelfTest.ForeignKeys") + L": " + VarToStr(conn->ExecSQLScalar(L"PRAGMA foreign_keys"))
-		+ L"\n\n" + Tr(L"Main.SelfTest.Tables") + L":";
-
-	std::unique_ptr<TStringList> tables(new TStringList());
-	conn->GetTableNames(L"", L"", L"", tables.get(), TFDPhysObjectScopes() << osMy,
-		TFDPhysTableKinds() << tkTable, false);
-	for (int i = 0; i < tables->Count; ++i)
-		report += L"\n  " + tables->Strings[i] + L": " + IntToStr(RowCount(conn, tables->Strings[i]));
-	return report + L"\n";
+	// Заголовок — подпись действия About на текущем языке (без "&").
+	const String text    = Format(Tr(L"Main.About"), ARRAYOFCONST((AppInfo::Name, AppInfo::Version)));
+	const String caption = StripHotkey(actAbout->Caption);
+	Application->MessageBox(text.c_str(), caption.c_str(), MB_OK | MB_ICONINFORMATION);
 }
 //---------------------------------------------------------------------------
-// CRUD через TCoinRepository на тестовых записях; после проверки всё удаляется.
-String TfmMain::CrudReport()
+// Перечитать коллекцию из БД; выделение и фокус сохраняются по Id.
+void TfmMain::LoadItems()
 {
-	TFDConnection *conn = FDatabase->Connection();
-	const wchar_t *const tables[] = { L"coins", L"coin_items", L"countries", L"periods", L"currencies" };
-	const int tableCount = sizeof(tables) / sizeof(tables[0]);
-	int before[tableCount];
-	for (int i = 0; i < tableCount; ++i)
-		before[i] = RowCount(conn, tables[i]);
-	// Прирост строк в таблице относительно начала теста.
-	auto delta = [&](int AIndex) { return RowCount(conn, tables[AIndex]) - before[AIndex]; };
+	const std::vector<int> selected = SelectedIds();
+	const int focused = FocusedId();
 
-	const String testPeriod   = L"(self-test period)";
-	const String testCurrency = L"(self-test currency)";
-	TChecks checks;
-	std::vector<int> created;
+	FConditionOrder.clear();
+	const std::vector<TCondition> conditions = FRepository->Lookups().Conditions();
+	for (size_t i = 0; i < conditions.size(); ++i)
+		FConditionOrder[conditions[i].Code] = conditions[i].SortOrder;
 
+	FItems = FRepository->LoadAll();
+	SortItems();
+
+	lvItems->HandleNeeded();	// виртуальному списку число строк задаётся через окно
+	lvItems->Items->BeginUpdate();
 	try
 	{
-		// A и B — два экземпляра одной монеты, C — другая монета той же страны.
-		TCoinRecord a;
-		a.Country       = L"Ukraine";		// есть в справочнике стран
-		a.Period        = testPeriod;
-		a.Currency      = testCurrency;
-		a.Denomination  = L"1 hryvnia";
-		a.Year          = 2001;
-		a.DiameterMm    = 18.9;
-		a.CatalogNumber = L"KM# 999";
-		a.Condition     = L"VF";
-		a.CatalogValueUah = 12.5;
-		a.PurchaseDate  = EncodeDate(2024, 5, 17);
-		a.Comment       = L"Тест";	// «Тест» — проверка Unicode
-
-		TCoinRecord b = a;
-		b.Condition = L"unc";				// регистр кода не важен
-		b.Quantity  = 2;
-		b.PurchaseDate = 0;
-		b.Comment   = L"";
-
-		TCoinRecord c = a;
-		c.Denomination  = L"2 hryvni";
-		c.Year          = 0;				// год не указан -> NULL
-		c.DiameterMm    = 0;
-		c.NeedToReplace = true;
-		c.PublishedDate = EncodeDate(2023, 1, 2);
-
-		FRepository->Save(a); created.push_back(a.Id);
-		FRepository->Save(b); created.push_back(b.Id);
-		FRepository->Save(c); created.push_back(c.Id);
-
-		checks.Check(a.Id > 0 && b.Id > 0 && c.Id > 0, L"Save returns ids");
-		checks.Check(a.CoinId == b.CoinId, L"two items of one coin share a coins row");
-		checks.Check(c.CoinId != a.CoinId, L"another coin gets its own coins row");
-		checks.Check(delta(0) == 2 && delta(1) == 3, L"coins +2, coin_items +3");
-		checks.Check(delta(2) == 0, L"country taken from reference (countries +0)");
-		checks.Check(delta(3) == 1 && delta(4) == 1, L"periods +1, currencies +1 (no duplicates)");
-
-		const std::vector<TCoinRecord> all = FRepository->LoadAll();
-		const TCoinRecord *la = FindById(all, a.Id);
-		const TCoinRecord *lb = FindById(all, b.Id);
-		const TCoinRecord *lc = FindById(all, c.Id);
-		checks.Check(la && lb && lc, L"LoadAll returns all 3 items");
-		if (la && lb && lc)
+		lvItems->Items->Count = (int)FItems.size();
+		SelectIds(selected, focused);
+	}
+	__finally
+	{
+		lvItems->Items->EndUpdate();
+	}
+	lvItems->Invalidate();
+	UpdateSortArrows();
+	UpdateStatus();
+}
+//---------------------------------------------------------------------------
+// Сравнение по колонке; пустые значения — в начале (при сортировке по возрастанию).
+int TfmMain::CompareItems(const TCoinRecord &A, const TCoinRecord &B, int AColumn) const
+{
+	switch (AColumn)
+	{
+		case icPeriod:       return CompareStrings(A.Period, B.Period);
+		case icCurrency:     return CompareStrings(A.Currency, B.Currency);
+		case icDenomination: return CompareStrings(A.Denomination, B.Denomination);
+		case icYear:         return CompareValues(A.Year, B.Year);
+		case icNumber:       return CompareStrings(A.CatalogNumber, B.CatalogNumber);
+		case icValue:        return CompareValues(A.CatalogValueUah, B.CatalogValueUah);
+		case icCondition:
 		{
-			checks.Check(la->Country == L"Ukraine" && la->Period == testPeriod && la->Currency == testCurrency,
-				L"lookups joined back (country, period, currency)");
-			checks.Check(la->Year == 2001 && la->DiameterMm == 18.9 && la->CatalogNumber == L"KM# 999"
-				&& la->CatalogValueUah == 12.5, L"coin fields and values read back");
-			checks.Check(la->Condition == L"VF" && lb->Condition == L"UNC" && lb->Quantity == 2,
-				L"condition codes and quantity read back");
-			checks.Check(la->PurchaseDate == EncodeDate(2024, 5, 17) && (double)lb->PurchaseDate == 0.0
-				&& lc->PublishedDate == EncodeDate(2023, 1, 2), L"dates and empty dates read back");
-			checks.Check(lc->Year == 0 && lc->DiameterMm == 0.0 && lc->NeedToReplace,
-				L"NULL year / diameter and need-to-replace read back");
-			checks.Check(la->Comment == a.Comment && lb->Comment.IsEmpty(), L"Unicode and empty text read back");
+			std::map<String, int>::const_iterator a = FConditionOrder.find(A.Condition);
+			std::map<String, int>::const_iterator b = FConditionOrder.find(B.Condition);
+			return CompareValues(a == FConditionOrder.end() ? 0 : a->second,
+			                     b == FConditionOrder.end() ? 0 : b->second);
 		}
-
-		// Неизвестный код состояния — транзакция откатывается целиком:
-		// новая страна и её период создаются до проверки кода и должны исчезнуть.
-		TCoinRecord bad = a;
-		bad.Id = 0; bad.CoinId = 0;
-		bad.Country = L"(self-test country)";
-		bad.Denomination = L"999 test";
-		bad.Condition = L"XYZ";
-		bool rejected = false;
-		try { FRepository->Save(bad); } catch (Exception &) { rejected = true; }
-		checks.Check(rejected && bad.Id == 0 && delta(0) == 2 && delta(1) == 3
-			&& delta(2) == 0 && delta(3) == 1, L"unknown condition is rejected, whole transaction rolled back");
-
-		// Изменение экземпляра.
-		b.Quantity = 3;
-		FRepository->Save(b);
-		const std::vector<TCoinRecord> all2 = FRepository->LoadAll();
-		const TCoinRecord *lb2 = FindById(all2, b.Id);
-		checks.Check(lb2 && lb2->Quantity == 3 && delta(1) == 3, L"update of an item");
-
-		// Удаление: монета удаляется вместе с последним экземпляром.
-		checks.Check(FRepository->Delete(a.Id) && delta(0) == 2, L"delete one of two items keeps the coin");
-		checks.Check(FRepository->Delete(b.Id) && delta(0) == 1, L"delete last item removes the coin");
-		checks.Check(FRepository->Delete(c.Id) && delta(0) == 0 && delta(1) == 0, L"coins and coin_items back to start");
-		checks.Check(!FRepository->Delete(a.Id), L"delete of a missing item returns false");
-		checks.Check(delta(3) == 1 && delta(4) == 1, L"reference rows are kept after delete");
-		created.clear();
 	}
-	catch (Exception &e)
+	return 0;
+}
+//---------------------------------------------------------------------------
+void TfmMain::SortItems()
+{
+	const int column = FSortColumn;
+	const bool ascending = FSortAscending;
+	std::stable_sort(FItems.begin(), FItems.end(),
+		[this, column, ascending](const TCoinRecord &A, const TCoinRecord &B)
+		{
+			int r = CompareItems(A, B, column);
+			if (!ascending)
+				r = -r;
+			// Равные — всегда в порядке номинал, год, Id.
+			if (r == 0) r = CompareItems(A, B, icDenomination);
+			if (r == 0) r = CompareItems(A, B, icYear);
+			if (r == 0) r = CompareValues(A.Id, B.Id);
+			return r < 0;
+		});
+}
+//---------------------------------------------------------------------------
+String TfmMain::CellText(const TCoinRecord &R, int AColumn) const
+{
+	switch (AColumn)
 	{
-		checks.Check(false, L"exception: " + e.Message);
+		case icPeriod:       return R.Period;
+		case icCurrency:     return R.Currency;
+		case icDenomination: return R.Denomination;
+		case icYear:         return R.Year == 0 ? String() : IntToStr(R.Year);
+		case icCondition:    return R.Condition;
+		case icNumber:       return R.CatalogNumber;
+		case icValue:        return R.CatalogValueUah == 0.0 ? String() : FormatFloat(L"#,##0.00", R.CatalogValueUah);
 	}
-
-	// Уборка: удалить оставшиеся тестовые экземпляры и тестовые записи справочников.
-	for (size_t i = 0; i < created.size(); ++i)
+	return String();
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::lvItemsData(TObject *Sender, TListItem *Item)
+{
+	if (Item->Index < 0 || Item->Index >= (int)FItems.size())
+		return;
+	const TCoinRecord &r = FItems[Item->Index];
+	Item->Caption = CellText(r, 0);
+	for (int c = 1; c < icCount; ++c)
+		Item->SubItems->Add(CellText(r, c));
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::lvItemsColumnClick(TObject *Sender, TListColumn *Column)
+{
+	if (Column->Index == FSortColumn)
+		FSortAscending = !FSortAscending;
+	else
 	{
-		try { FRepository->Delete(created[i]); } catch (Exception &) {}
+		FSortColumn = Column->Index;
+		FSortAscending = true;
 	}
-	try
+
+	const std::vector<int> selected = SelectedIds();
+	const int focused = FocusedId();
+	SortItems();
+	SelectIds(selected, focused);
+	lvItems->Invalidate();
+	UpdateSortArrows();
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::lvItemsDblClick(TObject *Sender)
+{
+	if (actEdit->Enabled)
+		actEdit->Execute();
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::lvItemsKeyDown(TObject *Sender, WORD &Key, TShiftState Shift)
+{
+	if (Key == VK_RETURN && Shift.Empty())
 	{
-		std::unique_ptr<TFDQuery> q(new TFDQuery(nullptr));
-		q->Connection = conn;
-		q->SQL->Text = L"DELETE FROM periods WHERE name = :name"
-		               L" AND NOT EXISTS (SELECT 1 FROM coins WHERE id_period = periods.id)";
-		q->ParamByName(L"name")->AsWideString = testPeriod;
-		q->ExecSQL();
-		q->SQL->Text = L"DELETE FROM currencies WHERE name = :name"
-		               L" AND NOT EXISTS (SELECT 1 FROM coins WHERE id_currency = currencies.id)";
-		q->ParamByName(L"name")->AsWideString = testCurrency;
-		q->ExecSQL();
+		if (actEdit->Enabled)
+			actEdit->Execute();
+		Key = 0;
 	}
-	catch (Exception &) {}
+}
+//---------------------------------------------------------------------------
+// Стрелка сортировки в заголовке (HDF_SORTUP / HDF_SORTDOWN, comctl32 v6).
+void TfmMain::UpdateSortArrows()
+{
+	if (!lvItems->HandleAllocated())
+		return;
+	const HWND header = ListView_GetHeader(lvItems->Handle);
+	for (int i = 0; i < lvItems->Columns->Count; ++i)
+	{
+		HDITEMW item = {};
+		item.mask = HDI_FORMAT;
+		Header_GetItem(header, i, &item);
+		item.fmt &= ~(HDF_SORTUP | HDF_SORTDOWN);
+		if (i == FSortColumn)
+			item.fmt |= FSortAscending ? HDF_SORTUP : HDF_SORTDOWN;
+		Header_SetItem(header, i, &item);
+	}
+}
+//---------------------------------------------------------------------------
+void TfmMain::UpdateStatus()
+{
+	if (StatusBar->Panels->Count > 0)
+		StatusBar->Panels->Items[0]->Text = Format(Tr(L"Main.Status.Items"), ARRAYOFCONST(((int)FItems.size())));
+}
+//---------------------------------------------------------------------------
+std::vector<int> TfmMain::SelectedIds() const
+{
+	std::vector<int> ids;
+	if (!lvItems->HandleAllocated())
+		return ids;
+	for (int i = ListView_GetNextItem(lvItems->Handle, -1, LVNI_SELECTED); i >= 0;
+	     i = ListView_GetNextItem(lvItems->Handle, i, LVNI_SELECTED))
+	{
+		if (i < (int)FItems.size())
+			ids.push_back(FItems[i].Id);
+	}
+	return ids;
+}
+//---------------------------------------------------------------------------
+int TfmMain::FocusedId() const
+{
+	if (!lvItems->HandleAllocated())
+		return 0;
+	const int i = ListView_GetNextItem(lvItems->Handle, -1, LVNI_FOCUSED);
+	return i >= 0 && i < (int)FItems.size() ? FItems[i].Id : 0;
+}
+//---------------------------------------------------------------------------
+void TfmMain::SelectIds(const std::vector<int> &AIds, int AFocusedId)
+{
+	if (!lvItems->HandleAllocated())
+		return;
+	const HWND list = lvItems->Handle;
+	ListView_SetItemState(list, -1, 0, LVIS_SELECTED | LVIS_FOCUSED);
 
-	bool clean = true;
-	for (int i = 0; i < tableCount; ++i)
-		clean = clean && delta(i) == 0;
-	checks.Check(clean, L"test data cleaned up");
-
-	return Format(Tr(L"Main.SelfTest.Crud"),
-		ARRAYOFCONST((Tr(checks.Failed == 0 ? L"Main.SelfTest.Ok" : L"Main.SelfTest.Failed"))))
-		+ L"\n\n" + checks.Text;
+	const std::set<int> ids(AIds.begin(), AIds.end());
+	for (int i = 0; i < (int)FItems.size(); ++i)
+	{
+		UINT state = 0;
+		if (ids.count(FItems[i].Id))
+			state |= LVIS_SELECTED;
+		if (AFocusedId != 0 && FItems[i].Id == AFocusedId)
+			state |= LVIS_FOCUSED;
+		if (state)
+		{
+			ListView_SetItemState(list, i, state, LVIS_SELECTED | LVIS_FOCUSED);
+			if (state & LVIS_FOCUSED)
+				ListView_EnsureVisible(list, i, FALSE);
+		}
+	}
 }
 //---------------------------------------------------------------------------

@@ -3,7 +3,7 @@
 Проект: локальный учёт коллекции монет в SQLite с импортом из файла .xlsx (экспорт uCoin.net) и последующей выгрузкой на Numista через API.
 Среда разработки: RAD Studio 10.4 (позже 13), C++Builder / VCL.
 
-Порядок работ: каркас → БД (инфраструктура, затем репозитории) → локализация → интерфейс (главное окно, карточка, дерево и фильтры, справочники) → импорт из .xlsx → Numista API.
+Порядок работ: каркас → БД (инфраструктура, затем репозитории) → локализация → главное окно → импорт из .xlsx → интерфейс (карточка, дерево и фильтры, справочники) → Numista API.
 Каждая задача рассчитана на 1–2 часа. На задачу заводится отдельная ветка от master, по завершении — merge в master.
 
 Тексты интерфейса (с задачи 4): любой новый текст — английский в .dfm и `Source/Lang/en.ini`, плюс ключи в `ru.ini` и `uk.ini`; строки из кода — через `Tr(L"Модуль.Назначение")`. Литералы на русском / украинском в коде запрещены.
@@ -194,7 +194,7 @@ RAD Studio 13 (BDS 37.0), Win32, Clang + runtime-пакеты. Готовый ex
 | id | INTEGER PRIMARY KEY |
 | name | TEXT NOT NULL UNIQUE |
 
-Данные: Europe, Asia, Africa, North America, South America, Australia and Oceania. Antarctica не нужна: суверенных государств там нет, монеты антарктических территорий относятся к их метрополиям. «Extinct states» — не континент: исчезнувшая страна хранит свой реальный континент (СССР — Europe) и is_exist = 0, а узел «Extinct states» в дереве строится по is_exist (задача 7).
+Данные: Europe, Asia, Africa, North America, South America, Australia and Oceania. Antarctica не нужна: суверенных государств там нет, монеты антарктических территорий относятся к их метрополиям. «Extinct states» — не континент: исчезнувшая страна хранит свой реальный континент (СССР — Europe) и is_exist = 0, а узел «Extinct states» в дереве строится по is_exist (задача 8).
 
 **countries** — страна
 
@@ -205,7 +205,7 @@ RAD Studio 13 (BDS 37.0), Win32, Clang + runtime-пакеты. Готовый ex
 | id_continent | INTEGER REFERENCES continents(id) (NULL — не указан) |
 | is_exist | INTEGER NOT NULL DEFAULT 1 (0 — страна больше не существует) |
 
-Данные: страны из первого столбца (Country) экспорта `Exe\Collection_uCoin.net.xlsx` без повторов — 187 названий, написание один в один как у uCoin (иначе импорт создаст дубль без континента). Каждой стране назначен континент; 18 исчезнувших государств (USSR, Russian Empire, Czechoslovakia, Yugoslavia, Germany - GDR, Germany - Third Reich, Prussia, Ottoman Empire, Rhodesia, Zaire и др.) — с реальным континентом и is_exist = 0. Страны, которых нет в справочнике, импорт создаёт с id_continent = NULL (узел «No continent», правка — задача 8).
+Данные: страны из первого столбца (Country) экспорта `Exe\Collection_uCoin.net.xlsx` без повторов — 187 названий, написание один в один как у uCoin (иначе импорт создаст дубль без континента). Каждой стране назначен континент; 18 исчезнувших государств (USSR, Russian Empire, Czechoslovakia, Yugoslavia, Germany - GDR, Germany - Third Reich, Prussia, Ottoman Empire, Rhodesia, Zaire и др.) — с реальным континентом и is_exist = 0. Страны, которых нет в справочнике, импорт создаёт с id_continent = NULL (узел «No continent», правка — задача 9).
 
 **periods** — период страны (например, «Ukraine (1991 – Today)»)
 
@@ -459,7 +459,7 @@ miLanguage.Caption=Language
 
 ---
 
-## Общие правила для задач интерфейса (5–8)
+## Общие правила для задач интерфейса (5, 7–9)
 
 - Только стоковый VCL: TMainMenu, TActionList, TToolBar, TListView, TTreeView, TSplitter, TStatusBar, TComboBox, TDateTimePicker, TUpDown. Без EhLib, AlphaControls и прочих библиотек PawnShop.
 - Команды меню и кнопок — через TActionList (одно действие на пункт меню и кнопку). Ещё не реализованные команды: `Enabled = false`.
@@ -485,31 +485,31 @@ miLanguage.Caption=Language
 
 | Меню | Действие | Горячая клавиша | В этой задаче |
 |---|---|---|---|
-| File | Import from uCoin (.xlsx)… | — | disabled (задача импорта) |
+| File | Import from uCoin (.xlsx)… | — | disabled (задача 6) |
 | File | Backup database… | — | disabled |
 | File | Exit | Alt+F4 | работает |
-| Collection | Add | Ins | disabled (задача 6) |
-| Collection | Edit | Enter | disabled (задача 6) |
-| Collection | Delete | Del | disabled (задача 6) |
-| Collection | Need to replace (флажок) | — | disabled (задача 7) |
+| Collection | Add | Ins | disabled (задача 7) |
+| Collection | Edit | Enter | disabled (задача 7) |
+| Collection | Delete | Del | disabled (задача 7) |
+| Collection | Need to replace (флажок) | — | disabled (задача 8) |
 | Collection | Refresh | F5 | работает: перечитать LoadAll |
-| Reference | Countries… / Periods… / Currencies… | — | disabled (задача 8) |
-| Numista | Connect / Settings… / Upload selected / Upload all | — | disabled (задача Numista) |
+| Reference | Countries… / Periods… / Currencies… | — | disabled (задача 9) |
+| Numista | Connect / Settings… ; Upload selected ; Upload all | — | disabled (задача Numista) |
 | Settings | Language ▸ | — | работает (из задачи 4) |
 | Settings | Settings… | — | disabled |
-| Help | About | F1 | работает: имя и версия из versionConfig.h |
+| Help | About | F1 | работает: имя и версия из versionConfig.h (окно с заголовком на текущем языке) |
 
-**Панель кнопок (TToolBar):** Add, Edit, Delete | Import. Место под поле поиска справа — в задаче 7.
+**Панель кнопок (TToolBar):** Add, Edit, Delete | Import. Место под поле поиска справа — в задаче 8.
 
 **Список экземпляров (TListView)**
 
 - ViewStyle = vsReport, OwnerData = true (виртуальный режим, данные из std::vector<TCoinRecord>), RowSelect, MultiSelect, ReadOnly, HideSelection = false.
 - Колонки: Period, Currency, Denomination, Year, Condition, Number (CatalogNumber), Value (CatalogValueUah, формат `#,##0.00`). Year = 0 и пустые значения — пустая ячейка.
-- Клик по заголовку — сортировка по колонке, повторный клик — обратный порядок; стрелка в заголовке (HDF_SORTUP / HDF_SORTDOWN). Condition сортируется по sort_order шкалы, Year и Value — как числа, остальное — как строки без учёта регистра. Сортировка по умолчанию — Denomination, Year.
+- Клик по заголовку — сортировка по колонке, повторный клик — обратный порядок; стрелка в заголовке (HDF_SORTUP / HDF_SORTDOWN). Condition сортируется по sort_order шкалы, Year и Value — как числа, остальное — как строки без учёта регистра в «натуральном» порядке, как в Проводнике (StrCmpLogicalW: "2 hryvni" < "10 hryven", "KM# 9" < "KM# 10"). Сортировка по умолчанию — Denomination, Year.
 - Двойной клик / Enter — действие Edit.
 - Выделение сохраняется после Refresh (по Id).
 
-**Строка состояния (TStatusBar):** `Items: <число записей>`. Суммы — в задаче 7.
+**Строка состояния (TStatusBar):** `Items: <число записей>`. Суммы — в задаче 8.
 
 **Прочее**
 
@@ -518,9 +518,9 @@ miLanguage.Caption=Language
 
 ### Не входит в задачу
 
-- Карточка монеты, добавление / изменение / удаление (задача 6)
-- Дерево стран, поиск, фильтры, суммы (задача 7)
-- Справочники (задача 8), импорт, Numista, резервная копия, окно настроек
+- Карточка монеты, добавление / изменение / удаление (задача 7)
+- Дерево стран, поиск, фильтры, суммы (задача 8)
+- Справочники (задача 9), импорт (задача 6), Numista, резервная копия, окно настроек
 - Иконки
 
 ### Критерий приёмки
@@ -534,7 +534,90 @@ miLanguage.Caption=Language
 
 ---
 
-## Задача 6 (UI-2). Карточка монеты: добавление, изменение, удаление
+## Задача 6. Импорт коллекции из экспорта uCoin (.xlsx)
+
+### Цель
+
+Загрузить коллекцию из файла экспорта uCoin.net в БД, чтобы дальше работать с реальными данными. Импорт заменяет текущую коллекцию целиком (перед этим — автокопия БД); справочники не очищаются.
+
+### Ветка
+
+6-import от master (после merge задачи 5); по завершении — merge в master. Коммит: «6 - Импорт из uCoin».
+
+### Формат файла (по `Exe\Collection_uCoin.net.xlsx`)
+
+Один лист, первая строка — заголовки, далее по строке на экземпляр. Колонки ищутся по тексту заголовка, а не по букве. Нет колонки Country или Denomination — файл отклоняется.
+
+| Заголовок | Поле TCoinRecord | Преобразование |
+|---|---|---|
+| Country | Country | текст |
+| Period | Period | текст |
+| Currency | Currency | текст |
+| Denomination | Denomination | текст, обязательно |
+| Year | Year | целое; пусто → 0 |
+| Var. | Variety | текст (в файле бывает и числом) |
+| Subject | Subject | текст |
+| Diameter, mm | DiameterMm | число с точкой; пусто → 0 |
+| Condition | Condition | код шкалы (VF, XF, UNC …), без учёта регистра; пусто → нет; неизвестный код — ошибка строки |
+| Value, UAH [uCoin] | CatalogValueUah | число с точкой |
+| Number | CatalogNumber | текст |
+| Color | Color | текст |
+| Quantity | Quantity | целое; пусто → 1 |
+| Need to replace | NeedToReplace | непустая ячейка → true |
+| Published | PublishedDate | число Excel (дни от 30.12.1899) → дата; 0 / пусто → нет |
+| Swap | SwapInfo | текст |
+| Purchase | PurchaseDate | как Published |
+| Value, UAH [My] | MyValueUah | число с точкой |
+| Grading company / Grading number / Grade | GradingCompany / GradingNumber / Grade | текст |
+| Label | LabelText | текст (бывает числом) |
+| Comment | Comment | текст |
+
+### Объём работ
+
+**u_ImportSource — TXlsxSource (чтение .xlsx только стоковыми средствами)**
+
+- Open(const String &AFileName): .xlsx — это zip; TZipFile (System.Zip) читает `xl/workbook.xml` + `xl/_rels/workbook.xml.rels` (путь первого листа), `xl/sharedStrings.xml` (может отсутствовать) и лист. XML разбирается TXMLDocument (Xml.XMLDoc, MSXML); в .cbproj добавить `PackageImport xmlrtl.bpi`.
+- Ячейки: `t="s"` — индекс в sharedStrings (текст из всех `<t>` элемента `<si>`), `t="inlineStr"`, `t="str"` / число / логическое — значение `<v>` как текст. Колонка определяется по ссылке ячейки (`r="F12"`), пустые ячейки в XML пропущены.
+- Header() → TArray<String>; RowCount(); Row(int) → TArray<String> (по числу колонок заголовка). Не .xlsx / нет листа — исключение с понятным текстом.
+
+**u_CoinImporter — TCoinImporter**
+
+- Конструктор получает список допустимых кодов состояния (из TLookupRepository::Conditions()).
+- Parse(TXlsxSource &) → std::vector<TCoinRecord> + ошибки {номер строки в файле, текст}. Строка с ошибкой (нет Country / Denomination, неверное число или дата, неизвестный код состояния) пропускается целиком, остальные импортируются. Полностью пустые строки игнорируются.
+- Числа разбираются с точкой как разделителем независимо от настроек Windows.
+
+**Запись в БД**
+
+- TCoinRepository::ReplaceAll(const std::vector<TCoinRecord> &) → число сохранённых: одна транзакция (TDbTransaction) — DELETE coin_items, DELETE coins, затем Save по каждой записи. Ошибка — откат, прежняя коллекция не тронута. Справочники (countries, periods, currencies) не очищаются; новые страны создаются без континента.
+- Перед заменой непустой коллекции — копия файла БД: `<имя>.before-import-<yyyymmdd-hhnnss>.bak` рядом с БД (механизм копирования из задачи 3 сделать публичным методом TDatabase::Backup(const String &ASuffix)).
+
+**UI (fmMain)**
+
+- Действие Import from uCoin (.xlsx)… и кнопка Import становятся активными.
+- TOpenDialog: фильтр `uCoin export (*.xlsx)`, начальная папка — каталог exe.
+- Разбор файла с песочными часами → подтверждение: «Файл: N строк; к импорту M экземпляров; с ошибками K строк. Текущая коллекция (X экземпляров) будет заменена, перед этим создаётся резервная копия. Продолжить?». Если ошибок > 0 — в том же окне первые 10 ошибок («Row 17: unknown condition 'ZZ'»).
+- После импорта — Refresh списка и сообщение «Импортировано M экземпляров (C монет), пропущено K строк».
+- Все тексты — через ключи (en / ru / uk).
+
+### Не входит в задачу
+
+- Форма предпросмотра fmImport (остаётся заготовкой) и выбор колонок вручную
+- Дозапись / обновление без замены коллекции, сопоставление с уже внесёнными вручную монетами
+- Другие форматы (CSV, старый .xls)
+- Назначение континентов новым странам (задача 9)
+
+### Критерий приёмки
+
+- Проект собирается в RAD Studio 13 (Win32, Debug и Release) без ошибок и предупреждений; новые зависимости — только стоковый xmlrtl370.bpl.
+- Импорт `Exe\Collection_uCoin.net.xlsx`: 2305 экземпляров, 2298 монет (у 7 монет по 2 экземпляра), 0 ошибок; новых стран не появляется (все 187 есть в справочнике); у 17 экземпляров состояние пустое; даты Published / Purchase и суммы совпадают с файлом (выборочная проверка нескольких строк).
+- Повторный импорт того же файла даёт те же числа (коллекция заменена, не удвоена), рядом с БД появляется копия `*.before-import-*.bak`.
+- Неверный файл (не .xlsx, битый zip, лист без колонки Country) — понятное сообщение, БД не изменена.
+- Импорт занимает не более нескольких секунд.
+- Ветка 6-import смержена в master.
+
+---
+
+## Задача 7 (UI-2). Карточка монеты: добавление, изменение, удаление
 
 ### Цель
 
@@ -542,7 +625,7 @@ miLanguage.Caption=Language
 
 ### Ветка
 
-6-ui-coin-edit от master (после merge задачи 5); по завершении — merge в master. Коммит: «6 - Карточка монеты».
+7-ui-coin-edit от master (после merge задачи 6); по завершении — merge в master. Коммит: «7 - Карточка монеты».
 
 ### Объём работ
 
@@ -587,7 +670,7 @@ miLanguage.Caption=Language
 
 - Копирование экземпляра («ещё один такой же»)
 - Фото монет
-- Редактирование справочников (задача 8), кроме ввода новой страны / периода / валюты в карточке
+- Редактирование справочников (задача 9), кроме ввода новой страны / периода / валюты в карточке
 
 ### Критерий приёмки
 
@@ -595,11 +678,11 @@ miLanguage.Caption=Language
 - Незаполненные Country / Denomination и некорректные числа не дают сохранить.
 - Даты и пустые поля сохраняются и читаются без искажений (NULL ↔ пусто).
 - Надпись про общие поля монеты показывается только при нескольких экземплярах.
-- Ветка 6-ui-coin-edit смержена в master.
+- Ветка 7-ui-coin-edit смержена в master.
 
 ---
 
-## Задача 7 (UI-3). Дерево континентов и стран, поиск, фильтры
+## Задача 8 (UI-3). Дерево континентов и стран, поиск, фильтры
 
 ### Цель
 
@@ -607,7 +690,7 @@ miLanguage.Caption=Language
 
 ### Ветка
 
-7-ui-filters от master (после merge задачи 6); по завершении — merge в master. Коммит: «7 - Дерево и фильтры».
+8-ui-filters от master (после merge задачи 7); по завершении — merge в master. Коммит: «8 - Дерево и фильтры».
 
 ### Объём работ
 
@@ -653,7 +736,7 @@ All (1234)
 
 - Сохранение выбранного узла и фильтров между запусками
 - Расширенный фильтр (по годам, состоянию и т.д.)
-- Правка континента / is_exist страны (задача 8)
+- Правка континента / is_exist страны (задача 9)
 
 ### Критерий приёмки
 
@@ -661,11 +744,11 @@ All (1234)
 - Фильтры по дереву, поиску и Need to replace работают вместе; итоги в строке состояния считаются по видимым записям.
 - Колонка Country появляется / скрывается по правилу.
 - После Add / Edit / Delete дерево и итоги обновляются.
-- Ветка 7-ui-filters смержена в master.
+- Ветка 8-ui-filters смержена в master.
 
 ---
 
-## Задача 8 (UI-4). Справочники: страны, периоды, валюты
+## Задача 9 (UI-4). Справочники: страны, периоды, валюты
 
 ### Цель
 
@@ -673,7 +756,7 @@ All (1234)
 
 ### Ветка
 
-8-ui-reference от master (после merge задачи 7); по завершении — merge в master. Коммит: «8 - Справочники».
+9-ui-reference от master (после merge задачи 8); по завершении — merge в master. Коммит: «9 - Справочники».
 
 ### Объём работ
 
@@ -701,4 +784,4 @@ All (1234)
 - Страна получает континент и признак Exists; в главном дереве она сразу переезжает в нужный узел.
 - Массовое назначение континента работает.
 - Используемую запись удалить нельзя, неиспользуемую — можно; дубли имён не создаются.
-- Ветка 8-ui-reference смержена в master.
+- Ветка 9-ui-reference смержена в master.
