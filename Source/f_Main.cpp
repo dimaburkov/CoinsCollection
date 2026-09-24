@@ -5,6 +5,8 @@
 
 #include "f_Main.h"
 #include "dm_Data.h"
+#include "u_AppConfig.h"
+#include "u_Translator.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 #pragma resource "*.dfm"
@@ -44,17 +46,53 @@ namespace
 __fastcall TfmMain::TfmMain(TComponent* Owner)
 	: TForm(Owner)
 {
+	Translator().TranslateForm(this);
+	BuildLanguageMenu();
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::FormCreate(TObject *Sender)
 {
-	FConfig.Load();
-
 	FDatabase.reset(new TDatabase(dmData->FDConnection));
-	FDatabase->Open(FConfig.DbPath);
+	FDatabase->Open(AppConfig().DbPath);
 	FDatabase->EnsureSchema();
 
 	FRepository.reset(new TCoinRepository(FDatabase.get()));
+}
+//---------------------------------------------------------------------------
+// Подпункты Settings -> Language: по одному на найденный Lang\*.ini.
+// Названия языков пишутся на самом языке и не переводятся.
+void TfmMain::BuildLanguageMenu()
+{
+	miLanguage->Clear();
+	const std::vector<TLanguageInfo> &languages = Translator().Languages();
+	for (size_t i = 0; i < languages.size(); ++i)
+	{
+		TMenuItem *item = new TMenuItem(miLanguage);
+		item->Caption    = languages[i].Name;
+		item->Tag        = (NativeInt)i;
+		item->RadioItem  = true;
+		item->GroupIndex = 1;
+		item->Checked    = SameText(languages[i].Code, Translator().Language());
+		item->OnClick    = LanguageClick;
+		miLanguage->Add(item);
+	}
+	miLanguage->Enabled = !languages.empty();
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::LanguageClick(TObject *Sender)
+{
+	TMenuItem *item = static_cast<TMenuItem *>(Sender);
+	const std::vector<TLanguageInfo> &languages = Translator().Languages();
+	const size_t index = (size_t)item->Tag;
+	if (index >= languages.size())
+		return;
+
+	Translator().SetLanguage(languages[index].Code);
+	Translator().TranslateAll();
+	item->Checked = true;
+
+	AppConfig().Language = Translator().Language();
+	AppConfig().Save();
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::FormDestroy(TObject *Sender)
@@ -70,19 +108,20 @@ void __fastcall TfmMain::btnSelfTestClick(TObject *Sender)
 {
 	if (!FDatabase || !FDatabase->IsOpen() || !FRepository)
 	{
-		ShowMessage(L"Database is not open.");
+		ShowMessage(Tr(L"Main.DbNotOpen"));
 		return;
 	}
 	ShowMessage(SchemaReport() + L"\n" + CrudReport());
 }
 //---------------------------------------------------------------------------
+// Отчёт self-test: заголовки переводятся, описания проверок (временные) — нет.
 String TfmMain::SchemaReport()
 {
 	TFDConnection *conn = FDatabase->Connection();
-	String report = L"Database: " + FConfig.DbPath
-		+ L"\nSchema version: " + IntToStr(FDatabase->SchemaVersion())
-		+ L"\nForeign keys: " + VarToStr(conn->ExecSQLScalar(L"PRAGMA foreign_keys"))
-		+ L"\n\nTables:";
+	String report = Tr(L"Main.SelfTest.Database") + L": " + AppConfig().DbPath
+		+ L"\n" + Tr(L"Main.SelfTest.SchemaVersion") + L": " + IntToStr(FDatabase->SchemaVersion())
+		+ L"\n" + Tr(L"Main.SelfTest.ForeignKeys") + L": " + VarToStr(conn->ExecSQLScalar(L"PRAGMA foreign_keys"))
+		+ L"\n\n" + Tr(L"Main.SelfTest.Tables") + L":";
 
 	std::unique_ptr<TStringList> tables(new TStringList());
 	conn->GetTableNames(L"", L"", L"", tables.get(), TFDPhysObjectScopes() << osMy,
@@ -226,6 +265,8 @@ String TfmMain::CrudReport()
 		clean = clean && delta(i) == 0;
 	checks.Check(clean, L"test data cleaned up");
 
-	return String(L"CRUD self-test: ") + (checks.Failed == 0 ? L"OK" : L"FAILED") + L"\n\n" + checks.Text;
+	return Format(Tr(L"Main.SelfTest.Crud"),
+		ARRAYOFCONST((Tr(checks.Failed == 0 ? L"Main.SelfTest.Ok" : L"Main.SelfTest.Failed"))))
+		+ L"\n\n" + checks.Text;
 }
 //---------------------------------------------------------------------------
