@@ -1,16 +1,15 @@
 //---------------------------------------------------------------------------
-
 #include <vcl.h>
 #pragma hdrstop
 
-#include "f_Main.h"
+#include "dm_Data.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 #pragma resource "*.dfm"
-TfmMain *fmMain;
+TdmData *dmData;
 //---------------------------------------------------------------------------
-__fastcall TfmMain::TfmMain(TComponent* Owner)
-	: TForm(Owner)
+__fastcall TdmData::TdmData(TComponent* Owner)
+	: TDataModule(Owner)
 {
 }
 //---------------------------------------------------------------------------

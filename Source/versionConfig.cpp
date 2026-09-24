@@ -1,16 +1,14 @@
 //---------------------------------------------------------------------------
-
 #include <vcl.h>
 #pragma hdrstop
 
-#include "f_Main.h"
+#include "versionConfig.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
-#pragma resource "*.dfm"
-TfmMain *fmMain;
 //---------------------------------------------------------------------------
-__fastcall TfmMain::TfmMain(TComponent* Owner)
-	: TForm(Owner)
+namespace AppInfo
 {
+	const String Name    = L"CoinsCollection";
+	const String Version = L"0.1.0.0";
 }
 //---------------------------------------------------------------------------

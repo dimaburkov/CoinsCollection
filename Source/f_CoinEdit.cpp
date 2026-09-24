@@ -1,15 +1,14 @@
 //---------------------------------------------------------------------------
-
 #include <vcl.h>
 #pragma hdrstop
 
-#include "f_Main.h"
+#include "f_CoinEdit.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 #pragma resource "*.dfm"
-TfmMain *fmMain;
+TfmCoinEdit *fmCoinEdit;
 //---------------------------------------------------------------------------
-__fastcall TfmMain::TfmMain(TComponent* Owner)
+__fastcall TfmCoinEdit::TfmCoinEdit(TComponent* Owner)
 	: TForm(Owner)
 {
 }

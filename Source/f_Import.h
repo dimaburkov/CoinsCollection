@@ -1,22 +1,23 @@
 //---------------------------------------------------------------------------
-// Главное окно приложения: список коллекции. Пока пустая заготовка.
+// Мастер импорта коллекции из .xlsx: выбор файла -> предпросмотр -> запуск ->
+// отчёт. Пустая заготовка.
 //---------------------------------------------------------------------------
-#ifndef f_MainH
-#define f_MainH
+#ifndef f_ImportH
+#define f_ImportH
 //---------------------------------------------------------------------------
 #include <System.Classes.hpp>
 #include <Vcl.Controls.hpp>
 #include <Vcl.StdCtrls.hpp>
 #include <Vcl.Forms.hpp>
 //---------------------------------------------------------------------------
-class TfmMain : public TForm
+class TfmImport : public TForm
 {
 __published:	// IDE-managed Components
 private:	// User declarations
 public:		// User declarations
-	__fastcall TfmMain(TComponent* Owner);
+	__fastcall TfmImport(TComponent* Owner);
 };
 //---------------------------------------------------------------------------
-extern PACKAGE TfmMain *fmMain;
+extern PACKAGE TfmImport *fmImport;
 //---------------------------------------------------------------------------
 #endif
