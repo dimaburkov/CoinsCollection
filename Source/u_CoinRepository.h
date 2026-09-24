@@ -1,12 +1,13 @@
 //---------------------------------------------------------------------------
-// Чтение/запись монет в БД. Преобразует строки БД <-> TCoinRecord.
-// Реализация — в задаче 3a.
+// Коллекция в БД: «плоская» запись TCoinRecord <-> справочники + coins
+// (монета-тип) + coin_items (экземпляр). Все запросы параметризованные.
 //---------------------------------------------------------------------------
 #ifndef u_CoinRepositoryH
 #define u_CoinRepositoryH
 //---------------------------------------------------------------------------
 #include <vector>
 #include "u_CoinTypes.h"
+#include "u_LookupRepository.h"
 //---------------------------------------------------------------------------
 class TDatabase;
 //---------------------------------------------------------------------------
@@ -16,17 +17,28 @@ public:
 	explicit TCoinRepository(TDatabase *ADatabase);
 	~TCoinRepository();
 
-	// Загрузить все монеты из БД.
+	// Все экземпляры коллекции (сортировка: страна, номинал, год).
 	std::vector<TCoinRecord> LoadAll();
 
-	// Вставить (Id == 0) или обновить запись. Возвращает Id записи.
+	// Сохранить экземпляр в одной транзакции: справочники -> coins -> coin_items.
+	// CoinId == 0 — найти такую же монету или создать; иначе обновить монету
+	// (изменения видны у всех её экземпляров). Id == 0 — новый экземпляр.
+	// Заполняет CoinId и Id; возвращает Id.
 	int  Save(TCoinRecord &ARecord);
 
-	// Удалить запись по Id. true, если запись существовала.
+	// Удалить экземпляр; монету без экземпляров — тоже. Справочники не трогает.
+	// true, если экземпляр существовал.
 	bool Delete(int AId);
 
+	TLookupRepository &Lookups() { return FLookups; }
+
 private:
-	TDatabase *FDatabase;   // не владеет
+	TDatabase         *FDatabase;   // не владеет
+	TLookupRepository  FLookups;
+
+	int  FindCoin(int APeriodId, int ACurrencyId, const TCoinRecord &ARecord);
+	void WriteCoin(int APeriodId, int ACurrencyId, TCoinRecord &ARecord);
+	void WriteItem(int AConditionId, TCoinRecord &ARecord);
 };
 //---------------------------------------------------------------------------
 #endif

@@ -36,4 +36,44 @@ private:
 	void BackupBeforeMigration(int AVersion);
 };
 //---------------------------------------------------------------------------
+// Транзакция на время жизни объекта: без Commit() — откат в деструкторе.
+// Если транзакция уже открыта снаружи (например, пакетный импорт), своя не
+// начинается — фиксацией и откатом управляет внешний код.
+//---------------------------------------------------------------------------
+class TDbTransaction
+{
+public:
+	explicit TDbTransaction(TFDConnection *AConnection)
+		: FConnection(AConnection),
+		  FOwn(!AConnection->InTransaction),
+		  FDone(false)
+	{
+		if (FOwn)
+			FConnection->StartTransaction();
+	}
+
+	~TDbTransaction()
+	{
+		if (FOwn && !FDone)
+		{
+			try { FConnection->Rollback(); } catch (...) {}
+		}
+	}
+
+	void Commit()
+	{
+		if (FOwn && !FDone)
+			FConnection->Commit();
+		FDone = true;
+	}
+
+private:
+	TFDConnection *FConnection;
+	bool           FOwn;
+	bool           FDone;
+
+	TDbTransaction(const TDbTransaction &);
+	TDbTransaction &operator=(const TDbTransaction &);
+};
+//---------------------------------------------------------------------------
 #endif

@@ -209,6 +209,10 @@
             <DependentOn>u_SeedData.h</DependentOn>
             <BuildOrder>16</BuildOrder>
         </CppCompile>
+        <CppCompile Include="u_LookupRepository.cpp">
+            <DependentOn>u_LookupRepository.h</DependentOn>
+            <BuildOrder>17</BuildOrder>
+        </CppCompile>
         <FormResources Include="f_Main.dfm"/>
         <FormResources Include="dm_Data.dfm"/>
         <FormResources Include="f_CoinEdit.dfm"/>

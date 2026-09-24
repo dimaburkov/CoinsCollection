@@ -25,12 +25,14 @@ enum TCoinCondition
 };
 
 //---------------------------------------------------------------------------
-// Одна монета коллекции. Соответствует строке xlsx-экспорта uCoin.net.
+// Один экземпляр коллекции в «плоском» виде — как строка xlsx-экспорта uCoin.net.
+// В БД раскладывается по справочникам, coins (монета-тип) и coin_items (экземпляр).
 // Числовые "нет данных" кодируются нулём, даты — нулевым TDateTime.
 //---------------------------------------------------------------------------
 struct TCoinRecord
 {
-	int       Id;              // внутренний первичный ключ (0 = новая запись)
+	int       Id;              // coin_items.id (0 = новый экземпляр)
+	int       CoinId;          // coins.id (0 = монета ещё не сохранена)
 
 	String    Country;
 	String    Period;
@@ -61,6 +63,7 @@ struct TCoinRecord
 
 	TCoinRecord()
 		: Id(0),
+		  CoinId(0),
 		  Year(0),
 		  DiameterMm(0.0),
 		  CatalogValueUah(0.0),
@@ -69,6 +72,49 @@ struct TCoinRecord
 		  MyValueUah(0.0)
 	{
 	}
+};
+
+//---------------------------------------------------------------------------
+// Записи справочников (таблицы continents, countries, periods, currencies, conditions).
+//---------------------------------------------------------------------------
+struct TContinent
+{
+	int    Id;
+	String Name;
+	TContinent() : Id(0) {}
+};
+
+struct TCountry
+{
+	int    Id;
+	String Name;
+	int    ContinentId;        // 0 = не указан
+	bool   IsExist;            // false — исчезнувшее государство
+	TCountry() : Id(0), ContinentId(0), IsExist(true) {}
+};
+
+struct TPeriod
+{
+	int    Id;
+	int    CountryId;
+	String Name;               // пустая строка — период не указан
+	TPeriod() : Id(0), CountryId(0) {}
+};
+
+struct TCurrency
+{
+	int    Id;
+	String Name;
+	TCurrency() : Id(0) {}
+};
+
+struct TCondition
+{
+	int    Id;
+	String Code;               // VF, XF, UNC ...
+	String Name;
+	int    SortOrder;
+	TCondition() : Id(0), SortOrder(0) {}
 };
 //---------------------------------------------------------------------------
 #endif
