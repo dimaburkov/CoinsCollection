@@ -325,6 +325,10 @@ CRUD коллекции поверх нормализованной схемы: 
 - UpdateCountry(const TCountry &) — континент и is_exist.
 - Имена сравниваются после Trim; без учёта регистра — COLLATE NOCASE (работает для латиницы; данные uCoin на английском).
 
+**u_Database — TDbTransaction**
+
+- Транзакция на время жизни объекта: без Commit() — откат в деструкторе. Если транзакция уже открыта снаружи (будущий пакетный импорт), своя не начинается.
+
 **u_CoinRepository — TCoinRepository**
 
 - Конструктор принимает TDatabase* (и использует TLookupRepository).
@@ -334,7 +338,7 @@ CRUD коллекции поверх нормализованной схемы: 
   2. CoinId == 0 — найти запись coins с тем же (id_period, id_currency, denomination, year, variety, subject; сравнение NULL-безопасное, `IS`) или создать; иначе UPDATE coins (меняет тип для всех его экземпляров); записать CoinId;
   3. Id == 0 — INSERT coin_items, иначе UPDATE; записать Id. Вернуть Id.
 - Delete(int AId): удалить запись coin_items; если у монеты не осталось экземпляров — удалить и запись coins. Справочники не трогаются. Вернуть true, если экземпляр существовал.
-- Все запросы параметризованные. Маппинг: TDateTime ↔ 'yyyy-mm-dd' (0 ↔ NULL); Year / DiameterMm: 0 ↔ NULL; пустые строки ↔ NULL.
+- Все запросы параметризованные. Маппинг: TDateTime ↔ 'yyyy-mm-dd' (0 ↔ NULL); Year / DiameterMm / CatalogValueUah / MyValueUah: 0 ↔ NULL; пустые строки (после Trim) ↔ NULL.
 
 **Запуск и проверка**
 
