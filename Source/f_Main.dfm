@@ -1,7 +1,7 @@
 object fmMain: TfmMain
   Left = 0
   Top = 0
-  Caption = 'CoinsCollection'
+  Caption = 'Coins Collection'
   ClientHeight = 441
   ClientWidth = 784
   Color = clBtnFace
@@ -10,6 +10,7 @@ object fmMain: TfmMain
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
+  Menu = MainMenu
   OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
@@ -23,5 +24,15 @@ object fmMain: TfmMain
     Caption = 'DB self-test'
     TabOrder = 0
     OnClick = btnSelfTestClick
+  end
+  object MainMenu: TMainMenu
+    Left = 200
+    Top = 16
+    object miSettings: TMenuItem
+      Caption = 'Settings'
+      object miLanguage: TMenuItem
+        Caption = 'Language'
+      end
+    end
   end
 end

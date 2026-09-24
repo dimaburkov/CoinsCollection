@@ -33,6 +33,7 @@ Exe/*.ini
 Exe/*.il?
 Exe/*.pdi
 Exe/*.xlsx
+Exe/Lang/
 
 # IDE files
 *.cbproj.local
