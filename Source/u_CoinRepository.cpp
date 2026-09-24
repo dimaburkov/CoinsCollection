@@ -19,19 +19,19 @@ TCoinRepository::~TCoinRepository()
 //---------------------------------------------------------------------------
 std::vector<TCoinRecord> TCoinRepository::LoadAll()
 {
-	// TODO (задача «БД»): SELECT * FROM coin, маппинг строк в TCoinRecord.
+	// TODO задача 3a: coin_items JOIN coins, periods, countries, currencies, conditions.
 	return std::vector<TCoinRecord>();
 }
 //---------------------------------------------------------------------------
 int TCoinRepository::Save(TCoinRecord &ARecord)
 {
-	// TODO (задача «БД»): INSERT при Id == 0, иначе UPDATE; вернуть Id.
+	// TODO задача 3a: справочники -> coins -> coin_items в одной транзакции.
 	return ARecord.Id;
 }
 //---------------------------------------------------------------------------
 bool TCoinRepository::Delete(int AId)
 {
-	// TODO (задача «БД»): DELETE FROM coin WHERE id = :id.
+	// TODO задача 3a: удалить coin_items (и coins без экземпляров).
 	(void)AId;
 	return false;
 }
