@@ -16,6 +16,7 @@ USEUNIT("u_CoinImporter.cpp");
 USEUNIT("u_NumistaClient.cpp");
 USEUNIT("u_AppConfig.cpp");
 USEUNIT("versionConfig.cpp");
+USEUNIT("u_SeedData.cpp");
 //---------------------------------------------------------------------------
 int WINAPI _tWinMain(HINSTANCE, HINSTANCE, LPTSTR, int)
 {

@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 // Модуль данных: единая точка подключения к SQLite через FireDAC.
-// Компоненты пока без настройки — параметры соединения задаются в задаче «БД».
+// Файл БД задаётся в коде (TDatabase::Open), не в .dfm.
 //---------------------------------------------------------------------------
 #ifndef dm_DataH
 #define dm_DataH
@@ -22,6 +22,12 @@
 #include <FireDAC.DApt.hpp>
 #include <FireDAC.Comp.DataSet.hpp>
 #include <FireDAC.Comp.Client.hpp>
+#include <FireDAC.Stan.ExprFuncs.hpp>
+#include <FireDAC.Phys.SQLiteDef.hpp>
+#include <FireDAC.Phys.SQLite.hpp>
+#include <FireDAC.Phys.SQLiteWrapper.Stat.hpp>	// SQLite вшит в драйвер, sqlite3.dll не нужен
+#include <FireDAC.Comp.UI.hpp>
+#include <FireDAC.VCLUI.Wait.hpp>
 //---------------------------------------------------------------------------
 class TdmData : public TDataModule
 {
@@ -29,6 +35,8 @@ __published:	// IDE-managed Components
 	TFDConnection *FDConnection;
 	TFDTransaction *FDTransaction;
 	TFDQuery *FDQuery;
+	TFDPhysSQLiteDriverLink *FDPhysSQLiteDriverLink;
+	TFDGUIxWaitCursor *FDGUIxWaitCursor;
 private:	// User declarations
 public:		// User declarations
 	__fastcall TdmData(TComponent* Owner);

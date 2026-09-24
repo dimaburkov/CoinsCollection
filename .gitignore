@@ -27,6 +27,13 @@ Release/
 *.map
 *.res
 
+# Local app data next to the exe (DB, settings, incremental-link files)
+Exe/Db/
+Exe/*.ini
+Exe/*.il?
+Exe/*.pdi
+Exe/*.xlsx
+
 # IDE files
 *.cbproj.local
 *.groupproj.local
