@@ -126,6 +126,14 @@
     <PropertyGroup Condition="'$(Cfg_2_Win64)'!=''">
         <BCC_PCHName_Clang>CoinsCollection.h</BCC_PCHName_Clang>
     </PropertyGroup>
+    <ItemGroup Condition="'$(Platform)'=='Win32'">
+        <PackageImport Include="rtl.bpi"/>
+        <PackageImport Include="vcl.bpi"/>
+        <PackageImport Include="dbrtl.bpi"/>
+        <PackageImport Include="FireDACCommon.bpi"/>
+        <PackageImport Include="FireDACCommonDriver.bpi"/>
+        <PackageImport Include="FireDAC.bpi"/>
+    </ItemGroup>
     <ItemGroup>
         <PCHCompile Include="CoinsCollection.h">
             <BuildOrder>1</BuildOrder>

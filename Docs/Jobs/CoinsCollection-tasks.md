@@ -133,14 +133,19 @@
 
 3-database от master; по завершении — merge в master. Коммит: «3 - База данных SQLite».
 
+### Среда
+
+RAD Studio 13 (BDS 37.0), Win32, Clang + runtime-пакеты. Готовый exe требует стоковые пакеты *370.bpl. RAD 13 используется и для PawnShop, поэтому все настройки — только в Source/_CoinsCollection.cbproj; настройки IDE, глобальные пути и установленные пакеты не менять.
+
 ### Объём работ
 
 **dm_Data — подключение к SQLite**
 
 - Добавить на модуль данных TFDPhysSQLiteDriverLink и TFDGUIxWaitCursor (иначе FireDAC ругается при первом запросе).
 - FDConnection: DriverName = SQLite, LoginPrompt = False; параметр Database задаётся в коде (TDatabase::Open), не в .dfm.
-- SQLite-движок линкуется статически (подключить FireDAC.Phys.SQLiteWrapper.Stat) — внешний sqlite3.dll рядом с exe не нужен.
+- Подключить FireDAC.Phys.SQLiteWrapper.Stat — SQLite-движок вшит в драйвер (пакет FireDACSqliteDriver370.bpl), внешний sqlite3.dll рядом с exe не нужен.
 - FDQuery.Connection = FDConnection; FDTransaction.Connection = FDConnection.
+- В Source/_CoinsCollection.cbproj, в ItemGroup с PackageImport для Win32, добавить `FireDACSqliteDriver.bpi` и `vclFireDAC.bpi` (в них лежат FireDAC.Phys.SQLite / FireDAC.Phys.SQLiteWrapper.Stat и FireDAC.VCLUI.Wait). Без них ilink32 ищет отсутствующие в RAD 13 .obj (ошибка вида «Unable to open file 'FIREDAC.PHYS.SQLITE.OBJ'»). Свойство LinkPackageImports не использовать — IDE его перекрывает.
 
 **u_AppConfig — путь к файлу БД**
 
@@ -211,6 +216,8 @@
 
 ### Критерий приёмки
 
+- Проект собирается в RAD Studio 13 (Win32, Debug и Release) без ошибок — и из IDE, и через msbuild.
+- Exe зависит только от стоковых *370.bpl; настройки IDE и проект PawnShop не изменены.
 - Первый запуск создаёт coins.db рядом с exe; SchemaVersion() == 1; таблица coin существует со всеми колонками.
 - Повторный запуск не пересоздаёт схему (user_version уже 1), данные сохраняются между запусками.
 - DB self-test: запись добавляется (Id > 0), видна в LoadAll, удаляется; счётчики строк до/после сходятся.
