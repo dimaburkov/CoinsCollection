@@ -120,3 +120,100 @@
 - В PackageImports (Win32 и Win64) нет ARLibControls, EhLib210, acntCX10Sydney*, alphaDBCX10Sydney, Ics*CBNewRun; сток (FireDAC*, REST, VCL) на месте.
 - В путях проекта нет ссылок на PawnShop, $(CMPN_*), D:\Components.
 - Ветка 2-skeleton смержена в master.
+
+---
+
+## Задача 3. База данных SQLite
+
+### Цель
+
+Реальное хранение коллекции в SQLite: подключение через FireDAC, схема с версионированием, работающий CRUD через TCoinRepository.
+
+### Ветка
+
+3-database от master; по завершении — merge в master. Коммит: «3 - База данных SQLite».
+
+### Объём работ
+
+**dm_Data — подключение к SQLite**
+
+- Добавить на модуль данных TFDPhysSQLiteDriverLink и TFDGUIxWaitCursor (иначе FireDAC ругается при первом запросе).
+- FDConnection: DriverName = SQLite, LoginPrompt = False; параметр Database задаётся в коде (TDatabase::Open), не в .dfm.
+- SQLite-движок линкуется статически (подключить FireDAC.Phys.SQLiteWrapper.Stat) — внешний sqlite3.dll рядом с exe не нужен.
+- FDQuery.Connection = FDConnection; FDTransaction.Connection = FDConnection.
+
+**u_AppConfig — путь к файлу БД**
+
+- Load() / Save() через TIniFile по пути `<каталог exe>\CoinsCollection.ini`, секция [Database], ключ Path.
+- Если ключа нет — DbPath = `<каталог exe>\coins.db`.
+
+**u_Database — TDatabase**
+
+- Конструктор: `TDatabase(TFDConnection *AConnection)` (хранит указатель, не владеет).
+- Open(const String &AFileName): выставить параметр Database = AFileName, Connected = true (файл создаётся при отсутствии).
+- Close(): Connected = false.
+- IsOpen(): состояние соединения.
+- SchemaVersion(): вернуть `PRAGMA user_version`.
+- EnsureSchema(): лестница миграций в транзакции. v0 -> v1: создать таблицу coin (схема ниже), выставить `PRAGMA user_version = 1`. Заготовить место под будущие шаги (v1 -> v2 и т.д.).
+- Connection(): доступ к TFDConnection для репозитория.
+
+**u_CoinRepository — CRUD**
+
+- Конструктор принимает TDatabase*; работает через его Connection().
+- LoadAll(): `SELECT * FROM coin ORDER BY country, denomination, year` -> std::vector<TCoinRecord>.
+- Save(TCoinRecord &ARecord): при Id == 0 — INSERT, затем записать last_insert_rowid() в ARecord.Id; иначе UPDATE ... WHERE id = :id. Вернуть Id.
+- Delete(int AId): `DELETE FROM coin WHERE id = :id`; вернуть RowsAffected > 0.
+- Все запросы параметризованные (:param), без склейки значений в строку.
+- Вспомогательные функции маппинга в .cpp: TDateTime <-> TEXT 'yyyy-mm-dd' (0 <-> NULL/''); числовые поля с проверкой на NULL.
+
+**Запуск и проверка**
+
+- fmMain.FormCreate: config.Load(); открыть TDatabase(dmData->FDConnection) на config.DbPath; EnsureSchema(); создать TCoinRepository.
+- fmMain.FormDestroy: освободить репозиторий и TDatabase, закрыть соединение.
+- Временная кнопка «DB self-test» на fmMain: добавить тестовую запись через Save, перечитать LoadAll, удалить через Delete, показать ShowMessage с числом строк до и после. Кнопку убрать в задаче с реальным UI.
+
+### Схема БД v1 — таблица coin
+
+| Колонка | Тип SQLite | Поле TCoinRecord |
+|---|---|---|
+| id | INTEGER PRIMARY KEY | Id |
+| country | TEXT | Country |
+| period | TEXT | Period |
+| currency | TEXT | Currency |
+| denomination | TEXT | Denomination |
+| year | INTEGER | Year |
+| variety | TEXT | Variety |
+| subject | TEXT | Subject |
+| diameter_mm | REAL | DiameterMm |
+| condition | TEXT | Condition |
+| catalog_value_uah | REAL | CatalogValueUah |
+| catalog_number | TEXT | CatalogNumber |
+| color | TEXT | Color |
+| quantity | INTEGER NOT NULL DEFAULT 1 | Quantity |
+| need_to_replace | INTEGER NOT NULL DEFAULT 0 | NeedToReplace |
+| published_date | TEXT | PublishedDate ('yyyy-mm-dd' / NULL) |
+| swap_info | TEXT | SwapInfo |
+| purchase_date | TEXT | PurchaseDate ('yyyy-mm-dd' / NULL) |
+| my_value_uah | REAL | MyValueUah |
+| grading_company | TEXT | GradingCompany |
+| grading_number | TEXT | GradingNumber |
+| grade | TEXT | Grade |
+| label_text | TEXT | LabelText |
+| comment | TEXT | Comment |
+
+### Не входит в задачу
+
+- Импорт из .xlsx
+- Любая работа с Numista API
+- Реальный UI списка и карточки монеты (только временная кнопка проверки)
+- Полноценный экран настроек
+- Любые изменения в IDE и в проекте PawnShop
+
+### Критерий приёмки
+
+- Первый запуск создаёт coins.db рядом с exe; SchemaVersion() == 1; таблица coin существует со всеми колонками.
+- Повторный запуск не пересоздаёт схему (user_version уже 1), данные сохраняются между запусками.
+- DB self-test: запись добавляется (Id > 0), видна в LoadAll, удаляется; счётчики строк до/после сходятся.
+- Внешний sqlite3.dll рядом с exe не требуется.
+- Запросы параметризованные.
+- Ветка 3-database смержена в master.
