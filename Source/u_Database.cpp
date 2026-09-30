@@ -5,6 +5,7 @@
 #include <memory>
 #include "u_Database.h"
 #include "u_SeedData.h"
+#include "u_Translator.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 //---------------------------------------------------------------------------
@@ -75,12 +76,16 @@ void TDatabase::EnsureSchema()
 	}
 }
 //---------------------------------------------------------------------------
-// Копия файла БД перед миграцией: <имя>.v<версия>.bak рядом с БД.
-// Соединение закрывается на время копирования, чтобы файл был согласованным.
-void TDatabase::BackupBeforeMigration(int AVersion)
+// Копия файла БД рядом с ним: <имя>.<ASuffix>.bak (существующая перезаписывается).
+// Соединение закрывается на время копирования, чтобы файл был согласованным;
+// вызывать вне транзакции. Возвращает путь копии.
+String TDatabase::Backup(const String &ASuffix)
 {
+	if (FConnection->InTransaction)
+		throw Exception(L"TDatabase::Backup: called inside a transaction");
+
 	const String dbFile = FConnection->Params->Values[L"Database"];
-	const String bakFile = ChangeFileExt(dbFile, L".v" + IntToStr(AVersion) + L".bak");
+	const String bakFile = ChangeFileExt(dbFile, L"." + ASuffix + L".bak");
 
 	FConnection->Connected = false;
 	const bool copied = CopyFileW(dbFile.c_str(), bakFile.c_str(), FALSE);
@@ -88,8 +93,14 @@ void TDatabase::BackupBeforeMigration(int AVersion)
 	FConnection->Connected = true;
 
 	if (!copied)
-		throw Exception(L"Cannot back up database before upgrade to " + bakFile
-			+ L": " + SysErrorMessage(error));
+		throw Exception(Format(Tr(L"Db.Error.Backup"), ARRAYOFCONST((bakFile, SysErrorMessage(error)))));
+	return bakFile;
+}
+//---------------------------------------------------------------------------
+// Копия перед миграцией: <имя>.v<версия>.bak.
+void TDatabase::BackupBeforeMigration(int AVersion)
+{
+	Backup(L"v" + IntToStr(AVersion));
 }
 //---------------------------------------------------------------------------
 // v1: нормализованная схема (3НФ) + справочники continents, countries, conditions.

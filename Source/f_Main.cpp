@@ -7,10 +7,13 @@
 #include <set>
 #include <shlwapi.h>
 #include <CommCtrl.h>
+#include <Vcl.Dialogs.hpp>
 #include "f_Main.h"
 #include "dm_Data.h"
 #include "u_AppConfig.h"
 #include "u_Translator.h"
+#include "u_ImportSource.h"
+#include "u_CoinImporter.h"
 #include "versionConfig.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -124,6 +127,99 @@ void __fastcall TfmMain::LanguageClick(TObject *Sender)
 
 	AppConfig().Language = Translator().Language();
 	AppConfig().Save();
+}
+//---------------------------------------------------------------------------
+// Импорт экспорта uCoin (.xlsx): разбор -> подтверждение -> копия БД -> замена коллекции.
+void __fastcall TfmMain::actImportExecute(TObject *Sender)
+{
+	const String title = Tr(L"Import.Title");
+	const String nl = L"\r\n";
+
+	std::unique_ptr<TOpenDialog> dialog(new TOpenDialog(this));
+	dialog->Title      = title;
+	dialog->Filter     = Tr(L"Import.FileFilter");
+	dialog->DefaultExt = L"xlsx";
+	dialog->InitialDir = TAppConfig::ExeDir();
+	dialog->Options    = dialog->Options << ofFileMustExist << ofPathMustExist;
+	if (!dialog->Execute())
+		return;
+
+	// 1. Разбор файла.
+	std::vector<TCoinRecord> records;
+	std::vector<TImportError> errors;
+	int dataRows = 0;
+	const TCursor oldCursor = Screen->Cursor;
+	Screen->Cursor = crHourGlass;
+	try
+	{
+		TXlsxSource source;
+		source.Open(dialog->FileName);
+		TCoinImporter importer(FRepository->Lookups().Conditions());
+		records  = importer.Parse(source);
+		errors   = importer.Errors();
+		dataRows = importer.DataRowCount();
+		Screen->Cursor = oldCursor;
+	}
+	catch (Exception &e)
+	{
+		Screen->Cursor = oldCursor;
+		Application->MessageBox((Tr(L"Import.Error.Read") + nl + nl + e.Message).c_str(), title.c_str(), MB_OK | MB_ICONERROR);
+		return;
+	}
+
+	// 2. Итог разбора и подтверждение.
+	String text = ExtractFileName(dialog->FileName) + nl + nl
+		+ Format(Tr(L"Import.Summary.Rows"),   ARRAYOFCONST((dataRows))) + nl
+		+ Format(Tr(L"Import.Summary.Items"),  ARRAYOFCONST(((int)records.size()))) + nl
+		+ Format(Tr(L"Import.Summary.Errors"), ARRAYOFCONST(((int)errors.size())));
+	if (!errors.empty())
+	{
+		text += nl + nl + Tr(L"Import.Summary.FirstErrors");
+		for (size_t i = 0; i < errors.size() && i < 10; ++i)
+			text += nl + Format(Tr(L"Import.ErrorLine"), ARRAYOFCONST((errors[i].Row, errors[i].Message)));
+	}
+	if (records.empty())
+	{
+		Application->MessageBox((text + nl + nl + Tr(L"Import.Nothing")).c_str(), title.c_str(), MB_OK | MB_ICONWARNING);
+		return;
+	}
+
+	const int current = FRepository->ItemCount();
+	if (current > 0)
+		text += nl + nl + Format(Tr(L"Import.Confirm.Replace"), ARRAYOFCONST((current)));
+	text += nl + nl + Tr(L"Import.Confirm.Question");
+	if (!Confirm(text, title))
+		return;
+
+	// 3. Копия БД перед заменой непустой коллекции, затем замена в одной транзакции.
+	Screen->Cursor = crHourGlass;
+	int saved = 0;
+	try
+	{
+		if (current > 0)
+			FDatabase->Backup(L"before-import-" + FormatDateTime(L"yyyymmdd-hhnnss", Now()));
+		saved = FRepository->ReplaceAll(records);
+		Screen->Cursor = oldCursor;
+	}
+	catch (Exception &e)
+	{
+		Screen->Cursor = oldCursor;
+		Application->MessageBox((Tr(L"Import.Error.Failed") + nl + nl + e.Message).c_str(), title.c_str(), MB_OK | MB_ICONERROR);
+		return;
+	}
+
+	LoadItems();
+	std::set<int> coins;
+	for (size_t i = 0; i < FItems.size(); ++i)
+		coins.insert(FItems[i].CoinId);
+	Application->MessageBox(Format(Tr(L"Import.Done"),
+		ARRAYOFCONST((saved, (int)coins.size(), (int)errors.size()))).c_str(), title.c_str(), MB_OK | MB_ICONINFORMATION);
+}
+//---------------------------------------------------------------------------
+bool TfmMain::Confirm(const String &AText, const String &ACaption)
+{
+	return Application->MessageBox(AText.c_str(), ACaption.c_str(),
+		MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) == IDYES;
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::actExitExecute(TObject *Sender)

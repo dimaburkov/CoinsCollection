@@ -337,7 +337,7 @@ CRUD коллекции поверх нормализованной схемы: 
 - LoadAll(): coin_items JOIN coins, periods, countries, LEFT JOIN currencies, conditions → std::vector<TCoinRecord>, ORDER BY countries.name, coins.denomination, coins.year.
 - Save(TCoinRecord &ARecord) — одна транзакция:
   1. страна → период → валюта (FindOrCreate), состояние (FindCondition);
-  2. CoinId == 0 — найти запись coins с тем же (id_period, id_currency, denomination, year, variety, subject; сравнение NULL-безопасное, `IS`) или создать; иначе UPDATE coins (меняет тип для всех его экземпляров); записать CoinId;
+  2. CoinId == 0 — найти запись coins с тем же (id_period, id_currency, denomination, year, variety, subject, catalog_number; сравнение NULL-безопасное, `IS`) или создать; иначе UPDATE coins (меняет тип для всех его экземпляров); записать CoinId;
   3. Id == 0 — INSERT coin_items, иначе UPDATE; записать Id. Вернуть Id.
 - Delete(int AId): удалить запись coin_items; если у монеты не осталось экземпляров — удалить и запись coins. Справочники не трогаются. Вернуть true, если экземпляр существовал.
 - Все запросы параметризованные. Маппинг: TDateTime ↔ 'yyyy-mm-dd' (0 ↔ NULL); Year / DiameterMm / CatalogValueUah / MyValueUah: 0 ↔ NULL; пустые строки (после Trim) ↔ NULL.
@@ -609,7 +609,7 @@ miLanguage.Caption=Language
 ### Критерий приёмки
 
 - Проект собирается в RAD Studio 13 (Win32, Debug и Release) без ошибок и предупреждений; новые зависимости — только стоковый xmlrtl370.bpl.
-- Импорт `Exe\Collection_uCoin.net.xlsx`: 2305 экземпляров, 2298 монет (у 7 монет по 2 экземпляра), 0 ошибок; новых стран не появляется (все 187 есть в справочнике); у 17 экземпляров состояние пустое; даты Published / Purchase и суммы совпадают с файлом (выборочная проверка нескольких строк).
+- Импорт `Exe\Collection_uCoin.net.xlsx`: 2305 экземпляров, 2305 монет (монета определяется и по номеру по каталогу: строки с одинаковыми номиналом и годом, но разными KM# — разные монеты), 0 ошибок; новых стран не появляется (все 187 есть в справочнике); у 17 экземпляров состояние пустое; даты Published / Purchase и суммы совпадают с файлом (выборочная проверка нескольких строк).
 - Повторный импорт того же файла даёт те же числа (коллекция заменена, не удвоена), рядом с БД появляется копия `*.before-import-*.bak`.
 - Неверный файл (не .xlsx, битый zip, лист без колонки Country) — понятное сообщение, БД не изменена.
 - Импорт занимает не более нескольких секунд.

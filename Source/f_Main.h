@@ -78,6 +78,7 @@ __published:	// IDE-managed Components
 	TStatusBar *StatusBar;
 	void __fastcall FormCreate(TObject *Sender);
 	void __fastcall FormDestroy(TObject *Sender);
+	void __fastcall actImportExecute(TObject *Sender);
 	void __fastcall actExitExecute(TObject *Sender);
 	void __fastcall actRefreshExecute(TObject *Sender);
 	void __fastcall actAboutExecute(TObject *Sender);
@@ -102,6 +103,7 @@ private:	// User declarations
 	void ApplyTexts();
 
 	void LoadItems();
+	bool Confirm(const String &AText, const String &ACaption);
 	void SortItems();
 	int  CompareItems(const TCoinRecord &A, const TCoinRecord &B, int AColumn) const;
 	String CellText(const TCoinRecord &ARecord, int AColumn) const;

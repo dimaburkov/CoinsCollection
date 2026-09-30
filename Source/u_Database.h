@@ -28,6 +28,10 @@ public:
 
 	TFDConnection *Connection() const { return FConnection; }
 
+	// Копия файла БД: <имя>.<ASuffix>.bak рядом с БД; вызывать вне транзакции.
+	// Возвращает путь копии; не удалось — исключение.
+	String Backup(const String &ASuffix);
+
 private:
 	TFDConnection *FConnection;
 
