@@ -126,7 +126,7 @@ object fmMain: TfmMain
     object actImport: TAction
       Category = 'File'
       Caption = '&Import from uCoin (.xlsx)...'
-      Enabled = False
+      OnExecute = actImportExecute
     end
     object actBackup: TAction
       Category = 'File'

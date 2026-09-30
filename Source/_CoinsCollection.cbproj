@@ -137,6 +137,7 @@
         <PackageImport Include="FireDAC.bpi"/>
         <PackageImport Include="FireDACSqliteDriver.bpi"/>
         <PackageImport Include="vclFireDAC.bpi"/>
+        <PackageImport Include="xmlrtl.bpi"/>
     </ItemGroup>
     <ItemGroup>
         <PCHCompile Include="CoinsCollection.h">

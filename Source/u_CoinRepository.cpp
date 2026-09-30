@@ -2,6 +2,7 @@
 #include <vcl.h>
 #pragma hdrstop
 
+#include <map>
 #include <memory>
 #include <FireDAC.Comp.Client.hpp>
 #include "u_CoinRepository.h"
@@ -178,7 +179,8 @@ int TCoinRepository::Save(TCoinRecord &ARecord)
 	return ARecord.Id;
 }
 //---------------------------------------------------------------------------
-// Такая же монета: тот же период, валюта, номинал, год, разновидность, сюжет.
+// Такая же монета: тот же период, валюта, номинал, год, разновидность, сюжет
+// и номер по каталогу (разный KM# — разные монеты).
 // Сравнение NULL-безопасное (IS), пустые строки хранятся как NULL.
 int TCoinRepository::FindCoin(int APeriodId, int ACurrencyId, const TCoinRecord &ARecord)
 {
@@ -187,6 +189,7 @@ int TCoinRepository::FindCoin(int APeriodId, int ACurrencyId, const TCoinRecord 
 		L" WHERE id_period = :id_period AND id_currency IS :id_currency"
 		L"   AND denomination = :denomination AND year IS :year"
 		L"   AND variety IS :variety AND subject IS :subject"
+		L"   AND catalog_number IS :catalog_number"
 		L" ORDER BY id LIMIT 1");
 	q->ParamByName(L"id_period")->AsInteger = APeriodId;
 	SetIntOrNull(q->ParamByName(L"id_currency"),  ACurrencyId);
@@ -194,36 +197,88 @@ int TCoinRepository::FindCoin(int APeriodId, int ACurrencyId, const TCoinRecord 
 	SetIntOrNull(q->ParamByName(L"year"),         ARecord.Year);
 	SetText     (q->ParamByName(L"variety"),      ARecord.Variety);
 	SetText     (q->ParamByName(L"subject"),      ARecord.Subject);
+	SetText     (q->ParamByName(L"catalog_number"), ARecord.CatalogNumber);
 	q->Open();
 	return q->Eof ? 0 : q->Fields->Fields[0]->AsInteger;
+}
+//---------------------------------------------------------------------------
+namespace
+{
+	const wchar_t *const cInsertCoin =
+		L"INSERT INTO coins (id_period, id_currency, denomination, year, variety, subject,"
+		L"                   diameter_mm, catalog_number)"
+		L" VALUES (:id_period, :id_currency, :denomination, :year, :variety, :subject,"
+		L"         :diameter_mm, :catalog_number)";
+	const wchar_t *const cUpdateCoin =
+		L"UPDATE coins SET id_period = :id_period, id_currency = :id_currency,"
+		L"       denomination = :denomination, year = :year, variety = :variety,"
+		L"       subject = :subject, diameter_mm = :diameter_mm, catalog_number = :catalog_number"
+		L" WHERE id = :id";
+	const wchar_t *const cInsertItem =
+		L"INSERT INTO coin_items (id_coin, id_condition, quantity, need_to_replace,"
+		L"       catalog_value_uah, my_value_uah, purchase_date, published_date, swap_info,"
+		L"       color, grading_company, grading_number, grade, label_text, comment)"
+		L" VALUES (:id_coin, :id_condition, :quantity, :need_to_replace,"
+		L"       :catalog_value_uah, :my_value_uah, :purchase_date, :published_date, :swap_info,"
+		L"       :color, :grading_company, :grading_number, :grade, :label_text, :comment)";
+	const wchar_t *const cUpdateItem =
+		L"UPDATE coin_items SET id_coin = :id_coin, id_condition = :id_condition,"
+		L"       quantity = :quantity, need_to_replace = :need_to_replace,"
+		L"       catalog_value_uah = :catalog_value_uah, my_value_uah = :my_value_uah,"
+		L"       purchase_date = :purchase_date, published_date = :published_date,"
+		L"       swap_info = :swap_info, color = :color, grading_company = :grading_company,"
+		L"       grading_number = :grading_number, grade = :grade, label_text = :label_text,"
+		L"       comment = :comment"
+		L" WHERE id = :id";
+	//-----------------------------------------------------------------------
+	void BindCoin(TFDQuery *Q, int APeriodId, int ACurrencyId, const TCoinRecord &R)
+	{
+		Q->ParamByName(L"id_period")->AsInteger = APeriodId;
+		SetIntOrNull  (Q->ParamByName(L"id_currency"),    ACurrencyId);
+		SetText       (Q->ParamByName(L"denomination"),   R.Denomination);
+		SetIntOrNull  (Q->ParamByName(L"year"),           R.Year);
+		SetText       (Q->ParamByName(L"variety"),        R.Variety);
+		SetText       (Q->ParamByName(L"subject"),        R.Subject);
+		SetFloatOrNull(Q->ParamByName(L"diameter_mm"),    R.DiameterMm);
+		SetText       (Q->ParamByName(L"catalog_number"), R.CatalogNumber);
+	}
+	//-----------------------------------------------------------------------
+	void BindItem(TFDQuery *Q, int ACoinId, int AConditionId, const TCoinRecord &R)
+	{
+		Q->ParamByName(L"id_coin")->AsInteger         = ACoinId;
+		SetIntOrNull  (Q->ParamByName(L"id_condition"),      AConditionId);
+		Q->ParamByName(L"quantity")->AsInteger        = R.Quantity;
+		Q->ParamByName(L"need_to_replace")->AsInteger = R.NeedToReplace ? 1 : 0;
+		SetFloatOrNull(Q->ParamByName(L"catalog_value_uah"), R.CatalogValueUah);
+		SetFloatOrNull(Q->ParamByName(L"my_value_uah"),      R.MyValueUah);
+		SetText       (Q->ParamByName(L"purchase_date"),     DateToDb(R.PurchaseDate));
+		SetText       (Q->ParamByName(L"published_date"),    DateToDb(R.PublishedDate));
+		SetText       (Q->ParamByName(L"swap_info"),         R.SwapInfo);
+		SetText       (Q->ParamByName(L"color"),             R.Color);
+		SetText       (Q->ParamByName(L"grading_company"),   R.GradingCompany);
+		SetText       (Q->ParamByName(L"grading_number"),    R.GradingNumber);
+		SetText       (Q->ParamByName(L"grade"),             R.Grade);
+		SetText       (Q->ParamByName(L"label_text"),        R.LabelText);
+		SetText       (Q->ParamByName(L"comment"),           R.Comment);
+	}
+	//-----------------------------------------------------------------------
+	int LastInsertId(TDatabase *ADatabase)
+	{
+		return ADatabase->Connection()->ExecSQLScalar(L"SELECT last_insert_rowid()");
+	}
 }
 //---------------------------------------------------------------------------
 void TCoinRepository::WriteCoin(int APeriodId, int ACurrencyId, TCoinRecord &ARecord)
 {
 	const bool isNew = ARecord.CoinId == 0;
-	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, isNew
-		? L"INSERT INTO coins (id_period, id_currency, denomination, year, variety, subject,"
-		  L"                   diameter_mm, catalog_number)"
-		  L" VALUES (:id_period, :id_currency, :denomination, :year, :variety, :subject,"
-		  L"         :diameter_mm, :catalog_number)"
-		: L"UPDATE coins SET id_period = :id_period, id_currency = :id_currency,"
-		  L"       denomination = :denomination, year = :year, variety = :variety,"
-		  L"       subject = :subject, diameter_mm = :diameter_mm, catalog_number = :catalog_number"
-		  L" WHERE id = :id");
-	q->ParamByName(L"id_period")->AsInteger = APeriodId;
-	SetIntOrNull  (q->ParamByName(L"id_currency"),    ACurrencyId);
-	SetText       (q->ParamByName(L"denomination"),   ARecord.Denomination);
-	SetIntOrNull  (q->ParamByName(L"year"),           ARecord.Year);
-	SetText       (q->ParamByName(L"variety"),        ARecord.Variety);
-	SetText       (q->ParamByName(L"subject"),        ARecord.Subject);
-	SetFloatOrNull(q->ParamByName(L"diameter_mm"),    ARecord.DiameterMm);
-	SetText       (q->ParamByName(L"catalog_number"), ARecord.CatalogNumber);
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, isNew ? cInsertCoin : cUpdateCoin);
+	BindCoin(q.get(), APeriodId, ACurrencyId, ARecord);
 	if (!isNew)
 		q->ParamByName(L"id")->AsInteger = ARecord.CoinId;
 	q->ExecSQL();
 
 	if (isNew)
-		ARecord.CoinId = FDatabase->Connection()->ExecSQLScalar(L"SELECT last_insert_rowid()");
+		ARecord.CoinId = LastInsertId(FDatabase);
 	else if (q->RowsAffected == 0)
 		throw Exception(L"Coin not found: id = " + IntToStr(ARecord.CoinId));
 }
@@ -231,42 +286,14 @@ void TCoinRepository::WriteCoin(int APeriodId, int ACurrencyId, TCoinRecord &ARe
 void TCoinRepository::WriteItem(int AConditionId, TCoinRecord &ARecord)
 {
 	const bool isNew = ARecord.Id == 0;
-	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, isNew
-		? L"INSERT INTO coin_items (id_coin, id_condition, quantity, need_to_replace,"
-		  L"       catalog_value_uah, my_value_uah, purchase_date, published_date, swap_info,"
-		  L"       color, grading_company, grading_number, grade, label_text, comment)"
-		  L" VALUES (:id_coin, :id_condition, :quantity, :need_to_replace,"
-		  L"       :catalog_value_uah, :my_value_uah, :purchase_date, :published_date, :swap_info,"
-		  L"       :color, :grading_company, :grading_number, :grade, :label_text, :comment)"
-		: L"UPDATE coin_items SET id_coin = :id_coin, id_condition = :id_condition,"
-		  L"       quantity = :quantity, need_to_replace = :need_to_replace,"
-		  L"       catalog_value_uah = :catalog_value_uah, my_value_uah = :my_value_uah,"
-		  L"       purchase_date = :purchase_date, published_date = :published_date,"
-		  L"       swap_info = :swap_info, color = :color, grading_company = :grading_company,"
-		  L"       grading_number = :grading_number, grade = :grade, label_text = :label_text,"
-		  L"       comment = :comment"
-		  L" WHERE id = :id");
-	q->ParamByName(L"id_coin")->AsInteger         = ARecord.CoinId;
-	SetIntOrNull  (q->ParamByName(L"id_condition"),      AConditionId);
-	q->ParamByName(L"quantity")->AsInteger        = ARecord.Quantity;
-	q->ParamByName(L"need_to_replace")->AsInteger = ARecord.NeedToReplace ? 1 : 0;
-	SetFloatOrNull(q->ParamByName(L"catalog_value_uah"), ARecord.CatalogValueUah);
-	SetFloatOrNull(q->ParamByName(L"my_value_uah"),      ARecord.MyValueUah);
-	SetText       (q->ParamByName(L"purchase_date"),     DateToDb(ARecord.PurchaseDate));
-	SetText       (q->ParamByName(L"published_date"),    DateToDb(ARecord.PublishedDate));
-	SetText       (q->ParamByName(L"swap_info"),         ARecord.SwapInfo);
-	SetText       (q->ParamByName(L"color"),             ARecord.Color);
-	SetText       (q->ParamByName(L"grading_company"),   ARecord.GradingCompany);
-	SetText       (q->ParamByName(L"grading_number"),    ARecord.GradingNumber);
-	SetText       (q->ParamByName(L"grade"),             ARecord.Grade);
-	SetText       (q->ParamByName(L"label_text"),        ARecord.LabelText);
-	SetText       (q->ParamByName(L"comment"),           ARecord.Comment);
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, isNew ? cInsertItem : cUpdateItem);
+	BindItem(q.get(), ARecord.CoinId, AConditionId, ARecord);
 	if (!isNew)
 		q->ParamByName(L"id")->AsInteger = ARecord.Id;
 	q->ExecSQL();
 
 	if (isNew)
-		ARecord.Id = FDatabase->Connection()->ExecSQLScalar(L"SELECT last_insert_rowid()");
+		ARecord.Id = LastInsertId(FDatabase);
 	else if (q->RowsAffected == 0)
 		throw Exception(L"Coin item not found: id = " + IntToStr(ARecord.Id));
 }
@@ -294,5 +321,82 @@ bool TCoinRepository::Delete(int AId)
 
 	tx.Commit();
 	return true;
+}
+//---------------------------------------------------------------------------
+int TCoinRepository::ReplaceAll(const std::vector<TCoinRecord> &ARecords)
+{
+	// Пакетная запись: справочники и монеты этого импорта кешируются в памяти,
+	// два INSERT создаются один раз (FireDAC готовит их при первом выполнении).
+	// Правила те же, что у Save: пустые страна / номинал и неизвестное состояние —
+	// исключение и откат всего импорта.
+	TDbTransaction tx(FDatabase->Connection());
+
+	FDatabase->Connection()->ExecSQL(L"DELETE FROM coin_items");
+	FDatabase->Connection()->ExecSQL(L"DELETE FROM coins");
+
+	std::map<String, int> countries, periods, currencies, conditions, coins;
+	const std::vector<TCondition> scale = FLookups.Conditions();
+	for (size_t i = 0; i < scale.size(); ++i)
+		conditions[scale[i].Code.UpperCase()] = scale[i].Id;
+
+	std::unique_ptr<TFDQuery> insertCoin = NewQuery(FDatabase, cInsertCoin);
+	std::unique_ptr<TFDQuery> insertItem = NewQuery(FDatabase, cInsertItem);
+
+	const String sep = String(L'\x1F');	// разделитель частей ключа
+	for (size_t i = 0; i < ARecords.size(); ++i)
+	{
+		const TCoinRecord &r = ARecords[i];
+		if (r.Denomination.Trim().IsEmpty())
+			throw Exception(L"Denomination is required.");
+
+		const String countryKey = r.Country.Trim().UpperCase();
+		std::map<String, int>::iterator country = countries.find(countryKey);
+		if (country == countries.end())
+			country = countries.insert(std::make_pair(countryKey, FLookups.FindOrCreateCountry(r.Country))).first;
+
+		const String periodKey = IntToStr(country->second) + sep + r.Period.Trim();
+		std::map<String, int>::iterator period = periods.find(periodKey);
+		if (period == periods.end())
+			period = periods.insert(std::make_pair(periodKey, FLookups.FindOrCreatePeriod(country->second, r.Period))).first;
+
+		const String currencyKey = r.Currency.Trim().UpperCase();
+		std::map<String, int>::iterator currency = currencies.find(currencyKey);
+		if (currency == currencies.end())
+			currency = currencies.insert(std::make_pair(currencyKey, FLookups.FindOrCreateCurrency(r.Currency))).first;
+
+		int conditionId = 0;
+		const String conditionKey = r.Condition.Trim().UpperCase();
+		if (!conditionKey.IsEmpty())
+		{
+			std::map<String, int>::const_iterator condition = conditions.find(conditionKey);
+			if (condition == conditions.end())
+				throw Exception(L"Unknown condition code: " + r.Condition);
+			conditionId = condition->second;
+		}
+
+		// Та же монета, что и в FindCoin: период, валюта, номинал, год, разновидность,
+		// сюжет, номер по каталогу.
+		const String coinKey = IntToStr(period->second) + sep + IntToStr(currency->second) + sep
+			+ r.Denomination.Trim() + sep + IntToStr(r.Year) + sep + r.Variety.Trim() + sep + r.Subject.Trim()
+			+ sep + r.CatalogNumber.Trim();
+		std::map<String, int>::iterator coin = coins.find(coinKey);
+		if (coin == coins.end())
+		{
+			BindCoin(insertCoin.get(), period->second, currency->second, r);
+			insertCoin->ExecSQL();
+			coin = coins.insert(std::make_pair(coinKey, LastInsertId(FDatabase))).first;
+		}
+
+		BindItem(insertItem.get(), coin->second, conditionId, r);
+		insertItem->ExecSQL();
+	}
+
+	tx.Commit();
+	return (int)ARecords.size();
+}
+//---------------------------------------------------------------------------
+int TCoinRepository::ItemCount()
+{
+	return FDatabase->Connection()->ExecSQLScalar(L"SELECT COUNT(*) FROM coin_items");
 }
 //---------------------------------------------------------------------------
