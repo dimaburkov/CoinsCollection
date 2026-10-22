@@ -79,6 +79,11 @@ __published:	// IDE-managed Components
 	void __fastcall FormCreate(TObject *Sender);
 	void __fastcall FormDestroy(TObject *Sender);
 	void __fastcall actImportExecute(TObject *Sender);
+	void __fastcall actAddExecute(TObject *Sender);
+	void __fastcall actEditExecute(TObject *Sender);
+	void __fastcall actEditUpdate(TObject *Sender);
+	void __fastcall actDeleteExecute(TObject *Sender);
+	void __fastcall actDeleteUpdate(TObject *Sender);
 	void __fastcall actExitExecute(TObject *Sender);
 	void __fastcall actRefreshExecute(TObject *Sender);
 	void __fastcall actAboutExecute(TObject *Sender);
@@ -104,6 +109,7 @@ private:	// User declarations
 
 	void LoadItems();
 	bool Confirm(const String &AText, const String &ACaption);
+	bool SaveRecord(TCoinRecord &ARecord);
 	void SortItems();
 	int  CompareItems(const TCoinRecord &A, const TCoinRecord &B, int AColumn) const;
 	String CellText(const TCoinRecord &ARecord, int AColumn) const;
