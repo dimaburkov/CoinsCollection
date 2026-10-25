@@ -337,7 +337,7 @@ CRUD коллекции поверх нормализованной схемы: 
 - LoadAll(): coin_items JOIN coins, periods, countries, LEFT JOIN currencies, conditions → std::vector<TCoinRecord>, ORDER BY countries.name, coins.denomination, coins.year.
 - Save(TCoinRecord &ARecord) — одна транзакция:
   1. страна → период → валюта (FindOrCreate), состояние (FindCondition);
-  2. CoinId == 0 — найти запись coins с тем же (id_period, id_currency, denomination, year, variety, subject, catalog_number; сравнение NULL-безопасное, `IS`) или создать; иначе UPDATE coins (меняет тип для всех его экземпляров); записать CoinId;
+  2. CoinId == 0 — найти запись coins с тем же (id_period, id_currency, denomination, year, variety, subject, catalog_number; сравнение NULL-безопасное, `IS`): найдена — её поля не перезаписываются (пустой diameter_mm дополняется), не найдена — создать; CoinId != 0 — UPDATE coins (меняет тип для всех его экземпляров); записать CoinId;
   3. Id == 0 — INSERT coin_items, иначе UPDATE; записать Id. Вернуть Id.
 - Delete(int AId): удалить запись coin_items; если у монеты не осталось экземпляров — удалить и запись coins. Справочники не трогаются. Вернуть true, если экземпляр существовал.
 - Все запросы параметризованные. Маппинг: TDateTime ↔ 'yyyy-mm-dd' (0 ↔ NULL); Year / DiameterMm / CatalogValueUah / MyValueUah: 0 ↔ NULL; пустые строки (после Trim) ↔ NULL.

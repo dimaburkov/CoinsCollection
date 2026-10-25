@@ -168,9 +168,23 @@ int TCoinRepository::Save(TCoinRecord &ARecord)
 	const int conditionId = FLookups.FindCondition(ARecord.Condition);
 
 	TCoinRecord r = ARecord;	// ARecord меняем только после успешного Commit
-	if (r.CoinId == 0)
-		r.CoinId = FindCoin(periodId, currencyId, r);
-	WriteCoin(periodId, currencyId, r);
+	if (r.CoinId != 0)
+		WriteCoin(periodId, currencyId, r);	// правка монеты — обновить её поля
+	else if ((r.CoinId = FindCoin(periodId, currencyId, r)) != 0)
+	{
+		// Ещё один экземпляр уже известной монеты: её поля не перезаписываются,
+		// только пустой диаметр дополняется введённым значением.
+		if (r.DiameterMm != 0.0)
+		{
+			std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
+				L"UPDATE coins SET diameter_mm = :diameter_mm WHERE id = :id AND diameter_mm IS NULL");
+			q->ParamByName(L"diameter_mm")->AsFloat = r.DiameterMm;
+			q->ParamByName(L"id")->AsInteger        = r.CoinId;
+			q->ExecSQL();
+		}
+	}
+	else
+		WriteCoin(periodId, currencyId, r);	// новая монета
 	WriteItem(conditionId, r);
 
 	tx.Commit();
@@ -398,5 +412,13 @@ int TCoinRepository::ReplaceAll(const std::vector<TCoinRecord> &ARecords)
 int TCoinRepository::ItemCount()
 {
 	return FDatabase->Connection()->ExecSQLScalar(L"SELECT COUNT(*) FROM coin_items");
+}
+//---------------------------------------------------------------------------
+int TCoinRepository::ItemCount(int ACoinId)
+{
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, L"SELECT COUNT(*) FROM coin_items WHERE id_coin = :id_coin");
+	q->ParamByName(L"id_coin")->AsInteger = ACoinId;
+	q->Open();
+	return q->Fields->Fields[0]->AsInteger;
 }
 //---------------------------------------------------------------------------

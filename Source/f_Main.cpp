@@ -14,6 +14,7 @@
 #include "u_Translator.h"
 #include "u_ImportSource.h"
 #include "u_CoinImporter.h"
+#include "f_CoinEdit.h"
 #include "versionConfig.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -220,6 +221,88 @@ bool TfmMain::Confirm(const String &AText, const String &ACaption)
 {
 	return Application->MessageBox(AText.c_str(), ACaption.c_str(),
 		MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) == IDYES;
+}
+//---------------------------------------------------------------------------
+// Сохранить запись из карточки; ошибка БД — сообщение, false.
+bool TfmMain::SaveRecord(TCoinRecord &ARecord)
+{
+	try
+	{
+		FRepository->Save(ARecord);
+		return true;
+	}
+	catch (Exception &e)
+	{
+		Application->MessageBox((Tr(L"Main.Error.Save") + L"\r\n\r\n" + e.Message).c_str(),
+			StripHotkey(actEdit->Caption).c_str(), MB_OK | MB_ICONERROR);
+		return false;
+	}
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::actAddExecute(TObject *Sender)
+{
+	TCoinRecord record;
+	if (!TfmCoinEdit::Execute(this, *FRepository, record) || !SaveRecord(record))
+		return;
+
+	LoadItems();
+	SelectIds(std::vector<int>(1, record.Id), record.Id);
+	UpdateStatus();
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::actEditExecute(TObject *Sender)
+{
+	const int focused = FocusedId();
+	const std::vector<int> selected = SelectedIds();
+	if (selected.size() != 1)
+		return;
+
+	for (size_t i = 0; i < FItems.size(); ++i)
+	{
+		if (FItems[i].Id != selected[0])
+			continue;
+		TCoinRecord record = FItems[i];
+		if (TfmCoinEdit::Execute(this, *FRepository, record) && SaveRecord(record))
+		{
+			LoadItems();
+			SelectIds(selected, focused != 0 ? focused : selected[0]);
+		}
+		return;
+	}
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::actEditUpdate(TObject *Sender)
+{
+	actEdit->Enabled = lvItems->SelCount == 1;
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::actDeleteExecute(TObject *Sender)
+{
+	const std::vector<int> ids = SelectedIds();
+	if (ids.empty())
+		return;
+	if (!Confirm(Format(Tr(L"Main.Delete.Confirm"), ARRAYOFCONST(((int)ids.size()))), StripHotkey(actDelete->Caption)))
+		return;
+
+	// Все выбранные — одной транзакцией: либо удалены все, либо ни один.
+	try
+	{
+		TDbTransaction tx(FDatabase->Connection());
+		for (size_t i = 0; i < ids.size(); ++i)
+			FRepository->Delete(ids[i]);
+		tx.Commit();
+	}
+	catch (Exception &e)
+	{
+		Application->MessageBox((Tr(L"Main.Error.Delete") + L"\r\n\r\n" + e.Message).c_str(),
+			StripHotkey(actDelete->Caption).c_str(), MB_OK | MB_ICONERROR);
+	}
+	LoadItems();
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::actDeleteUpdate(TObject *Sender)
+{
+	actDelete->Enabled = lvItems->SelCount > 0;
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::actExitExecute(TObject *Sender)

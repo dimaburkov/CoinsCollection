@@ -142,19 +142,21 @@ object fmMain: TfmMain
     object actAdd: TAction
       Category = 'Collection'
       Caption = '&Add'
-      Enabled = False
       ShortCut = 45
+      OnExecute = actAddExecute
     end
     object actEdit: TAction
       Category = 'Collection'
       Caption = '&Edit'
-      Enabled = False
+      OnExecute = actEditExecute
+      OnUpdate = actEditUpdate
     end
     object actDelete: TAction
       Category = 'Collection'
       Caption = '&Delete'
-      Enabled = False
       ShortCut = 46
+      OnExecute = actDeleteExecute
+      OnUpdate = actDeleteUpdate
     end
     object actNeedToReplace: TAction
       Category = 'Collection'
