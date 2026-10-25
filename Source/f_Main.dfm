@@ -61,54 +61,31 @@ object fmMain: TfmMain
       Caption = 'Import'
     end
   end
-  object lvItems: TListView
+  object dgItems: TDrawGrid
     Left = 0
     Top = 22
     Width = 884
     Height = 480
     Align = alClient
-    Columns = <
-      item
-        Caption = 'Period'
-        Width = 200
-      end
-      item
-        Caption = 'Currency'
-        Width = 110
-      end
-      item
-        Caption = 'Denomination'
-        Width = 160
-      end
-      item
-        Alignment = taRightJustify
-        Caption = 'Year'
-        Width = 60
-      end
-      item
-        Caption = 'Condition'
-        Width = 75
-      end
-      item
-        Caption = 'Number'
-        Width = 120
-      end
-      item
-        Alignment = taRightJustify
-        Caption = 'Value'
-        Width = 90
-      end>
-    HideSelection = False
-    MultiSelect = True
-    OwnerData = True
-    ReadOnly = True
-    RowSelect = True
+    ColCount = 7
+    DefaultRowHeight = 18
+    FixedCols = 0
+    RowCount = 2
+    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goColSizing, goRowSelect, goDrawFocusSelected, goThumbTracking, goFixedRowClick, goFixedHotTrack]
     TabOrder = 1
-    ViewStyle = vsReport
-    OnColumnClick = lvItemsColumnClick
-    OnData = lvItemsData
-    OnDblClick = lvItemsDblClick
-    OnKeyDown = lvItemsKeyDown
+    OnDblClick = dgItemsDblClick
+    OnDrawCell = dgItemsDrawCell
+    OnFixedCellClick = dgItemsFixedCellClick
+    OnKeyDown = dgItemsKeyDown
+    OnMouseDown = dgItemsMouseDown
+    ColWidths = (
+      200
+      110
+      160
+      60
+      75
+      120
+      90)
   end
   object StatusBar: TStatusBar
     Left = 0

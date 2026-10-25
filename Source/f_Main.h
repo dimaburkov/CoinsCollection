@@ -14,6 +14,7 @@
 #include <Vcl.ActnList.hpp>
 #include <Vcl.ComCtrls.hpp>
 #include <Vcl.ToolWin.hpp>
+#include <Vcl.Grids.hpp>
 #include <map>
 #include <memory>
 #include <vector>
@@ -74,7 +75,7 @@ __published:	// IDE-managed Components
 	TToolButton *tbDelete;
 	TToolButton *tbSep1;
 	TToolButton *tbImport;
-	TListView *lvItems;
+	TDrawGrid *dgItems;
 	TStatusBar *StatusBar;
 	void __fastcall FormCreate(TObject *Sender);
 	void __fastcall FormDestroy(TObject *Sender);
@@ -87,21 +88,23 @@ __published:	// IDE-managed Components
 	void __fastcall actExitExecute(TObject *Sender);
 	void __fastcall actRefreshExecute(TObject *Sender);
 	void __fastcall actAboutExecute(TObject *Sender);
-	void __fastcall lvItemsData(TObject *Sender, TListItem *Item);
-	void __fastcall lvItemsColumnClick(TObject *Sender, TListColumn *Column);
-	void __fastcall lvItemsDblClick(TObject *Sender);
-	void __fastcall lvItemsKeyDown(TObject *Sender, WORD &Key, TShiftState Shift);
+	void __fastcall dgItemsDrawCell(TObject *Sender, int ACol, int ARow, TRect &Rect, TGridDrawState State);
+	void __fastcall dgItemsFixedCellClick(TObject *Sender, int ACol, int ARow);
+	void __fastcall dgItemsDblClick(TObject *Sender);
+	void __fastcall dgItemsMouseDown(TObject *Sender, TMouseButton Button, TShiftState Shift, int X, int Y);
+	void __fastcall dgItemsKeyDown(TObject *Sender, WORD &Key, TShiftState Shift);
 private:	// User declarations
-	// Колонки списка (порядок = индекс колонки lvItems).
+	// Колонки списка (порядок = индекс колонки dgItems).
 	enum TItemColumn { icPeriod, icCurrency, icDenomination, icYear, icCondition, icNumber, icValue, icCount };
 
 	std::unique_ptr<TDatabase>       FDatabase;
 	std::unique_ptr<TCoinRepository> FRepository;
-	std::vector<TCoinRecord>         FItems;           // строки списка в порядке показа
+	std::vector<TCoinRecord>         FItems;           // строки списка в порядке показа (строка сетки = индекс + 1)
 	std::map<String, int>            FConditionOrder;  // код состояния -> sort_order
 	int                              FSortColumn;
 	bool                             FSortAscending;
 	int                              FLanguageToken;
+	int                              FMouseDownRow;    // строка сетки последнего нажатия мыши (для двойного клика)
 
 	void BuildLanguageMenu();
 	void __fastcall LanguageClick(TObject *Sender);
@@ -113,12 +116,13 @@ private:	// User declarations
 	void SortItems();
 	int  CompareItems(const TCoinRecord &A, const TCoinRecord &B, int AColumn) const;
 	String CellText(const TCoinRecord &ARecord, int AColumn) const;
-	void UpdateSortArrows();
 	void UpdateStatus();
 
-	std::vector<int> SelectedIds() const;
-	void SelectIds(const std::vector<int> &AIds, int AFocusedId);
-	int  FocusedId() const;
+	void UpdateRowCount();
+	int  CurrentIndex() const;	// индекс в FItems текущей строки сетки, -1 — нет
+	int  CurrentId() const;	// Id текущей записи, 0 — нет
+	void SelectId(int AId);
+	void SelectIndex(int AIndex);
 public:		// User declarations
 	__fastcall TfmMain(TComponent* Owner);
 	__fastcall ~TfmMain();
