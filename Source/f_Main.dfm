@@ -203,17 +203,17 @@ object fmMain: TfmMain
     object actCountries: TAction
       Category = 'Reference'
       Caption = '&Countries...'
-      Enabled = False
+      OnExecute = actReferenceExecute
     end
     object actPeriods: TAction
       Category = 'Reference'
       Caption = '&Periods...'
-      Enabled = False
+      OnExecute = actReferenceExecute
     end
     object actCurrencies: TAction
       Category = 'Reference'
       Caption = 'C&urrencies...'
-      Enabled = False
+      OnExecute = actReferenceExecute
     end
     object actNumistaSettings: TAction
       Category = 'Numista'

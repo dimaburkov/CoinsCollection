@@ -8,6 +8,7 @@ USEFORM("dm_Data.cpp", dmData); /* TDataModule: File Type */
 USEFORM("f_Main.cpp", fmMain);
 USEFORM("f_CoinEdit.cpp", fmCoinEdit);
 USEFORM("f_Import.cpp", fmImport);
+USEFORM("f_Reference.cpp", fmReference);
 USEUNIT("u_CoinCollection.cpp");
 USEUNIT("u_Database.cpp");
 USEUNIT("u_CoinRepository.cpp");

@@ -215,6 +215,12 @@
             <DependentOn>u_LookupRepository.h</DependentOn>
             <BuildOrder>17</BuildOrder>
         </CppCompile>
+        <CppCompile Include="f_Reference.cpp">
+            <Form>fmReference</Form>
+            <FormType>dfm</FormType>
+            <DependentOn>f_Reference.h</DependentOn>
+            <BuildOrder>19</BuildOrder>
+        </CppCompile>
         <CppCompile Include="u_Translator.cpp">
             <DependentOn>u_Translator.h</DependentOn>
             <BuildOrder>18</BuildOrder>
@@ -223,6 +229,7 @@
         <FormResources Include="dm_Data.dfm"/>
         <FormResources Include="f_CoinEdit.dfm"/>
         <FormResources Include="f_Import.dfm"/>
+        <FormResources Include="f_Reference.dfm"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

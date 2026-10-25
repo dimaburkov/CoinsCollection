@@ -210,3 +210,209 @@ void TLookupRepository::UpdateCountry(const TCountry &ACountry)
 	q->ExecSQL();
 }
 //---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+// Правка справочников (форма Reference)
+//---------------------------------------------------------------------------
+namespace
+{
+	std::map<int, int> UsageMap(TDatabase *ADatabase, const String &ASql, int AParam = 0, bool AUseParam = false)
+	{
+		std::map<int, int> result;
+		std::unique_ptr<TFDQuery> q = NewQuery(ADatabase, ASql);
+		if (AUseParam)
+			q->Params->Items[0]->AsInteger = AParam;
+		for (q->Open(); !q->Eof; q->Next())
+			result[q->Fields->Fields[0]->AsInteger] = q->Fields->Fields[1]->AsInteger;
+		return result;
+	}
+	//-----------------------------------------------------------------------
+	String RequireName(const String &AName)
+	{
+		const String name = AName.Trim();
+		if (name.IsEmpty())
+			throw Exception(L"Name is required.");
+		return name;
+	}
+}
+//---------------------------------------------------------------------------
+std::map<int, int> TLookupRepository::CountryUsage()
+{
+	return UsageMap(FDatabase,
+		L"SELECT p.id_country, COUNT(*) FROM coin_items i"
+		L"  JOIN coins c ON c.id = i.id_coin JOIN periods p ON p.id = c.id_period"
+		L" GROUP BY p.id_country");
+}
+//---------------------------------------------------------------------------
+std::map<int, int> TLookupRepository::PeriodUsage(int ACountryId)
+{
+	return UsageMap(FDatabase,
+		L"SELECT c.id_period, COUNT(*) FROM coin_items i"
+		L"  JOIN coins c ON c.id = i.id_coin JOIN periods p ON p.id = c.id_period"
+		L" WHERE p.id_country = :id_country GROUP BY c.id_period", ACountryId, true);
+}
+//---------------------------------------------------------------------------
+std::map<int, int> TLookupRepository::CurrencyUsage()
+{
+	return UsageMap(FDatabase,
+		L"SELECT c.id_currency, COUNT(*) FROM coin_items i JOIN coins c ON c.id = i.id_coin"
+		L" WHERE c.id_currency IS NOT NULL GROUP BY c.id_currency");
+}
+//---------------------------------------------------------------------------
+bool TLookupRepository::CountryExists(const String &AName, int AExceptId)
+{
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, L"SELECT id FROM countries WHERE name = :name AND id <> :id");
+	q->ParamByName(L"name")->AsWideString = AName.Trim();	// колонка COLLATE NOCASE
+	q->ParamByName(L"id")->AsInteger      = AExceptId;
+	return FirstId(q.get()) != 0;
+}
+//---------------------------------------------------------------------------
+bool TLookupRepository::PeriodExists(int ACountryId, const String &AName, int AExceptId)
+{
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
+		L"SELECT id FROM periods WHERE id_country = :id_country AND name = :name AND id <> :id");
+	q->ParamByName(L"id_country")->AsInteger = ACountryId;
+	q->ParamByName(L"name")->AsWideString    = AName.Trim();
+	q->ParamByName(L"id")->AsInteger         = AExceptId;
+	return FirstId(q.get()) != 0;
+}
+//---------------------------------------------------------------------------
+bool TLookupRepository::CurrencyExists(const String &AName, int AExceptId)
+{
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, L"SELECT id FROM currencies WHERE name = :name AND id <> :id");
+	q->ParamByName(L"name")->AsWideString = AName.Trim();	// колонка COLLATE NOCASE
+	q->ParamByName(L"id")->AsInteger      = AExceptId;
+	return FirstId(q.get()) != 0;
+}
+//---------------------------------------------------------------------------
+int TLookupRepository::AddCountry(const TCountry &ACountry)
+{
+	const String name = RequireName(ACountry.Name);
+	if (CountryExists(name))
+		throw Exception(L"Country already exists: " + name);
+
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
+		L"INSERT INTO countries (name, id_continent, is_exist) VALUES (:name, :id_continent, :is_exist)");
+	q->ParamByName(L"name")->AsWideString = name;
+	TFDParam *continent = q->ParamByName(L"id_continent");
+	continent->DataType = ftInteger;
+	if (ACountry.ContinentId == 0)
+		continent->Clear();
+	else
+		continent->AsInteger = ACountry.ContinentId;
+	q->ParamByName(L"is_exist")->AsInteger = ACountry.IsExist ? 1 : 0;
+	q->ExecSQL();
+	return LastInsertId(FDatabase);
+}
+//---------------------------------------------------------------------------
+int TLookupRepository::AddPeriod(int ACountryId, const String &AName)
+{
+	const String name = RequireName(AName);
+	if (PeriodExists(ACountryId, name))
+		throw Exception(L"Period already exists: " + name);
+
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, L"INSERT INTO periods (id_country, name) VALUES (:id_country, :name)");
+	q->ParamByName(L"id_country")->AsInteger = ACountryId;
+	q->ParamByName(L"name")->AsWideString    = name;
+	q->ExecSQL();
+	return LastInsertId(FDatabase);
+}
+//---------------------------------------------------------------------------
+int TLookupRepository::AddCurrency(const String &AName)
+{
+	const String name = RequireName(AName);
+	if (CurrencyExists(name))
+		throw Exception(L"Currency already exists: " + name);
+
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, L"INSERT INTO currencies (name) VALUES (:name)");
+	q->ParamByName(L"name")->AsWideString = name;
+	q->ExecSQL();
+	return LastInsertId(FDatabase);
+}
+//---------------------------------------------------------------------------
+void TLookupRepository::SaveCountry(const TCountry &ACountry)
+{
+	const String name = RequireName(ACountry.Name);
+	if (CountryExists(name, ACountry.Id))
+		throw Exception(L"Country already exists: " + name);
+
+	TDbTransaction tx(FDatabase->Connection());
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, L"UPDATE countries SET name = :name WHERE id = :id");
+	q->ParamByName(L"name")->AsWideString = name;
+	q->ParamByName(L"id")->AsInteger      = ACountry.Id;
+	q->ExecSQL();
+	UpdateCountry(ACountry);
+	tx.Commit();
+}
+//---------------------------------------------------------------------------
+void TLookupRepository::RenamePeriod(int AId, const String &AName)
+{
+	const String name = RequireName(AName);
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, L"SELECT id_country FROM periods WHERE id = :id");
+	q->ParamByName(L"id")->AsInteger = AId;
+	const int countryId = FirstId(q.get());
+	if (PeriodExists(countryId, name, AId))
+		throw Exception(L"Period already exists: " + name);
+
+	q->SQL->Text = L"UPDATE periods SET name = :name WHERE id = :id";
+	q->ParamByName(L"name")->AsWideString = name;
+	q->ParamByName(L"id")->AsInteger      = AId;
+	q->ExecSQL();
+}
+//---------------------------------------------------------------------------
+void TLookupRepository::RenameCurrency(int AId, const String &AName)
+{
+	const String name = RequireName(AName);
+	if (CurrencyExists(name, AId))
+		throw Exception(L"Currency already exists: " + name);
+
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, L"UPDATE currencies SET name = :name WHERE id = :id");
+	q->ParamByName(L"name")->AsWideString = name;
+	q->ParamByName(L"id")->AsInteger      = AId;
+	q->ExecSQL();
+}
+//---------------------------------------------------------------------------
+bool TLookupRepository::DeleteCountry(int AId)
+{
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
+		L"SELECT c.id FROM coins c JOIN periods p ON p.id = c.id_period WHERE p.id_country = :id LIMIT 1");
+	q->ParamByName(L"id")->AsInteger = AId;
+	if (FirstId(q.get()) != 0)
+		return false;
+
+	TDbTransaction tx(FDatabase->Connection());
+	q->SQL->Text = L"DELETE FROM periods WHERE id_country = :id";
+	q->ParamByName(L"id")->AsInteger = AId;
+	q->ExecSQL();
+	q->SQL->Text = L"DELETE FROM countries WHERE id = :id";
+	q->ParamByName(L"id")->AsInteger = AId;
+	q->ExecSQL();
+	tx.Commit();
+	return true;
+}
+//---------------------------------------------------------------------------
+bool TLookupRepository::DeletePeriod(int AId)
+{
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, L"SELECT id FROM coins WHERE id_period = :id LIMIT 1");
+	q->ParamByName(L"id")->AsInteger = AId;
+	if (FirstId(q.get()) != 0)
+		return false;
+
+	q->SQL->Text = L"DELETE FROM periods WHERE id = :id";
+	q->ParamByName(L"id")->AsInteger = AId;
+	q->ExecSQL();
+	return true;
+}
+//---------------------------------------------------------------------------
+bool TLookupRepository::DeleteCurrency(int AId)
+{
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, L"SELECT id FROM coins WHERE id_currency = :id LIMIT 1");
+	q->ParamByName(L"id")->AsInteger = AId;
+	if (FirstId(q.get()) != 0)
+		return false;
+
+	q->SQL->Text = L"DELETE FROM currencies WHERE id = :id";
+	q->ParamByName(L"id")->AsInteger = AId;
+	q->ExecSQL();
+	return true;
+}
+//---------------------------------------------------------------------------

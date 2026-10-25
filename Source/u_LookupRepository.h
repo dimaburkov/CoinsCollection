@@ -6,6 +6,7 @@
 #ifndef u_LookupRepositoryH
 #define u_LookupRepositoryH
 //---------------------------------------------------------------------------
+#include <map>
 #include <vector>
 #include "u_CoinTypes.h"
 //---------------------------------------------------------------------------
@@ -37,6 +38,34 @@ public:
 
 	// Сохранить континент и признак is_exist страны.
 	void UpdateCountry(const TCountry &ACountry);
+
+	// --- Правка справочников (форма Reference) ---
+	// Число экземпляров коллекции: id записи справочника -> экземпляров.
+	std::map<int, int> CountryUsage();
+	std::map<int, int> PeriodUsage(int ACountryId);
+	std::map<int, int> CurrencyUsage();
+
+	// Есть ли уже запись с таким именем (страны и валюты — без учёта регистра
+	// латиницы, периоды — в пределах страны). AExceptId — не считать саму запись.
+	bool CountryExists(const String &AName, int AExceptId = 0);
+	bool PeriodExists(int ACountryId, const String &AName, int AExceptId = 0);
+	bool CurrencyExists(const String &AName, int AExceptId = 0);
+
+	// Добавить — вернуть id; имя должно быть непустым и свободным (иначе исключение).
+	int  AddCountry(const TCountry &ACountry);
+	int  AddPeriod(int ACountryId, const String &AName);
+	int  AddCurrency(const String &AName);
+
+	// Сохранить имя, континент и is_exist страны / переименовать период, валюту.
+	void SaveCountry(const TCountry &ACountry);
+	void RenamePeriod(int AId, const String &AName);
+	void RenameCurrency(int AId, const String &AName);
+
+	// Удалить, только если на запись не ссылается ни одна монета; false — используется.
+	// Страна удаляется вместе со своими (неиспользуемыми) периодами.
+	bool DeleteCountry(int AId);
+	bool DeletePeriod(int AId);
+	bool DeleteCurrency(int AId);
 
 private:
 	TDatabase *FDatabase;
