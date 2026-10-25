@@ -105,6 +105,7 @@ __published:	// IDE-managed Components
 	void __fastcall edSearchKeyDown(TObject *Sender, WORD &Key, TShiftState Shift);
 	void __fastcall tbClearSearchClick(TObject *Sender);
 	void __fastcall actNeedToReplaceExecute(TObject *Sender);
+	void __fastcall actReferenceExecute(TObject *Sender);
 private:	// User declarations
 	// Колонки списка (логические; видимые и их порядок — FColumns).
 	enum TItemColumn { icCountry, icPeriod, icCurrency, icDenomination, icYear, icCondition, icNumber, icValue, icCount };

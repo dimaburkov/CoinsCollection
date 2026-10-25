@@ -133,10 +133,23 @@ void TXlsxSource::Open(const String &AFileName)
 {
 	Close();
 
-	std::unique_ptr<TZipFile> zip(new TZipFile());
+	// Файл открываем сами — только чтение и без запрета совместного доступа:
+	// так импорт работает, даже если книга открыта в Excel. Если открыть всё же
+	// нельзя — показать настоящую причину, а не «это не .xlsx».
+	std::unique_ptr<TFileStream> file;
 	try
 	{
-		zip->Open(AFileName, zmRead);
+		file.reset(new TFileStream(AFileName, fmOpenRead | fmShareDenyNone));
+	}
+	catch (Exception &e)
+	{
+		throw Exception(Tr(L"Import.Error.Open") + L" " + e.Message);
+	}
+
+	std::unique_ptr<TZipFile> zip(new TZipFile());	// уничтожается раньше file
+	try
+	{
+		zip->Open(file.get(), zmRead);
 	}
 	catch (Exception &)
 	{

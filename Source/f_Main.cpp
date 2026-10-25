@@ -14,6 +14,7 @@
 #include "u_ImportSource.h"
 #include "u_CoinImporter.h"
 #include "f_CoinEdit.h"
+#include "f_Reference.h"
 #include "versionConfig.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -316,6 +317,15 @@ void __fastcall TfmMain::actDeleteUpdate(TObject *Sender)
 void __fastcall TfmMain::actNeedToReplaceExecute(TObject *Sender)
 {
 	ApplyFilter();	// флажок переключён AutoCheck до вызова
+}
+//---------------------------------------------------------------------------
+// Reference -> Countries / Periods / Currencies: одна форма, своя вкладка.
+// После изменений перечитать — страна могла переехать в другой узел дерева.
+void __fastcall TfmMain::actReferenceExecute(TObject *Sender)
+{
+	const int tab = Sender == actPeriods ? 1 : (Sender == actCurrencies ? 2 : 0);
+	if (TfmReference::Execute(this, FRepository->Lookups(), tab))
+		LoadItems();
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::actExitExecute(TObject *Sender)
