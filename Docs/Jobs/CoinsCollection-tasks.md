@@ -856,7 +856,7 @@ All (1234)
 **Раскладка главного окна**
 
 - Дерево tvNav — слева на всю высоту (как сейчас).
-- Справа — контейнер pnlRight (alClient): список dgItems (alClient), под ним разделитель splDetails (alBottom) и панель pnlDetails (alBottom, высота ≈ 190, меняется мышью; ограничения: панель ≥ 120 px, список ≥ 150 px).
+- Справа — контейнер pnlRight (alClient): список dgItems (alClient), под ним разделитель splDetails (alBottom) и панель pnlDetails (alBottom, высота ≈ 190, меняется мышью; разделитель не даёт сжать панель и список меньше 120 px).
 
 **pnlDetails**
 

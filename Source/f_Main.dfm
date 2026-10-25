@@ -3,7 +3,7 @@ object fmMain: TfmMain
   Top = 0
   ActiveControl = dgItems
   Caption = 'Coins Collection'
-  ClientHeight = 521
+  ClientHeight = 660
   ClientWidth = 1100
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -107,32 +107,189 @@ object fmMain: TfmMain
     Height = 480
     MinSize = 120
   end
-  object dgItems: TDrawGrid
+  object pnlRight: TPanel
     Left = 244
     Top = 22
     Width = 856
-    Height = 480
+    Height = 619
     Align = alClient
-    ColCount = 8
-    DefaultRowHeight = 18
-    FixedCols = 0
-    RowCount = 2
-    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goColSizing, goRowSelect, goDrawFocusSelected, goThumbTracking, goFixedRowClick, goFixedHotTrack]
+    BevelOuter = bvNone
     TabOrder = 2
-    OnDblClick = dgItemsDblClick
-    OnDrawCell = dgItemsDrawCell
-    OnFixedCellClick = dgItemsFixedCellClick
-    OnKeyDown = dgItemsKeyDown
-    OnMouseDown = dgItemsMouseDown
-    ColWidths = (
-      130
-      160
-      120
-      130
-      50
-      65
-      90
-      85)
+    object dgItems: TDrawGrid
+      Left = 0
+      Top = 0
+      Width = 856
+      Height = 425
+      Align = alClient
+      ColCount = 7
+      DefaultRowHeight = 18
+      FixedCols = 0
+      RowCount = 2
+      Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goColSizing, goRowSelect, goDrawFocusSelected, goThumbTracking, goFixedRowClick, goFixedHotTrack]
+      TabOrder = 0
+      OnDblClick = dgItemsDblClick
+      OnDrawCell = dgItemsDrawCell
+      OnFixedCellClick = dgItemsFixedCellClick
+      OnKeyDown = dgItemsKeyDown
+      OnMouseDown = dgItemsMouseDown
+      OnSelectCell = dgItemsSelectCell
+      ColWidths = (
+        130
+        160
+        120
+        130
+        50
+        65
+        85)
+    end
+    object splDetails: TSplitter
+      Left = 0
+      Top = 425
+      Width = 856
+      Height = 4
+      Cursor = crVSplit
+      Align = alBottom
+      MinSize = 120
+    end
+    object pnlDetails: TPanel
+      Left = 0
+      Top = 429
+      Width = 856
+      Height = 190
+      Align = alBottom
+      BevelOuter = bvNone
+      TabOrder = 1
+      object pnlPhotos: TPanel
+        Left = 0
+        Top = 0
+        Width = 344
+        Height = 190
+        Align = alLeft
+        BevelOuter = bvNone
+        TabOrder = 0
+        object pnlObverse: TPanel
+          Left = 8
+          Top = 6
+          Width = 160
+          Height = 160
+          BevelOuter = bvLowered
+          Color = clWindow
+          ParentBackground = False
+          TabOrder = 0
+          object imgObverse: TImage
+            Left = 1
+            Top = 1
+            Width = 158
+            Height = 158
+            Align = alClient
+            Center = True
+            Proportional = True
+            Stretch = True
+          end
+          object lblObverseNone: TLabel
+            Left = 1
+            Top = 1
+            Width = 158
+            Height = 158
+            Align = alClient
+            Alignment = taCenter
+            AutoSize = False
+            Caption = 'No photo'
+            Font.Charset = DEFAULT_CHARSET
+            Font.Color = clGrayText
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentFont = False
+            Transparent = True
+            Layout = tlCenter
+          end
+        end
+        object lblObverse: TLabel
+          Left = 8
+          Top = 170
+          Width = 160
+          Height = 13
+          Alignment = taCenter
+          AutoSize = False
+          Caption = 'Obverse'
+        end
+        object pnlReverse: TPanel
+          Left = 176
+          Top = 6
+          Width = 160
+          Height = 160
+          BevelOuter = bvLowered
+          Color = clWindow
+          ParentBackground = False
+          TabOrder = 1
+          object imgReverse: TImage
+            Left = 1
+            Top = 1
+            Width = 158
+            Height = 158
+            Align = alClient
+            Center = True
+            Proportional = True
+            Stretch = True
+          end
+          object lblReverseNone: TLabel
+            Left = 1
+            Top = 1
+            Width = 158
+            Height = 158
+            Align = alClient
+            Alignment = taCenter
+            AutoSize = False
+            Caption = 'No photo'
+            Font.Charset = DEFAULT_CHARSET
+            Font.Color = clGrayText
+            Font.Height = -11
+            Font.Name = 'Tahoma'
+            Font.Style = []
+            ParentFont = False
+            Transparent = True
+            Layout = tlCenter
+          end
+        end
+        object lblReverse: TLabel
+          Left = 176
+          Top = 170
+          Width = 160
+          Height = 13
+          Alignment = taCenter
+          AutoSize = False
+          Caption = 'Reverse'
+        end
+      end
+      object sbInfo: TScrollBox
+        Left = 344
+        Top = 0
+        Width = 512
+        Height = 190
+        HorzScrollBar.Visible = False
+        VertScrollBar.Tracking = True
+        Align = alClient
+        BorderStyle = bsNone
+        TabOrder = 1
+        OnResize = sbInfoResize
+        object lblDetailsTitle: TLabel
+          Left = 8
+          Top = 8
+          Width = 400
+          Height = 16
+          AutoSize = False
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Tahoma'
+          Font.Style = [fsBold]
+          ParentFont = False
+          ShowAccelChar = False
+          WordWrap = True
+        end
+      end
+    end
   end
   object StatusBar: TStatusBar
     Left = 0

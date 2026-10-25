@@ -28,7 +28,7 @@ namespace
 	const wchar_t *const cColumnKeys[] =
 	{
 		L"Main.Column.Country", L"Main.Column.Period", L"Main.Column.Currency", L"Main.Column.Denomination",
-		L"Main.Column.Year", L"Main.Column.Condition", L"Main.Column.Number", L"Main.Column.Value"
+		L"Main.Column.Year", L"Main.Column.Condition", L"Main.Column.Value"
 	};
 	//-----------------------------------------------------------------------
 	// Строки — «как в Проводнике»: без учёта регистра, числа внутри по значению
@@ -38,7 +38,12 @@ namespace
 		return StrCmpLogicalW(A.c_str(), B.c_str());
 	}
 	// Ширина колонок по умолчанию (порядок = TItemColumn).
-	const int cDefaultWidths[] = { 130, 160, 120, 130, 50, 65, 90, 85 };
+	const int cDefaultWidths[] = { 130, 160, 120, 130, 50, 65, 85 };
+	// Подписи строк панели подробностей (порядок = TDetailRowIndex).
+	const wchar_t *const cDetailKeys[] =
+	{
+		L"Main.Details.Period", L"Main.Details.Currency", L"Main.Details.Subject", L"Main.Details.Number"
+	};
 	//-----------------------------------------------------------------------
 	template <typename T>
 	int CompareValues(T A, T B)
@@ -58,6 +63,7 @@ __fastcall TfmMain::TfmMain(TComponent* Owner)
 	for (int c = 0; c < icCount; ++c)
 		FColWidths[c] = cDefaultWidths[c];
 	UpdateColumns();
+	CreateDetailRows();
 
 	Translator().TranslateForm(this);
 	BuildLanguageMenu();
@@ -98,6 +104,13 @@ void TfmMain::ApplyTexts()
 	// Кнопка связана с actImport, но подпись у неё короче, чем пункт меню.
 	tbImport->Caption = Tr(L"Main.Toolbar.Import");
 	edSearch->TextHint = Tr(L"Main.Search.Hint");
+	lblObverse->Caption     = Tr(L"Main.Details.Obverse");
+	lblReverse->Caption     = Tr(L"Main.Details.Reverse");
+	lblObverseNone->Caption = Tr(L"Main.Details.NoPhoto");
+	lblReverseNone->Caption = Tr(L"Main.Details.NoPhoto");
+	for (size_t i = 0; i < FDetailRows.size(); ++i)
+		FDetailRows[i].Caption->Caption = Tr(FDetailRows[i].Key);
+	UpdateDetails();
 	if (FRepository)
 		BuildTree();	// подписи узлов All / No continent / Extinct states
 	dgItems->Invalidate();
@@ -548,6 +561,7 @@ void TfmMain::ApplyFilter()
 	SelectId(current);
 	dgItems->Invalidate();
 	UpdateStatus();
+	UpdateDetails();
 }
 //---------------------------------------------------------------------------
 // Колонка Country не нужна, когда выбрана одна страна. Ширины, заданные
@@ -625,7 +639,6 @@ int TfmMain::CompareItems(const TCoinRecord &A, const TCoinRecord &B, int AColum
 		case icCurrency:     return CompareStrings(A.Currency, B.Currency);
 		case icDenomination: return CompareStrings(A.Denomination, B.Denomination);
 		case icYear:         return CompareValues(A.Year, B.Year);
-		case icNumber:       return CompareStrings(A.CatalogNumber, B.CatalogNumber);
 		case icValue:        return CompareValues(A.CatalogValueUah, B.CatalogValueUah);
 		case icCondition:
 		{
@@ -666,7 +679,6 @@ String TfmMain::CellText(const TCoinRecord &R, int AColumn) const
 		case icDenomination: return R.Denomination;
 		case icYear:         return R.Year == 0 ? String() : IntToStr(R.Year);
 		case icCondition:    return R.Condition;
-		case icNumber:       return R.CatalogNumber;
 		case icValue:        return R.CatalogValueUah == 0.0 ? String() : FormatFloat(L"#,##0.00", R.CatalogValueUah);
 	}
 	return String();
@@ -708,6 +720,7 @@ void TfmMain::SelectIndex(int AIndex)
 {
 	const int last = std::max<int>(0, (int)FItems.size() - 1);
 	dgItems->Row = std::min(std::max(AIndex, 0), last) + 1;
+	UpdateDetails();	// Row мог не измениться — тогда OnSelectCell не вызывается
 }
 //---------------------------------------------------------------------------
 // Ячейку рисуем сами: фон и выделение строки сетка уже нарисовала
@@ -814,5 +827,108 @@ void TfmMain::UpdateStatus()
 	StatusBar->Panels->Items[0]->Text = Format(Tr(L"Main.Status.Items"), ARRAYOFCONST(((int)FItems.size(), (int)FAll.size())));
 	StatusBar->Panels->Items[1]->Text = Format(Tr(L"Main.Status.Quantity"), ARRAYOFCONST((quantity)));
 	StatusBar->Panels->Items[2]->Text = Format(Tr(L"Main.Status.Value"), ARRAYOFCONST((FormatFloat(L"#,##0.00", value))));
+}
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+// Панель подробностей
+//---------------------------------------------------------------------------
+// Строки «подпись — значение» в sbInfo; новая строка — новый ключ в cDetailKeys
+// и элемент TDetailRowIndex.
+void TfmMain::CreateDetailRows()
+{
+	for (int i = 0; i < drCount; ++i)
+	{
+		TDetailRow row;
+		row.Key = cDetailKeys[i];
+		row.Caption = new TLabel(this);
+		row.Caption->Parent        = sbInfo;
+		row.Caption->ShowAccelChar = false;
+		row.Caption->Font->Color   = clGrayText;
+		row.Value = new TLabel(this);
+		row.Value->Parent        = sbInfo;
+		row.Value->ShowAccelChar = false;	// "&" в данных — обычный символ
+		row.Value->AutoSize      = false;
+		row.Value->WordWrap      = true;
+		FDetailRows.push_back(row);
+	}
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::dgItemsSelectCell(TObject *Sender, int ACol, int ARow, bool &CanSelect)
+{
+	ShowDetails(ARow - 1);
+}
+//---------------------------------------------------------------------------
+void TfmMain::UpdateDetails()
+{
+	ShowDetails(CurrentIndex());
+}
+//---------------------------------------------------------------------------
+// Пустые значения — «—»; нет записи — панель пустая.
+void TfmMain::ShowDetails(int AIndex)
+{
+	const bool has = AIndex >= 0 && AIndex < (int)FItems.size();
+	auto value = [](const String &AText) { return AText.Trim().IsEmpty() ? String(L"\u2014") : AText; };
+
+	if (has)
+	{
+		const TCoinRecord &r = FItems[AIndex];
+		String title = r.Denomination;
+		if (r.Year != 0)
+			title += L", " + IntToStr(r.Year);
+		lblDetailsTitle->Caption = title + L" \u2014 " + r.Country;
+		FDetailRows[drPeriod].Value->Caption   = value(r.Period);
+		FDetailRows[drCurrency].Value->Caption = value(r.Currency);
+		FDetailRows[drSubject].Value->Caption  = value(r.Subject);
+		FDetailRows[drNumber].Value->Caption   = value(r.CatalogNumber);
+	}
+	else
+		lblDetailsTitle->Caption = L"";
+
+	for (size_t i = 0; i < FDetailRows.size(); ++i)
+	{
+		FDetailRows[i].Caption->Visible = has;
+		FDetailRows[i].Value->Visible   = has;
+	}
+	LayoutDetails();
+}
+//---------------------------------------------------------------------------
+// Высота текста метки при переносе по ширине AWidth.
+int TfmMain::TextHeight(TLabel *ALabel, int AWidth)
+{
+	Canvas->Font->Assign(ALabel->Font);
+	RECT rc = { 0, 0, AWidth, 0 };
+	DrawTextW(Canvas->Handle, ALabel->Caption.c_str(), -1, &rc, DT_CALCRECT | DT_WORDBREAK | DT_NOPREFIX);
+	return std::max<int>(rc.bottom, Canvas->TextHeight(L"Wg"));
+}
+//---------------------------------------------------------------------------
+// Раскладка sbInfo: заголовок, затем строки; длинный текст переносится,
+// не помещается по высоте — прокрутка.
+void TfmMain::LayoutDetails()
+{
+	if (!HandleAllocated())
+		return;
+	const int left = 8, captionWidth = 110, gap = 6, right = 8;
+	const int width = std::max(80, sbInfo->ClientWidth - left - right);
+	const int valueWidth = std::max(60, width - captionWidth - gap);
+	int y = 8 - sbInfo->VertScrollBar->Position;
+
+	const int titleHeight = TextHeight(lblDetailsTitle, width);
+	lblDetailsTitle->SetBounds(left, y, width, titleHeight);
+	y += titleHeight + 8;
+	for (size_t i = 0; i < FDetailRows.size(); ++i)
+	{
+		if (!FDetailRows[i].Value->Visible)
+			continue;
+		const int h = TextHeight(FDetailRows[i].Value, valueWidth);
+		FDetailRows[i].Caption->SetBounds(left, y, captionWidth, TextHeight(FDetailRows[i].Caption, captionWidth));
+		FDetailRows[i].Value->SetBounds(left + captionWidth + gap, y, valueWidth, h);
+		y += h + 4;
+	}
+	sbInfo->VertScrollBar->Range = y + sbInfo->VertScrollBar->Position + 4;
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::sbInfoResize(TObject *Sender)
+{
+	LayoutDetails();
 }
 //---------------------------------------------------------------------------
