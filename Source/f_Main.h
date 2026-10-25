@@ -82,7 +82,21 @@ __published:	// IDE-managed Components
 	TToolButton *tbClearSearch;
 	TTreeView *tvNav;
 	TSplitter *Splitter;
+	TPanel *pnlRight;
 	TDrawGrid *dgItems;
+	TSplitter *splDetails;
+	TPanel *pnlDetails;
+	TPanel *pnlPhotos;
+	TPanel *pnlObverse;
+	TImage *imgObverse;
+	TLabel *lblObverseNone;
+	TLabel *lblObverse;
+	TPanel *pnlReverse;
+	TImage *imgReverse;
+	TLabel *lblReverseNone;
+	TLabel *lblReverse;
+	TScrollBox *sbInfo;
+	TLabel *lblDetailsTitle;
 	TStatusBar *StatusBar;
 	void __fastcall FormCreate(TObject *Sender);
 	void __fastcall FormDestroy(TObject *Sender);
@@ -100,6 +114,8 @@ __published:	// IDE-managed Components
 	void __fastcall dgItemsDblClick(TObject *Sender);
 	void __fastcall dgItemsMouseDown(TObject *Sender, TMouseButton Button, TShiftState Shift, int X, int Y);
 	void __fastcall dgItemsKeyDown(TObject *Sender, WORD &Key, TShiftState Shift);
+	void __fastcall dgItemsSelectCell(TObject *Sender, int ACol, int ARow, bool &CanSelect);
+	void __fastcall sbInfoResize(TObject *Sender);
 	void __fastcall tvNavChange(TObject *Sender, TTreeNode *Node);
 	void __fastcall edSearchChange(TObject *Sender);
 	void __fastcall edSearchKeyDown(TObject *Sender, WORD &Key, TShiftState Shift);
@@ -108,7 +124,16 @@ __published:	// IDE-managed Components
 	void __fastcall actReferenceExecute(TObject *Sender);
 private:	// User declarations
 	// Колонки списка (логические; видимые и их порядок — FColumns).
-	enum TItemColumn { icCountry, icPeriod, icCurrency, icDenomination, icYear, icCondition, icNumber, icValue, icCount };
+	enum TItemColumn { icCountry, icPeriod, icCurrency, icDenomination, icYear, icCondition, icValue, icCount };
+
+	// Строка панели подробностей: подпись и значение (создаются в коде, см. CreateDetailRows).
+	struct TDetailRow
+	{
+		const wchar_t *Key;     // ключ подписи для Tr()
+		TLabel        *Caption;
+		TLabel        *Value;
+	};
+	enum TDetailRowIndex { drPeriod, drCurrency, drSubject, drNumber, drCount };
 
 	// Узел дерева навигации: что он отбирает.
 	enum TNavKind { nkAll, nkContinent, nkNoContinent, nkExtinct, nkCountry };
@@ -129,6 +154,7 @@ private:	// User declarations
 	bool                             FBuildingTree;    // перестройка дерева — не фильтровать на каждом OnChange
 	std::vector<int>                 FColumns;         // видимые колонки сетки (TItemColumn)
 	int                              FColWidths[icCount];
+	std::vector<TDetailRow>          FDetailRows;      // порядок = TDetailRowIndex
 	std::map<String, int>            FConditionOrder;  // код состояния -> sort_order
 	int                              FSortColumn;
 	bool                             FSortAscending;
@@ -154,6 +180,11 @@ private:	// User declarations
 	String CellText(const TCoinRecord &ARecord, int AColumn) const;
 	void UpdateStatus();
 
+	void CreateDetailRows();
+	void ShowDetails(int AIndex);	// AIndex в FItems, -1 — пусто
+	void UpdateDetails();
+	void LayoutDetails();
+	int  TextHeight(TLabel *ALabel, int AWidth);
 	void UpdateRowCount();
 	int  CurrentIndex() const;	// индекс в FItems текущей строки сетки, -1 — нет
 	int  CurrentId() const;	// Id текущей записи, 0 — нет
