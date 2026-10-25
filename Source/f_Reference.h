@@ -33,6 +33,8 @@ __published:	// IDE-managed Components
 	TEdit *edCountryName;
 	TComboBox *cbContinent;
 	TCheckBox *chkExists;
+	TLabel *lblNumistaIssuer;
+	TEdit *edNumistaIssuer;
 	TButton *btnCountryAdd;
 	TButton *btnCountrySave;
 	TButton *btnCountryDelete;

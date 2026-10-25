@@ -127,6 +127,21 @@ object fmReference: TfmReference
           Caption = '&Exists (not an extinct state)'
           TabOrder = 2
         end
+        object lblNumistaIssuer: TLabel
+          Left = 370
+          Top = 39
+          Width = 76
+          Height = 13
+          Caption = 'Numista &issuer:'
+          FocusControl = edNumistaIssuer
+        end
+        object edNumistaIssuer: TEdit
+          Left = 456
+          Top = 36
+          Width = 166
+          Height = 21
+          TabOrder = 6
+        end
         object btnCountryAdd: TButton
           Left = 370
           Top = 7

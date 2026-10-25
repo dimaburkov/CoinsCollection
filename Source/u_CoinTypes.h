@@ -61,6 +61,11 @@ struct TCoinRecord
 	String    LabelText;       // "Label"
 	String    Comment;
 
+	// Numista (0 — нет связи)
+	int       NumistaTypeId;   // coins.numista_type_id (N#)
+	int       NumistaIssueId;  // coins.numista_issue_id
+	int       NumistaItemId;   // coin_items.numista_item_id (предмет в коллекции Numista)
+
 	TCoinRecord()
 		: Id(0),
 		  CoinId(0),
@@ -69,7 +74,10 @@ struct TCoinRecord
 		  CatalogValueUah(0.0),
 		  Quantity(1),
 		  NeedToReplace(false),
-		  MyValueUah(0.0)
+		  MyValueUah(0.0),
+		  NumistaTypeId(0),
+		  NumistaIssueId(0),
+		  NumistaItemId(0)
 	{
 	}
 };
@@ -90,6 +98,7 @@ struct TCountry
 	String Name;
 	int    ContinentId;        // 0 = не указан
 	bool   IsExist;            // false — исчезнувшее государство
+	String NumistaIssuer;      // код эмитента Numista ("" — не указан)
 	TCountry() : Id(0), ContinentId(0), IsExist(true) {}
 };
 

@@ -28,6 +28,11 @@ class TNumistaClient
 {
 public:
 	static const wchar_t *const BaseUrl;	// https://api.numista.com/v3
+	static const int BudgetExhausted = -1;	// ENumistaError::StatusCode: лимит RequestBudget исчерпан
+
+	// Лимит запросов в сеть для этого клиента (-1 — без лимита) и сколько уже отправлено.
+	int RequestBudget;
+	int RequestsMade;
 
 	TNumistaClient();
 	~TNumistaClient();
@@ -46,6 +51,9 @@ public:
 	// Число записей в кэше; -1 — кэша нет.
 	static int CachedCount(const String &AName);
 	static String CacheDir();
+
+	// GET каталога (searchTypes, getIssues) с кэшем ответов в CacheDir()\cache	// (<md5 адреса>.json). Ответ из кэша квоту не тратит; AFromCache — взят из кэша.
+	std::unique_ptr<TJSONValue> GetCached(const String &APath, bool *AFromCache = nullptr);
 
 	// Запросов к API за текущий месяц (по счётчику программы).
 	static int RequestsThisMonth();

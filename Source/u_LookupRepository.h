@@ -38,6 +38,8 @@ public:
 
 	// Сохранить континент и признак is_exist страны.
 	void UpdateCountry(const TCountry &ACountry);
+	// Код эмитента Numista у страны ("" — не указан).
+	void SetCountryIssuer(int ACountryId, const String &AIssuer);
 
 	// --- Правка справочников (форма Reference) ---
 	// Число экземпляров коллекции: id записи справочника -> экземпляров.
@@ -56,7 +58,7 @@ public:
 	int  AddPeriod(int ACountryId, const String &AName);
 	int  AddCurrency(const String &AName);
 
-	// Сохранить имя, континент и is_exist страны / переименовать период, валюту.
+	// Сохранить имя, континент, is_exist и код Numista страны / переименовать период, валюту.
 	void SaveCountry(const TCountry &ACountry);
 	void RenamePeriod(int AId, const String &AName);
 	void RenameCurrency(int AId, const String &AName);

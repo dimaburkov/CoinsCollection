@@ -227,6 +227,16 @@
             <DependentOn>f_NumistaSettings.h</DependentOn>
             <BuildOrder>20</BuildOrder>
         </CppCompile>
+        <CppCompile Include="f_NumistaChoose.cpp">
+            <Form>fmNumistaChoose</Form>
+            <FormType>dfm</FormType>
+            <DependentOn>f_NumistaChoose.h</DependentOn>
+            <BuildOrder>21</BuildOrder>
+        </CppCompile>
+        <CppCompile Include="u_NumistaMatcher.cpp">
+            <DependentOn>u_NumistaMatcher.h</DependentOn>
+            <BuildOrder>22</BuildOrder>
+        </CppCompile>
         <CppCompile Include="u_Translator.cpp">
             <DependentOn>u_Translator.h</DependentOn>
             <BuildOrder>18</BuildOrder>
@@ -237,6 +247,7 @@
         <FormResources Include="f_Import.dfm"/>
         <FormResources Include="f_Reference.dfm"/>
         <FormResources Include="f_NumistaSettings.dfm"/>
+        <FormResources Include="f_NumistaChoose.dfm"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

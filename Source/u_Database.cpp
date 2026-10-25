@@ -63,7 +63,8 @@ void TDatabase::EnsureSchema()
 	{
 		// Лестница миграций: каждый шаг поднимает схему на одну версию.
 		if (version < 1) { MigrateTo1(); version = 1; }
-		// if (version < 2) { MigrateTo2(); version = 2; }
+		if (version < 2) { MigrateTo2(); version = 2; }
+		// if (version < 3) { MigrateTo3(); version = 3; }
 
 		// PRAGMA не принимает параметры; version — целое из кода.
 		FConnection->ExecSQL(L"PRAGMA user_version = " + IntToStr(version));
@@ -178,6 +179,16 @@ void TDatabase::MigrateTo1()
 	FConnection->ExecSQL(L"CREATE INDEX ix_coin_items_coin ON coin_items (id_coin)");
 
 	SeedReferenceData();
+}
+//---------------------------------------------------------------------------
+// v2: связь с Numista (задача 12): код эмитента у страны, тип и выпуск у монеты,
+// id предмета коллекции Numista у экземпляра (для выгрузки, задача 13).
+void TDatabase::MigrateTo2()
+{
+	FConnection->ExecSQL(L"ALTER TABLE countries ADD COLUMN numista_issuer TEXT");
+	FConnection->ExecSQL(L"ALTER TABLE coins ADD COLUMN numista_type_id INTEGER");
+	FConnection->ExecSQL(L"ALTER TABLE coins ADD COLUMN numista_issue_id INTEGER");
+	FConnection->ExecSQL(L"ALTER TABLE coin_items ADD COLUMN numista_item_id INTEGER");
 }
 //---------------------------------------------------------------------------
 // Справочники с начальным составом (u_SeedData). «Extinct states» — не континент:

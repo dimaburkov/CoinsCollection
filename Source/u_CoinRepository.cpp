@@ -18,7 +18,8 @@ namespace
 		L"       c.denomination, c.year, c.variety, c.subject, c.diameter_mm, c.catalog_number,"
 		L"       cd.code AS condition, i.quantity, i.need_to_replace, i.catalog_value_uah,"
 		L"       i.my_value_uah, i.purchase_date, i.published_date, i.swap_info, i.color,"
-		L"       i.grading_company, i.grading_number, i.grade, i.label_text, i.comment"
+		L"       i.grading_company, i.grading_number, i.grade, i.label_text, i.comment,"
+		L"       c.numista_type_id, c.numista_issue_id, i.numista_item_id"
 		L"  FROM coin_items i"
 		L"  JOIN coins c       ON c.id  = i.id_coin"
 		L"  JOIN periods p     ON p.id  = c.id_period"
@@ -132,6 +133,9 @@ namespace
 		r.Grade           = FieldText (D, L"grade");
 		r.LabelText       = FieldText (D, L"label_text");
 		r.Comment         = FieldText (D, L"comment");
+		r.NumistaTypeId   = FieldInt  (D, L"numista_type_id");
+		r.NumistaIssueId  = FieldInt  (D, L"numista_issue_id");
+		r.NumistaItemId   = FieldInt  (D, L"numista_item_id");
 		return r;
 	}
 }
@@ -420,5 +424,16 @@ int TCoinRepository::ItemCount(int ACoinId)
 	q->ParamByName(L"id_coin")->AsInteger = ACoinId;
 	q->Open();
 	return q->Fields->Fields[0]->AsInteger;
+}
+//---------------------------------------------------------------------------
+// Связь монеты с типом и выпуском Numista (0 — снять связь).
+void TCoinRepository::SetCoinNumista(int ACoinId, int ATypeId, int AIssueId)
+{
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
+		L"UPDATE coins SET numista_type_id = :type_id, numista_issue_id = :issue_id WHERE id = :id");
+	SetIntOrNull(q->ParamByName(L"type_id"),  ATypeId);
+	SetIntOrNull(q->ParamByName(L"issue_id"), AIssueId);
+	q->ParamByName(L"id")->AsInteger = ACoinId;
+	q->ExecSQL();
 }
 //---------------------------------------------------------------------------

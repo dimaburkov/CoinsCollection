@@ -5,6 +5,7 @@
 #include <System.Net.HttpClient.hpp>
 #include <System.Net.URLClient.hpp>
 #include <System.IOUtils.hpp>
+#include <System.Hash.hpp>
 #include "u_NumistaClient.h"
 #include "u_AppConfig.h"
 #include "u_Translator.h"
@@ -42,6 +43,8 @@ namespace
 const wchar_t *const TNumistaClient::BaseUrl = L"https://api.numista.com/v3";
 //---------------------------------------------------------------------------
 TNumistaClient::TNumistaClient()
+	: RequestBudget(-1),
+	  RequestsMade(0)
 {
 }
 //---------------------------------------------------------------------------
@@ -81,6 +84,8 @@ String TNumistaClient::Get(const String &APath, bool AWithToken)
 	const TAppConfig &config = AppConfig();
 	if (config.NumistaApiKey.IsEmpty())
 		throw ENumistaError(0, Tr(L"Numista.Error.NoKey"));
+	if (RequestBudget >= 0 && RequestsMade >= RequestBudget)
+		throw ENumistaError(BudgetExhausted, Tr(L"Numista.Error.Budget"));
 
 	TNetHeaders headers;
 	headers.Length = AWithToken ? 2 : 1;
@@ -94,6 +99,7 @@ String TNumistaClient::Get(const String &APath, bool AWithToken)
 	http->Accept            = L"application/json";
 
 	CountRequest();	// запрос уходит — он учитывается в квоте, даже если вернётся ошибка
+	++RequestsMade;
 	_di_IHTTPResponse response;
 	try
 	{
@@ -201,5 +207,29 @@ int TNumistaClient::LoadIssuers(bool ARefresh)
 int TNumistaClient::LoadCatalogues(bool ARefresh)
 {
 	return LoadList(L"catalogues", L"/catalogues", L"catalogues", ARefresh);
+}
+//---------------------------------------------------------------------------
+std::unique_ptr<TJSONValue> TNumistaClient::GetCached(const String &APath, bool *AFromCache)
+{
+	const String dir  = CacheDir() + L"cache\\";
+	const String file = dir + THashMD5::GetHashString(APath) + L".json";
+	if (FileExists(file))
+	{
+		std::unique_ptr<TJSONValue> json(TJSONObject::ParseJSONValue(TFile::ReadAllText(file, TEncoding::UTF8)));
+		if (json)
+		{
+			if (AFromCache)
+				*AFromCache = true;
+			return json;
+		}
+	}
+
+	const String body = Get(APath, false);
+	std::unique_ptr<TJSONValue> json = ParseJson(body);
+	ForceDirectories(dir);
+	TFile::WriteAllText(file, body, TEncoding::UTF8);
+	if (AFromCache)
+		*AFromCache = false;
+	return json;
 }
 //---------------------------------------------------------------------------

@@ -42,6 +42,9 @@ public:
 	// Число экземпляров монеты ACoinId.
 	int  ItemCount(int ACoinId);
 
+	// Связь монеты с типом и выпуском Numista (0 — нет).
+	void SetCoinNumista(int ACoinId, int ATypeId, int AIssueId);
+
 	TLookupRepository &Lookups() { return FLookups; }
 
 private:
