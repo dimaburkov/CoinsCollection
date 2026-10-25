@@ -121,7 +121,7 @@ object fmMain: TfmMain
       Width = 856
       Height = 425
       Align = alClient
-      ColCount = 7
+      ColCount = 9
       DefaultRowHeight = 18
       FixedCols = 0
       RowCount = 2
@@ -133,7 +133,10 @@ object fmMain: TfmMain
       OnKeyDown = dgItemsKeyDown
       OnMouseDown = dgItemsMouseDown
       OnSelectCell = dgItemsSelectCell
+      PopupMenu = pmItems
       ColWidths = (
+        22
+        60
         130
         160
         120
@@ -305,7 +308,32 @@ object fmMain: TfmMain
       end
       item
         Width = 250
+      end
+      item
+        Width = 150
       end>
+  end
+  object pmItems: TPopupMenu
+    Left = 424
+    Top = 96
+    object miPopNumistaCheck: TMenuItem
+      Action = actNumistaCheck
+    end
+    object miPopNumistaFind: TMenuItem
+      Action = actNumistaFind
+    end
+    object miPopNumistaIssue: TMenuItem
+      Action = actNumistaIssue
+    end
+    object miPopSep1: TMenuItem
+      Caption = '-'
+    end
+    object miPopCheckAll: TMenuItem
+      Action = actCheckAll
+    end
+    object miPopUncheckAll: TMenuItem
+      Action = actUncheckAll
+    end
   end
   object ActionList: TActionList
     Left = 344
@@ -379,14 +407,33 @@ object fmMain: TfmMain
     end
     object actNumistaFind: TAction
       Category = 'Numista'
-      Caption = '&Find in Numista...'
+      Caption = 'Link &manually...'
       OnExecute = actNumistaFindExecute
       OnUpdate = actNumistaFindUpdate
     end
-    object actNumistaMatch: TAction
+    object actNumistaIssue: TAction
       Category = 'Numista'
-      Caption = '&Match by catalogue number...'
-      OnExecute = actNumistaMatchExecute
+      Caption = 'Choose &issue...'
+      OnExecute = actNumistaIssueExecute
+      OnUpdate = actNumistaIssueUpdate
+    end
+    object actNumistaCheck: TAction
+      Category = 'Numista'
+      Caption = 'Auto-&link checked (0)...'
+      OnExecute = actNumistaCheckExecute
+      OnUpdate = actNumistaCheckUpdate
+    end
+    object actCheckAll: TAction
+      Category = 'Collection'
+      Caption = 'Check &all'
+      OnExecute = actCheckAllExecute
+      OnUpdate = actCheckAllUpdate
+    end
+    object actUncheckAll: TAction
+      Category = 'Collection'
+      Caption = '&Uncheck all'
+      OnExecute = actCheckAllExecute
+      OnUpdate = actCheckAllUpdate
     end
     object actNumistaUploadSelected: TAction
       Category = 'Numista'
@@ -476,8 +523,11 @@ object fmMain: TfmMain
       object miNumistaFind: TMenuItem
         Action = actNumistaFind
       end
-      object miNumistaMatch: TMenuItem
-        Action = actNumistaMatch
+      object miNumistaIssue: TMenuItem
+        Action = actNumistaIssue
+      end
+      object miNumistaCheck: TMenuItem
+        Action = actNumistaCheck
       end
       object miNumistaSep2: TMenuItem
         Caption = '-'

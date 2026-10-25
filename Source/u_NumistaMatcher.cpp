@@ -269,31 +269,45 @@ std::vector<TNumistaType> TNumistaMatcher::SearchAll(const TCoinRecord &ACoin, c
 	return QueryTypes(path);
 }
 //---------------------------------------------------------------------------
+std::vector<TNumistaIssue> TNumistaMatcher::LoadIssues(int ATypeId)
+{
+	std::vector<TNumistaIssue> result;
+	std::unique_ptr<TJSONValue> json = FClient.GetCached(L"/types/" + IntToStr(ATypeId) + L"/issues?lang=en");
+	TJSONArray *issues = dynamic_cast<TJSONArray *>(json.get());
+	for (int i = 0; issues && i < issues->Count; ++i)
+	{
+		TJSONValue *item = issues->Items[i];
+		TNumistaIssue issue;
+		issue.Id            = JsonInt   (item, L"id");
+		issue.Year          = JsonInt   (item, L"year");
+		issue.GregorianYear = JsonInt   (item, L"gregorian_year");
+		issue.MintLetter    = JsonString(item, L"mint_letter");
+		issue.Mintage       = JsonString(item, L"mintage");
+		issue.Comment       = JsonString(item, L"comment");
+		if (issue.Id != 0)
+			result.push_back(issue);
+	}
+	return result;
+}
+//---------------------------------------------------------------------------
 int TNumistaMatcher::FindIssue(int ATypeId, const TCoinRecord &ACoin)
 {
 	if (ATypeId == 0 || ACoin.Year == 0)
-		return 0;
-	std::unique_ptr<TJSONValue> json = FClient.GetCached(L"/types/" + IntToStr(ATypeId) + L"/issues?lang=en");
-	TJSONArray *issues = dynamic_cast<TJSONArray *>(json.get());
-	if (!issues)
 		return 0;
 
 	const String mint = ACoin.Variety.Trim();
 	// Для года и двора у Numista бывает несколько выпусков: обычный и с комментарием
 	// ("BU set", "Proof"). Несколько совпадений — берётся единственный без комментария.
 	int result = 0, matches = 0, plain = 0, plainMatches = 0;
-	for (int i = 0; i < issues->Count; ++i)
+	for (const TNumistaIssue &issue : LoadIssues(ATypeId))
 	{
-		TJSONValue *item = issues->Items[i];
-		const int gregorian = JsonInt(item, L"gregorian_year");
-		const int year = gregorian != 0 ? gregorian : JsonInt(item, L"year");
-		if (year != ACoin.Year)
+		if (issue.EffectiveYear() != ACoin.Year)
 			continue;
-		if (!mint.IsEmpty() && !SameText(JsonString(item, L"mint_letter"), mint))
+		if (!mint.IsEmpty() && !SameText(issue.MintLetter, mint))
 			continue;
-		result = JsonInt(item, L"id");
+		result = issue.Id;
 		++matches;
-		if (JsonString(item, L"comment").Trim().IsEmpty())
+		if (issue.Comment.Trim().IsEmpty())
 		{
 			plain = result;
 			++plainMatches;
