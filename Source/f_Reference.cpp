@@ -201,6 +201,7 @@ void TfmReference::ShowCountry(int AIndex)
 		edCountryName->Text = L"";
 		cbContinent->ItemIndex = 0;
 		chkExists->Checked = true;
+		edNumistaIssuer->Text = L"";
 	}
 	else
 	{
@@ -212,6 +213,7 @@ void TfmReference::ShowCountry(int AIndex)
 			if (FContinents[i].Id == c.ContinentId)
 				cbContinent->ItemIndex = (int)i + 1;
 		chkExists->Checked = c.IsExist;
+		edNumistaIssuer->Text = c.NumistaIssuer;
 	}
 	lblRenameWarning->Visible = false;
 }
@@ -241,6 +243,7 @@ void __fastcall TfmReference::btnCountryAddClick(TObject *Sender)
 	c.ContinentId = ContinentIdFromCombo();
 	c.IsExist     = chkExists->Checked;
 	const int id = FLookups->AddCountry(c);
+	FLookups->SetCountryIssuer(id, edNumistaIssuer->Text);
 	FChanged = true;
 	LoadCountries(id);
 }
@@ -260,6 +263,7 @@ void __fastcall TfmReference::btnCountrySaveClick(TObject *Sender)
 	c.Name        = name;
 	c.ContinentId = ContinentIdFromCombo();
 	c.IsExist     = chkExists->Checked;
+	c.NumistaIssuer = edNumistaIssuer->Text.Trim();
 	FLookups->SaveCountry(c);
 	FChanged = true;
 	LoadCountries(c.Id);

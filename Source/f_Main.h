@@ -39,6 +39,8 @@ __published:	// IDE-managed Components
 	TAction *actPeriods;
 	TAction *actCurrencies;
 	TAction *actNumistaSettings;
+	TAction *actNumistaFind;
+	TAction *actNumistaMatch;
 	TAction *actNumistaUploadSelected;
 	TAction *actNumistaUploadAll;
 	TAction *actSettings;
@@ -64,6 +66,9 @@ __published:	// IDE-managed Components
 	TMenuItem *miNumista;
 	TMenuItem *miNumistaSettings;
 	TMenuItem *miNumistaSep1;
+	TMenuItem *miNumistaFind;
+	TMenuItem *miNumistaMatch;
+	TMenuItem *miNumistaSep2;
 	TMenuItem *miNumistaUploadSelected;
 	TMenuItem *miNumistaUploadAll;
 	TMenuItem *miSettings;
@@ -123,6 +128,9 @@ __published:	// IDE-managed Components
 	void __fastcall actNeedToReplaceExecute(TObject *Sender);
 	void __fastcall actReferenceExecute(TObject *Sender);
 	void __fastcall actNumistaSettingsExecute(TObject *Sender);
+	void __fastcall actNumistaFindExecute(TObject *Sender);
+	void __fastcall actNumistaFindUpdate(TObject *Sender);
+	void __fastcall actNumistaMatchExecute(TObject *Sender);
 private:	// User declarations
 	// Колонки списка (логические; видимые и их порядок — FColumns).
 	enum TItemColumn { icCountry, icPeriod, icCurrency, icDenomination, icYear, icCondition, icValue, icCount };
@@ -134,7 +142,7 @@ private:	// User declarations
 		TLabel        *Caption;
 		TLabel        *Value;
 	};
-	enum TDetailRowIndex { drPeriod, drCurrency, drSubject, drNumber, drCount };
+	enum TDetailRowIndex { drPeriod, drCurrency, drSubject, drNumber, drNumista, drCount };
 
 	// Узел дерева навигации: что он отбирает.
 	enum TNavKind { nkAll, nkContinent, nkNoContinent, nkExtinct, nkCountry };
@@ -161,6 +169,7 @@ private:	// User declarations
 	bool                             FSortAscending;
 	int                              FLanguageToken;
 	int                              FMouseDownRow;    // строка сетки последнего нажатия мыши (для двойного клика)
+	int                              FDetailsTypeId;   // N# монеты в панели подробностей (0 — нет)
 
 	void BuildLanguageMenu();
 	void __fastcall LanguageClick(TObject *Sender);
@@ -186,11 +195,17 @@ private:	// User declarations
 	void UpdateDetails();
 	void LayoutDetails();
 	int  TextHeight(TLabel *ALabel, int AWidth);
+	void __fastcall NumistaLinkClick(TObject *Sender);
 	void UpdateRowCount();
 	int  CurrentIndex() const;	// индекс в FItems текущей строки сетки, -1 — нет
 	int  CurrentId() const;	// Id текущей записи, 0 — нет
 	void SelectId(int AId);
 	void SelectIndex(int AIndex);
+
+	// Numista (задача 12)
+	std::map<String, String> NumistaIssuers();	// страна (AnsiUpperCase) -> код эмитента
+	static String CoinText(const TCoinRecord &ARecord);
+	String NumistaRequestsText(int ASent) const;
 public:		// User declarations
 	__fastcall TfmMain(TComponent* Owner);
 	__fastcall ~TfmMain();

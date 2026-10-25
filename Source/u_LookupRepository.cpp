@@ -62,7 +62,7 @@ std::vector<TCountry> TLookupRepository::Countries()
 {
 	std::vector<TCountry> result;
 	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
-		L"SELECT id, name, id_continent, is_exist FROM countries ORDER BY name");
+		L"SELECT id, name, id_continent, is_exist, numista_issuer FROM countries ORDER BY name");
 	for (q->Open(); !q->Eof; q->Next())
 	{
 		TCountry r;
@@ -70,6 +70,7 @@ std::vector<TCountry> TLookupRepository::Countries()
 		r.Name        = q->FieldByName(L"name")->AsString;
 		r.ContinentId = q->FieldByName(L"id_continent")->IsNull ? 0 : q->FieldByName(L"id_continent")->AsInteger;
 		r.IsExist     = q->FieldByName(L"is_exist")->AsInteger != 0;
+		r.NumistaIssuer = q->FieldByName(L"numista_issuer")->IsNull ? String() : q->FieldByName(L"numista_issuer")->AsString;
 		result.push_back(r);
 	}
 	return result;
@@ -341,6 +342,7 @@ void TLookupRepository::SaveCountry(const TCountry &ACountry)
 	q->ParamByName(L"id")->AsInteger      = ACountry.Id;
 	q->ExecSQL();
 	UpdateCountry(ACountry);
+	SetCountryIssuer(ACountry.Id, ACountry.NumistaIssuer);
 	tx.Commit();
 }
 //---------------------------------------------------------------------------
@@ -414,5 +416,19 @@ bool TLookupRepository::DeleteCurrency(int AId)
 	q->ParamByName(L"id")->AsInteger = AId;
 	q->ExecSQL();
 	return true;
+}
+//---------------------------------------------------------------------------
+// Код эмитента Numista у страны ("" — не указан).
+void TLookupRepository::SetCountryIssuer(int ACountryId, const String &AIssuer)
+{
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, L"UPDATE countries SET numista_issuer = :issuer WHERE id = :id");
+	TFDParam *issuer = q->ParamByName(L"issuer");
+	issuer->DataType = ftWideString;
+	if (AIssuer.Trim().IsEmpty())
+		issuer->Clear();
+	else
+		issuer->AsWideString = AIssuer.Trim();
+	q->ParamByName(L"id")->AsInteger = ACountryId;
+	q->ExecSQL();
 }
 //---------------------------------------------------------------------------

@@ -1,0 +1,76 @@
+//---------------------------------------------------------------------------
+// Сопоставление монет коллекции с типами и выпусками Numista (задача 12).
+// Документация: https://en.numista.com/api/doc/index.php
+//   searchTypes — GET /types (issuer, catalogue, number, q, year, lang, count)
+//   getIssues   — GET /types/{type_id}/issues
+// Коды эмитентов и id каталогов — из кэша getIssuers / getCatalogues (задача 11),
+// без запросов. Ответы searchTypes и getIssues кэшируются (TNumistaClient::GetCached).
+//---------------------------------------------------------------------------
+#ifndef u_NumistaMatcherH
+#define u_NumistaMatcherH
+//---------------------------------------------------------------------------
+#include <System.hpp>
+#include <map>
+#include <vector>
+#include "u_CoinTypes.h"
+//---------------------------------------------------------------------------
+class TNumistaClient;
+class TLookupRepository;
+//---------------------------------------------------------------------------
+struct TNumistaType
+{
+	int    Id;              // N#
+	String Title;
+	String IssuerCode;
+	String IssuerName;
+	int    MinYear;         // 0 — нет данных
+	int    MaxYear;
+	TNumistaType() : Id(0), MinYear(0), MaxYear(0) {}
+};
+//---------------------------------------------------------------------------
+class TNumistaMatcher
+{
+public:
+	explicit TNumistaMatcher(TNumistaClient &AClient);
+
+	// Справочники из кэша (issuers.json, catalogues.json); false — кэша нет
+	// (сначала Numista → Connect / Settings → Check connection).
+	bool LoadReferences();
+
+	// Код эмитента по названию страны: таблица соответствий, затем точное
+	// совпадение названия (из одноимённых — дочерний эмитент). "" — не найден.
+	String ResolveIssuer(const String &ACountryName) const;
+	// Заполнить countries.numista_issuer там, где он пуст. Возвращает число заполненных.
+	int EnsureCountryIssuers(TLookupRepository &ALookups);
+
+	// "KM# 308" / "Y# 141a" / "C# 12.1" → id каталога Numista и номер.
+	// false — каталог не KM / Y / C (например, UC#) или его нет в кэше.
+	bool ParseCatalogNumber(const String &AText, int &ACatalogueId, String &ANumber) const;
+
+	// Поиск типов для монеты. AIssuer — код эмитента страны ("" — не известен).
+	// С номером KM / Y / C — issuer + catalogue + number, при пустом ответе — без issuer
+	// (с отбором по стране); иначе — issuer + q=номинал + year. Затем отбор по году
+	// монеты (годы типа min_year–max_year), если под год подходит хотя бы один тип.
+	std::vector<TNumistaType> Search(const TCoinRecord &ACoin, const String &AIssuer);
+
+	// Выпуск типа для монеты: год совпадает и (если указана разновидность)
+	// совпадает знак монетного двора; из нескольких — единственный без комментария
+	// (обычный тираж, а не "BU set" / "Proof"). 0 — не найден или не однозначен.
+	int FindIssue(int ATypeId, const TCoinRecord &ACoin);
+
+	static String TypeUrl(int ATypeId);
+
+private:
+	TNumistaClient &FClient;
+	std::map<String, String> FIssuerParent;                 // код → код родителя
+	std::map<String, std::vector<String> > FIssuersByName;  // название (lower) → коды
+	std::map<String, int> FLevel;                           // код → уровень
+	std::map<String, String> FParentName;                   // код → название родителя (lower)
+	std::map<String, int> FCatalogues;                      // код каталога (upper) → id
+
+	String RootOf(const String &AIssuer) const;
+	std::vector<TNumistaType> SearchAll(const TCoinRecord &ACoin, const String &AIssuer);
+	std::vector<TNumistaType> QueryTypes(const String &APath);
+};
+//---------------------------------------------------------------------------
+#endif

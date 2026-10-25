@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <set>
 #include <shlwapi.h>
+#include <shellapi.h>
 #include <Vcl.Dialogs.hpp>
 #include "f_Main.h"
 #include "dm_Data.h"
@@ -16,6 +17,9 @@
 #include "f_CoinEdit.h"
 #include "f_Reference.h"
 #include "f_NumistaSettings.h"
+#include "f_NumistaChoose.h"
+#include "u_NumistaClient.h"
+#include "u_NumistaMatcher.h"
 #include "versionConfig.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -43,7 +47,8 @@ namespace
 	// Подписи строк панели подробностей (порядок = TDetailRowIndex).
 	const wchar_t *const cDetailKeys[] =
 	{
-		L"Main.Details.Period", L"Main.Details.Currency", L"Main.Details.Subject", L"Main.Details.Number"
+		L"Main.Details.Period", L"Main.Details.Currency", L"Main.Details.Subject", L"Main.Details.Number",
+		L"Main.Details.Numista"
 	};
 	//-----------------------------------------------------------------------
 	template <typename T>
@@ -59,6 +64,7 @@ __fastcall TfmMain::TfmMain(TComponent* Owner)
 	  FSortAscending(true),
 	  FLanguageToken(0),
 	  FMouseDownRow(-1),
+	  FDetailsTypeId(0),
 	  FBuildingTree(false)
 {
 	for (int c = 0; c < icCount; ++c)
@@ -345,6 +351,220 @@ void __fastcall TfmMain::actReferenceExecute(TObject *Sender)
 void __fastcall TfmMain::actNumistaSettingsExecute(TObject *Sender)
 {
 	TfmNumistaSettings::Execute(this);
+}
+//---------------------------------------------------------------------------
+// Коды эмитентов Numista по странам (после EnsureCountryIssuers).
+std::map<String, String> TfmMain::NumistaIssuers()
+{
+	std::map<String, String> result;
+	const std::vector<TCountry> countries = FRepository->Lookups().Countries();
+	for (size_t i = 0; i < countries.size(); ++i)
+		result[AnsiUpperCase(countries[i].Name)] = countries[i].NumistaIssuer;
+	return result;
+}
+//---------------------------------------------------------------------------
+String TfmMain::CoinText(const TCoinRecord &ARecord)
+{
+	String text = ARecord.Country + L", " + ARecord.Denomination;
+	if (ARecord.Year != 0)
+		text += L", " + IntToStr(ARecord.Year);
+	if (!ARecord.Variety.IsEmpty())
+		text += L" " + ARecord.Variety;
+	if (!ARecord.CatalogNumber.IsEmpty())
+		text += L", " + ARecord.CatalogNumber;
+	return text;
+}
+//---------------------------------------------------------------------------
+String TfmMain::NumistaRequestsText(int ASent) const
+{
+	return Format(Tr(L"Numista.Requests"), ARRAYOFCONST((ASent,
+		TNumistaClient::RequestsThisMonth(), AppConfig().NumistaMonthlyQuota)));
+}
+//---------------------------------------------------------------------------
+// Numista → Find in Numista: тип для текущей монеты (один результат — сразу,
+// несколько — выбор), затем выпуск. Документация: searchTypes, getIssues
+// (https://en.numista.com/api/doc/index.php).
+void __fastcall TfmMain::actNumistaFindExecute(TObject *Sender)
+{
+	const int index = CurrentIndex();
+	if (index < 0)
+		return;
+	const TCoinRecord coin = FItems[index];
+	const String caption = StripHotkey(actNumistaFind->Caption);
+
+	TNumistaClient client;
+	TNumistaMatcher matcher(client);
+	if (!matcher.LoadReferences())
+	{
+		Application->MessageBox(Tr(L"Numista.Error.NoLists").c_str(), caption.c_str(), MB_OK | MB_ICONWARNING);
+		return;
+	}
+
+	String message;
+	UINT icon = MB_ICONINFORMATION;
+	try
+	{
+		std::vector<TNumistaType> types;
+		const TCursor saved = Screen->Cursor;
+		Screen->Cursor = crHourGlass;
+		try
+		{
+			matcher.EnsureCountryIssuers(FRepository->Lookups());
+			types = matcher.Search(coin, NumistaIssuers()[AnsiUpperCase(coin.Country)]);
+		}
+		__finally
+		{
+			Screen->Cursor = saved;
+		}
+
+		int typeId = 0;
+		if (types.size() == 1)
+			typeId = types[0].Id;
+		else if (types.size() > 1)
+			typeId = TfmNumistaChoose::Execute(this,
+				Format(Tr(L"NumistaChoose.Found"), ARRAYOFCONST(((int)types.size(), CoinText(coin)))), types);
+
+		if (types.empty())
+		{
+			message = Format(Tr(L"Numista.Find.NotFound"), ARRAYOFCONST((CoinText(coin))));
+			icon = MB_ICONWARNING;
+		}
+		else if (typeId == 0)
+			message = Tr(L"Numista.Find.Cancelled");
+		else
+		{
+			const int issueId = matcher.FindIssue(typeId, coin);
+			FRepository->SetCoinNumista(coin.CoinId, typeId, issueId);
+			String title;
+			for (size_t i = 0; i < types.size(); ++i)
+				if (types[i].Id == typeId)
+					title = types[i].Title;
+			message = Format(Tr(L"Numista.Find.Linked"), ARRAYOFCONST((typeId, title))) + L"\r\n"
+				+ (issueId != 0 ? Tr(L"Numista.Find.IssueFound") : Tr(L"Numista.Find.IssueNotFound"));
+		}
+	}
+	catch (Exception &e)
+	{
+		message = e.Message;
+		icon = MB_ICONERROR;
+	}
+
+	LoadItems();
+	Application->MessageBox((message + L"\r\n\r\n" + NumistaRequestsText(client.RequestsMade)).c_str(),
+		caption.c_str(), MB_OK | icon);
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::actNumistaFindUpdate(TObject *Sender)
+{
+	actNumistaFind->Enabled = CurrentIndex() >= 0;
+}
+//---------------------------------------------------------------------------
+// Numista → Match by catalogue number: монеты текущего списка без N# и с номером
+// KM / Y / C; связывается только однозначный результат. Лимит запросов —
+// по умолчанию 10 (ответы из кэша его не расходуют); остановка на лимите и на ошибке (429).
+void __fastcall TfmMain::actNumistaMatchExecute(TObject *Sender)
+{
+	const String caption = StripHotkey(actNumistaMatch->Caption);
+	TNumistaClient client;
+	TNumistaMatcher matcher(client);
+	if (!matcher.LoadReferences())
+	{
+		Application->MessageBox(Tr(L"Numista.Error.NoLists").c_str(), caption.c_str(), MB_OK | MB_ICONWARNING);
+		return;
+	}
+
+	// Кандидаты — по одной записи на монету (экземпляры одной монеты — один тип).
+	std::vector<TCoinRecord> coins;
+	std::set<int> seen;
+	for (size_t i = 0; i < FItems.size(); ++i)
+	{
+		const TCoinRecord &r = FItems[i];
+		int catalogueId = 0;
+		String number;
+		if (r.NumistaTypeId == 0 && matcher.ParseCatalogNumber(r.CatalogNumber, catalogueId, number)
+			&& seen.insert(r.CoinId).second)
+			coins.push_back(r);
+	}
+	if (coins.empty())
+	{
+		Application->MessageBox(Tr(L"Numista.Match.Nothing").c_str(), caption.c_str(), MB_OK | MB_ICONINFORMATION);
+		return;
+	}
+
+	String limitText = L"10";
+	if (!InputQuery(caption, Format(Tr(L"Numista.Match.Limit"), ARRAYOFCONST(((int)coins.size()))), limitText))
+		return;
+	const int limit = StrToIntDef(limitText.Trim(), 0);
+	if (limit <= 0)
+		return;
+	client.RequestBudget = limit;
+
+	int linked = 0, withIssue = 0, ambiguous = 0, notFound = 0, processed = 0;
+	String stopReason;
+	const TCursor saved = Screen->Cursor;
+	Screen->Cursor = crHourGlass;
+	try
+	{
+		matcher.EnsureCountryIssuers(FRepository->Lookups());
+		std::map<String, String> issuers = NumistaIssuers();
+		for (size_t i = 0; i < coins.size() && stopReason.IsEmpty(); ++i)
+		{
+			const TCoinRecord &coin = coins[i];
+			StatusBar->Panels->Items[0]->Text = Format(Tr(L"Numista.Match.Progress"),
+				ARRAYOFCONST(((int)i + 1, (int)coins.size())));
+			StatusBar->Update();
+			try
+			{
+				const std::vector<TNumistaType> types = matcher.Search(coin, issuers[AnsiUpperCase(coin.Country)]);
+				if (types.size() == 1)
+				{
+					int issueId = 0;
+					try
+					{
+						issueId = matcher.FindIssue(types[0].Id, coin);
+					}
+					catch (ENumistaError &e)
+					{
+						stopReason = e.Message;	// тип найден — сохраняем без выпуска и останавливаемся
+					}
+					FRepository->SetCoinNumista(coin.CoinId, types[0].Id, issueId);
+					++linked;
+					if (issueId != 0)
+						++withIssue;
+				}
+				else if (types.size() > 1)
+					++ambiguous;
+				else
+					++notFound;
+				++processed;
+			}
+			catch (ENumistaError &e)
+			{
+				stopReason = e.Message;
+			}
+		}
+	}
+	catch (Exception &e)
+	{
+		stopReason = e.Message;
+	}
+	Screen->Cursor = saved;
+
+	LoadItems();	// и строка состояния
+	String report = Format(Tr(L"Numista.Match.Linked"), ARRAYOFCONST((linked, withIssue))) + L"\r\n"
+		+ Format(Tr(L"Numista.Match.Ambiguous"), ARRAYOFCONST((ambiguous))) + L"\r\n"
+		+ Format(Tr(L"Numista.Match.NotFound"), ARRAYOFCONST((notFound))) + L"\r\n"
+		+ Format(Tr(L"Numista.Match.NotProcessed"), ARRAYOFCONST(((int)coins.size() - processed)));
+	if (!stopReason.IsEmpty())
+		report += L"\r\n\r\n" + Tr(L"Numista.Match.Stopped") + L" " + stopReason;
+	Application->MessageBox((report + L"\r\n\r\n" + NumistaRequestsText(client.RequestsMade)).c_str(),
+		caption.c_str(), MB_OK | (stopReason.IsEmpty() ? MB_ICONINFORMATION : MB_ICONWARNING));
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::NumistaLinkClick(TObject *Sender)
+{
+	if (FDetailsTypeId != 0)
+		ShellExecuteW(Handle, L"open", TNumistaMatcher::TypeUrl(FDetailsTypeId).c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::actExitExecute(TObject *Sender)
@@ -857,6 +1077,8 @@ void TfmMain::CreateDetailRows()
 		row.Value->WordWrap      = true;
 		FDetailRows.push_back(row);
 	}
+	// N# — ссылка на страницу типа на Numista.
+	FDetailRows[drNumista].Value->OnClick = NumistaLinkClick;
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::dgItemsSelectCell(TObject *Sender, int ACol, int ARow, bool &CanSelect)
@@ -886,9 +1108,19 @@ void TfmMain::ShowDetails(int AIndex)
 		FDetailRows[drCurrency].Value->Caption = value(r.Currency);
 		FDetailRows[drSubject].Value->Caption  = value(r.Subject);
 		FDetailRows[drNumber].Value->Caption   = value(r.CatalogNumber);
+		FDetailRows[drNumista].Value->Caption  = r.NumistaTypeId == 0 ? String(L"\u2014")
+			: L"N# " + IntToStr(r.NumistaTypeId);
+		FDetailsTypeId = r.NumistaTypeId;
 	}
 	else
+	{
 		lblDetailsTitle->Caption = L"";
+		FDetailsTypeId = 0;
+	}
+	TLabel *link = FDetailRows[drNumista].Value;
+	link->Cursor      = FDetailsTypeId != 0 ? crHandPoint : crDefault;
+	link->Font->Color = FDetailsTypeId != 0 ? clHotLight : clWindowText;
+	link->Font->Style = FDetailsTypeId != 0 ? TFontStyles() << fsUnderline : TFontStyles();
 
 	for (size_t i = 0; i < FDetailRows.size(); ++i)
 	{

@@ -377,6 +377,17 @@ object fmMain: TfmMain
       Caption = '&Connect / Settings...'
       OnExecute = actNumistaSettingsExecute
     end
+    object actNumistaFind: TAction
+      Category = 'Numista'
+      Caption = '&Find in Numista...'
+      OnExecute = actNumistaFindExecute
+      OnUpdate = actNumistaFindUpdate
+    end
+    object actNumistaMatch: TAction
+      Category = 'Numista'
+      Caption = '&Match by catalogue number...'
+      OnExecute = actNumistaMatchExecute
+    end
     object actNumistaUploadSelected: TAction
       Category = 'Numista'
       Caption = 'Upload &selected'
@@ -460,6 +471,15 @@ object fmMain: TfmMain
         Action = actNumistaSettings
       end
       object miNumistaSep1: TMenuItem
+        Caption = '-'
+      end
+      object miNumistaFind: TMenuItem
+        Action = actNumistaFind
+      end
+      object miNumistaMatch: TMenuItem
+        Action = actNumistaMatch
+      end
+      object miNumistaSep2: TMenuItem
         Caption = '-'
       end
       object miNumistaUploadSelected: TMenuItem
