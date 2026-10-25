@@ -15,6 +15,7 @@
 #include "u_CoinImporter.h"
 #include "f_CoinEdit.h"
 #include "f_Reference.h"
+#include "f_NumistaSettings.h"
 #include "versionConfig.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -339,6 +340,11 @@ void __fastcall TfmMain::actReferenceExecute(TObject *Sender)
 	const int tab = Sender == actPeriods ? 1 : (Sender == actCurrencies ? 2 : 0);
 	if (TfmReference::Execute(this, FRepository->Lookups(), tab))
 		LoadItems();
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::actNumistaSettingsExecute(TObject *Sender)
+{
+	TfmNumistaSettings::Execute(this);
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::actExitExecute(TObject *Sender)
