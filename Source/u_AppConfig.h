@@ -22,6 +22,15 @@ public:
 	// Язык интерфейса: en / ru / uk ([UI] Language; по умолчанию en).
 	String Language;
 
+	// Numista ([Numista]). Ключ и токен хранятся в ini (в git не попадает).
+	String    NumistaApiKey;
+	String    NumistaToken;          // OAuth access token (client credentials)
+	TDateTime NumistaTokenExpires;   // 0 — нет токена
+	int       NumistaUserId;
+	String    NumistaRequestsMonth;  // 'yyyy-mm', к которому относится счётчик
+	int       NumistaRequestsCount;  // запросов к API за этот месяц
+	int       NumistaMonthlyQuota;   // квота ключа в месяц (по умолчанию 2000)
+
 	// Каталог exe с завершающим "\".
 	static String ExeDir();
 

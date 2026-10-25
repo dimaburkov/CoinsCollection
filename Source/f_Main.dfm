@@ -375,7 +375,7 @@ object fmMain: TfmMain
     object actNumistaSettings: TAction
       Category = 'Numista'
       Caption = '&Connect / Settings...'
-      Enabled = False
+      OnExecute = actNumistaSettingsExecute
     end
     object actNumistaUploadSelected: TAction
       Category = 'Numista'

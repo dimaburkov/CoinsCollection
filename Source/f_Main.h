@@ -122,6 +122,7 @@ __published:	// IDE-managed Components
 	void __fastcall tbClearSearchClick(TObject *Sender);
 	void __fastcall actNeedToReplaceExecute(TObject *Sender);
 	void __fastcall actReferenceExecute(TObject *Sender);
+	void __fastcall actNumistaSettingsExecute(TObject *Sender);
 private:	// User declarations
 	// Колонки списка (логические; видимые и их порядок — FColumns).
 	enum TItemColumn { icCountry, icPeriod, icCurrency, icDenomination, icYear, icCondition, icValue, icCount };

@@ -19,6 +19,25 @@ namespace
 	const String cUiSection       = L"UI";
 	const String cLanguageKey     = L"Language";
 	const String cDefaultLanguage = L"en";
+
+	const String cNumistaSection  = L"Numista";
+	const int    cDefaultQuota    = 2000;
+	const String cDateTimeFormat  = L"yyyy-mm-dd hh:nn:ss";
+
+	TDateTime ParseDateTime(const String &AText)
+	{
+		// 'yyyy-mm-dd hh:nn:ss' независимо от настроек Windows; иначе 0.
+		const String s = AText.Trim();
+		TDateTime result = 0.0;
+		if (s.Length() >= 19)
+		{
+			TDateTime d, t;
+			if (TryEncodeDate(StrToIntDef(s.SubString(1, 4), 0), StrToIntDef(s.SubString(6, 2), 0), StrToIntDef(s.SubString(9, 2), 0), d)
+				&& TryEncodeTime(StrToIntDef(s.SubString(12, 2), 0), StrToIntDef(s.SubString(15, 2), 0), StrToIntDef(s.SubString(18, 2), 0), 0, t))
+				result = d + t;
+		}
+		return result;
+	}
 }
 //---------------------------------------------------------------------------
 TAppConfig &AppConfig()
@@ -28,7 +47,11 @@ TAppConfig &AppConfig()
 }
 //---------------------------------------------------------------------------
 TAppConfig::TAppConfig()
-	: Language(cDefaultLanguage)
+	: Language(cDefaultLanguage),
+	  NumistaTokenExpires(0.0),
+	  NumistaUserId(0),
+	  NumistaRequestsCount(0),
+	  NumistaMonthlyQuota(cDefaultQuota)
 {
 }
 //---------------------------------------------------------------------------
@@ -67,6 +90,14 @@ void TAppConfig::Load()
 	Language = ini->ReadString(cUiSection, cLanguageKey, L"").Trim().LowerCase();
 	if (Language.IsEmpty())
 		Language = cDefaultLanguage;
+
+	NumistaApiKey        = ini->ReadString(cNumistaSection, L"ApiKey", L"").Trim();
+	NumistaToken         = ini->ReadString(cNumistaSection, L"AccessToken", L"").Trim();
+	NumistaTokenExpires  = ParseDateTime(ini->ReadString(cNumistaSection, L"TokenExpires", L""));
+	NumistaUserId        = ini->ReadInteger(cNumistaSection, L"UserId", 0);
+	NumistaRequestsMonth = ini->ReadString(cNumistaSection, L"RequestsMonth", L"").Trim();
+	NumistaRequestsCount = ini->ReadInteger(cNumistaSection, L"RequestsCount", 0);
+	NumistaMonthlyQuota  = ini->ReadInteger(cNumistaSection, L"MonthlyQuota", cDefaultQuota);
 }
 //---------------------------------------------------------------------------
 void TAppConfig::Save()
@@ -86,5 +117,17 @@ void TAppConfig::Save()
 		ini->WriteString(cDatabaseSection, cPathKey, FDbPathInIni);
 
 	ini->WriteString(cUiSection, cLanguageKey, Language);
+
+	if (!NumistaApiKey.IsEmpty() || ini->SectionExists(cNumistaSection))
+	{
+		ini->WriteString(cNumistaSection, L"ApiKey", NumistaApiKey);
+		ini->WriteString(cNumistaSection, L"AccessToken", NumistaToken);
+		ini->WriteString(cNumistaSection, L"TokenExpires",
+			(double)NumistaTokenExpires == 0.0 ? String() : FormatDateTime(cDateTimeFormat, NumistaTokenExpires));
+		ini->WriteInteger(cNumistaSection, L"UserId", NumistaUserId);
+		ini->WriteString(cNumistaSection, L"RequestsMonth", NumistaRequestsMonth);
+		ini->WriteInteger(cNumistaSection, L"RequestsCount", NumistaRequestsCount);
+		ini->WriteInteger(cNumistaSection, L"MonthlyQuota", NumistaMonthlyQuota);
+	}
 }
 //---------------------------------------------------------------------------
