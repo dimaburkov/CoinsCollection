@@ -15,8 +15,10 @@
 #include <Vcl.ComCtrls.hpp>
 #include <Vcl.ToolWin.hpp>
 #include <Vcl.Grids.hpp>
+#include <Vcl.ExtCtrls.hpp>
 #include <map>
 #include <memory>
+#include <set>
 #include <vector>
 #include "u_Database.h"
 #include "u_CoinRepository.h"
@@ -75,6 +77,11 @@ __published:	// IDE-managed Components
 	TToolButton *tbDelete;
 	TToolButton *tbSep1;
 	TToolButton *tbImport;
+	TToolButton *tbSep2;
+	TEdit *edSearch;
+	TToolButton *tbClearSearch;
+	TTreeView *tvNav;
+	TSplitter *Splitter;
 	TDrawGrid *dgItems;
 	TStatusBar *StatusBar;
 	void __fastcall FormCreate(TObject *Sender);
@@ -93,13 +100,34 @@ __published:	// IDE-managed Components
 	void __fastcall dgItemsDblClick(TObject *Sender);
 	void __fastcall dgItemsMouseDown(TObject *Sender, TMouseButton Button, TShiftState Shift, int X, int Y);
 	void __fastcall dgItemsKeyDown(TObject *Sender, WORD &Key, TShiftState Shift);
+	void __fastcall tvNavChange(TObject *Sender, TTreeNode *Node);
+	void __fastcall edSearchChange(TObject *Sender);
+	void __fastcall edSearchKeyDown(TObject *Sender, WORD &Key, TShiftState Shift);
+	void __fastcall tbClearSearchClick(TObject *Sender);
+	void __fastcall actNeedToReplaceExecute(TObject *Sender);
 private:	// User declarations
-	// Колонки списка (порядок = индекс колонки dgItems).
-	enum TItemColumn { icPeriod, icCurrency, icDenomination, icYear, icCondition, icNumber, icValue, icCount };
+	// Колонки списка (логические; видимые и их порядок — FColumns).
+	enum TItemColumn { icCountry, icPeriod, icCurrency, icDenomination, icYear, icCondition, icNumber, icValue, icCount };
+
+	// Узел дерева навигации: что он отбирает.
+	enum TNavKind { nkAll, nkContinent, nkNoContinent, nkExtinct, nkCountry };
+	struct TNavNode
+	{
+		int    Kind;   // TNavKind
+		int    Id;     // id континента / страны
+		String Key;    // для сохранения выбора и раскрытия при перестройке
+	};
 
 	std::unique_ptr<TDatabase>       FDatabase;
 	std::unique_ptr<TCoinRepository> FRepository;
-	std::vector<TCoinRecord>         FItems;           // строки списка в порядке показа (строка сетки = индекс + 1)
+	std::vector<TCoinRecord>         FAll;             // вся коллекция из БД
+	std::vector<String>              FSearchTexts;     // текст для поиска по FAll[i] (в верхнем регистре)
+	std::vector<TCoinRecord>         FItems;           // показанные (после фильтров), в порядке показа (строка сетки = индекс + 1)
+	std::map<String, TCountry>       FCountryByName;   // имя страны (AnsiUpperCase) -> страна
+	std::vector<TNavNode>            FNav;             // узлы дерева; TTreeNode::Data = индекс
+	bool                             FBuildingTree;    // перестройка дерева — не фильтровать на каждом OnChange
+	std::vector<int>                 FColumns;         // видимые колонки сетки (TItemColumn)
+	int                              FColWidths[icCount];
 	std::map<String, int>            FConditionOrder;  // код состояния -> sort_order
 	int                              FSortColumn;
 	bool                             FSortAscending;
@@ -111,6 +139,13 @@ private:	// User declarations
 	void ApplyTexts();
 
 	void LoadItems();
+	void BuildTree();
+	TTreeNode *AddNavNode(TTreeNode *AParent, int AKind, int AId, const String &AName, int ACount);
+	const TNavNode *CurrentNode() const;
+	bool MatchNode(const TCoinRecord &ARecord, const TNavNode &ANode) const;
+	void ApplyFilter();
+	void UpdateColumns();
+	int  Column(int AGridCol) const;	// колонка сетки -> TItemColumn, -1 — нет
 	bool Confirm(const String &AText, const String &ACaption);
 	bool SaveRecord(TCoinRecord &ARecord);
 	void SortItems();

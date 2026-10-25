@@ -26,7 +26,7 @@ namespace
 	// Ключи заголовков колонок (порядок = TItemColumn).
 	const wchar_t *const cColumnKeys[] =
 	{
-		L"Main.Column.Period", L"Main.Column.Currency", L"Main.Column.Denomination",
+		L"Main.Column.Country", L"Main.Column.Period", L"Main.Column.Currency", L"Main.Column.Denomination",
 		L"Main.Column.Year", L"Main.Column.Condition", L"Main.Column.Number", L"Main.Column.Value"
 	};
 	//-----------------------------------------------------------------------
@@ -36,6 +36,8 @@ namespace
 	{
 		return StrCmpLogicalW(A.c_str(), B.c_str());
 	}
+	// Ширина колонок по умолчанию (порядок = TItemColumn).
+	const int cDefaultWidths[] = { 130, 160, 120, 130, 50, 65, 90, 85 };
 	//-----------------------------------------------------------------------
 	template <typename T>
 	int CompareValues(T A, T B)
@@ -49,8 +51,13 @@ __fastcall TfmMain::TfmMain(TComponent* Owner)
 	  FSortColumn(icDenomination),
 	  FSortAscending(true),
 	  FLanguageToken(0),
-	  FMouseDownRow(-1)
+	  FMouseDownRow(-1),
+	  FBuildingTree(false)
 {
+	for (int c = 0; c < icCount; ++c)
+		FColWidths[c] = cDefaultWidths[c];
+	UpdateColumns();
+
 	Translator().TranslateForm(this);
 	BuildLanguageMenu();
 	ApplyTexts();
@@ -75,6 +82,7 @@ void __fastcall TfmMain::FormCreate(TObject *Sender)
 void __fastcall TfmMain::FormDestroy(TObject *Sender)
 {
 	FItems.clear();
+	FAll.clear();
 	FRepository.reset();
 	if (FDatabase)
 		FDatabase->Close();
@@ -88,6 +96,9 @@ void TfmMain::ApplyTexts()
 {
 	// Кнопка связана с actImport, но подпись у неё короче, чем пункт меню.
 	tbImport->Caption = Tr(L"Main.Toolbar.Import");
+	edSearch->TextHint = Tr(L"Main.Search.Hint");
+	if (FRepository)
+		BuildTree();	// подписи узлов All / No continent / Extinct states
 	dgItems->Invalidate();
 	UpdateStatus();
 }
@@ -261,9 +272,11 @@ void __fastcall TfmMain::actEditExecute(TObject *Sender)
 	}
 }
 //---------------------------------------------------------------------------
+// Пока фокус в поле поиска, Enter и Del нужны самому полю — действия с этими
+// клавишами выключены (выключенное действие не перехватывает свою клавишу).
 void __fastcall TfmMain::actEditUpdate(TObject *Sender)
 {
-	actEdit->Enabled = CurrentIndex() >= 0;
+	actEdit->Enabled = CurrentIndex() >= 0 && ActiveControl != edSearch;
 }
 //---------------------------------------------------------------------------
 // Удаляется одна текущая запись; курсор остаётся на той же позиции списка.
@@ -297,7 +310,12 @@ void __fastcall TfmMain::actDeleteExecute(TObject *Sender)
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::actDeleteUpdate(TObject *Sender)
 {
-	actDelete->Enabled = CurrentIndex() >= 0;
+	actDelete->Enabled = CurrentIndex() >= 0 && ActiveControl != edSearch;
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::actNeedToReplaceExecute(TObject *Sender)
+{
+	ApplyFilter();	// флажок переключён AutoCheck до вызова
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::actExitExecute(TObject *Sender)
@@ -328,13 +346,263 @@ void TfmMain::LoadItems()
 	for (size_t i = 0; i < conditions.size(); ++i)
 		FConditionOrder[conditions[i].Code] = conditions[i].SortOrder;
 
-	FItems = FRepository->LoadAll();
-	SortItems();
+	FAll = FRepository->LoadAll();
 
+	// Текст для поиска: поля через разделитель, в верхнем регистре.
+	const String sep = String(L'\x1F');
+	FSearchTexts.clear();
+	FSearchTexts.reserve(FAll.size());
+	for (size_t i = 0; i < FAll.size(); ++i)
+	{
+		const TCoinRecord &r = FAll[i];
+		FSearchTexts.push_back(AnsiUpperCase(r.Country + sep + r.Period + sep + r.Currency + sep
+			+ r.Denomination + sep + (r.Year == 0 ? String() : IntToStr(r.Year)) + sep + r.Subject + sep
+			+ r.Variety + sep + r.CatalogNumber + sep + r.Comment));
+	}
+
+	FCountryByName.clear();
+	const std::vector<TCountry> countries = FRepository->Lookups().Countries();
+	for (size_t i = 0; i < countries.size(); ++i)
+		FCountryByName[AnsiUpperCase(countries[i].Name)] = countries[i];
+
+	BuildTree();
+	ApplyFilter();
+	SelectId(current);
+}
+//---------------------------------------------------------------------------
+TTreeNode *TfmMain::AddNavNode(TTreeNode *AParent, int AKind, int AId, const String &AName, int ACount)
+{
+	TNavNode node;
+	node.Kind = AKind;
+	node.Id   = AId;
+	node.Key  = IntToStr(AKind) + L":" + IntToStr(AId);
+	FNav.push_back(node);
+	return tvNav->Items->AddChildObject(AParent, AName + L" (" + IntToStr(ACount) + L")",
+		reinterpret_cast<void *>((NativeInt)(FNav.size() - 1)));
+}
+//---------------------------------------------------------------------------
+// Дерево: All -> континенты -> страны, плюс No continent и Extinct states.
+// В скобках — число экземпляров (поиск и Need to replace на счётчики не влияют).
+// Выбранный узел и раскрытые узлы сохраняются по ключу.
+void TfmMain::BuildTree()
+{
+	const bool firstBuild = tvNav->Items->Count == 0;
+	String selectedKey;
+	std::set<String> expanded;
+	for (int i = 0; i < tvNav->Items->Count; ++i)
+	{
+		TTreeNode *n = tvNav->Items->Item[i];
+		const String key = FNav[(NativeInt)n->Data].Key;
+		if (n->Expanded)
+			expanded.insert(key);
+		if (n == tvNav->Selected)
+			selectedKey = key;
+	}
+
+	// Экземпляры по странам.
+	std::map<int, int> byCountry;
+	int unknown = 0;	// страна записи не найдена в справочнике (не должно быть)
+	for (size_t i = 0; i < FAll.size(); ++i)
+	{
+		std::map<String, TCountry>::const_iterator c = FCountryByName.find(AnsiUpperCase(FAll[i].Country));
+		if (c == FCountryByName.end())
+			++unknown;
+		else
+			++byCountry[c->second.Id];
+	}
+	std::vector<TCountry> countries;
+	for (std::map<String, TCountry>::const_iterator it = FCountryByName.begin(); it != FCountryByName.end(); ++it)
+		countries.push_back(it->second);
+	std::sort(countries.begin(), countries.end(),
+		[](const TCountry &A, const TCountry &B) { return AnsiCompareText(A.Name, B.Name) < 0; });
+	std::vector<TContinent> continents = FRepository->Lookups().Continents();
+	std::sort(continents.begin(), continents.end(),
+		[](const TContinent &A, const TContinent &B) { return A.Id < B.Id; });
+	auto count = [&byCountry](int AId) { std::map<int, int>::const_iterator it = byCountry.find(AId); return it == byCountry.end() ? 0 : it->second; };
+
+	FBuildingTree = true;
+	tvNav->Items->BeginUpdate();
+	try
+	{
+		tvNav->Items->Clear();
+		FNav.clear();
+
+		TTreeNode *root = AddNavNode(nullptr, nkAll, 0, Tr(L"Main.Tree.All"), (int)FAll.size());
+
+		// Континенты (всегда, даже с 0) и их существующие страны с монетами.
+		for (size_t k = 0; k < continents.size(); ++k)
+		{
+			int sum = 0;
+			for (size_t i = 0; i < countries.size(); ++i)
+				if (countries[i].IsExist && countries[i].ContinentId == continents[k].Id)
+					sum += count(countries[i].Id);
+			TTreeNode *node = AddNavNode(root, nkContinent, continents[k].Id, continents[k].Name, sum);
+			for (size_t i = 0; i < countries.size(); ++i)
+				if (countries[i].IsExist && countries[i].ContinentId == continents[k].Id && count(countries[i].Id) > 0)
+					AddNavNode(node, nkCountry, countries[i].Id, countries[i].Name, count(countries[i].Id));
+		}
+
+		// Страны без континента — только если у них есть монеты.
+		int noContinent = unknown;
+		for (size_t i = 0; i < countries.size(); ++i)
+			if (countries[i].IsExist && countries[i].ContinentId == 0)
+				noContinent += count(countries[i].Id);
+		if (noContinent > 0)
+		{
+			TTreeNode *node = AddNavNode(root, nkNoContinent, 0, Tr(L"Main.Tree.NoContinent"), noContinent);
+			for (size_t i = 0; i < countries.size(); ++i)
+				if (countries[i].IsExist && countries[i].ContinentId == 0 && count(countries[i].Id) > 0)
+					AddNavNode(node, nkCountry, countries[i].Id, countries[i].Name, count(countries[i].Id));
+		}
+
+		// Исчезнувшие государства — только здесь, не под своим континентом.
+		int extinct = 0;
+		for (size_t i = 0; i < countries.size(); ++i)
+			if (!countries[i].IsExist)
+				extinct += count(countries[i].Id);
+		TTreeNode *extinctNode = AddNavNode(root, nkExtinct, 0, Tr(L"Main.Tree.Extinct"), extinct);
+		for (size_t i = 0; i < countries.size(); ++i)
+			if (!countries[i].IsExist && count(countries[i].Id) > 0)
+				AddNavNode(extinctNode, nkCountry, countries[i].Id, countries[i].Name, count(countries[i].Id));
+
+		// Восстановить раскрытие и выбор (при первом построении — раскрыт и выбран All).
+		TTreeNode *select = root;
+		for (int i = 0; i < tvNav->Items->Count; ++i)
+		{
+			TTreeNode *n = tvNav->Items->Item[i];
+			const String key = FNav[(NativeInt)n->Data].Key;
+			if (firstBuild ? n == root : expanded.count(key) > 0)
+				n->Expand(false);
+			if (!selectedKey.IsEmpty() && key == selectedKey)
+				select = n;
+		}
+		tvNav->Selected = select;
+	}
+	__finally
+	{
+		tvNav->Items->EndUpdate();
+		FBuildingTree = false;
+	}
+}
+//---------------------------------------------------------------------------
+const TfmMain::TNavNode *TfmMain::CurrentNode() const
+{
+	if (!tvNav->Selected)
+		return nullptr;
+	const NativeInt index = (NativeInt)tvNav->Selected->Data;
+	return index >= 0 && index < (NativeInt)FNav.size() ? &FNav[index] : nullptr;
+}
+//---------------------------------------------------------------------------
+bool TfmMain::MatchNode(const TCoinRecord &ARecord, const TNavNode &ANode) const
+{
+	if (ANode.Kind == nkAll)
+		return true;
+	std::map<String, TCountry>::const_iterator it = FCountryByName.find(AnsiUpperCase(ARecord.Country));
+	if (it == FCountryByName.end())
+		return ANode.Kind == nkNoContinent;
+	const TCountry &c = it->second;
+	switch (ANode.Kind)
+	{
+		case nkCountry:     return c.Id == ANode.Id;
+		case nkExtinct:     return !c.IsExist;
+		case nkNoContinent: return c.IsExist && c.ContinentId == 0;
+		case nkContinent:   return c.IsExist && c.ContinentId == ANode.Id;
+	}
+	return false;
+}
+//---------------------------------------------------------------------------
+// Показанные записи = узел дерева И поиск И Need to replace.
+void TfmMain::ApplyFilter()
+{
+	const int current = CurrentId();
+	const TNavNode *node = CurrentNode();
+	const String search = AnsiUpperCase(edSearch->Text.Trim());
+	const bool onlyReplace = actNeedToReplace->Checked;
+
+	FItems.clear();
+	for (size_t i = 0; i < FAll.size(); ++i)
+	{
+		const TCoinRecord &r = FAll[i];
+		if (node && !MatchNode(r, *node))
+			continue;
+		if (onlyReplace && !r.NeedToReplace)
+			continue;
+		if (!search.IsEmpty() && FSearchTexts[i].Pos(search) == 0)
+			continue;
+		FItems.push_back(r);
+	}
+
+	UpdateColumns();
+	SortItems();
 	UpdateRowCount();
 	SelectId(current);
 	dgItems->Invalidate();
 	UpdateStatus();
+}
+//---------------------------------------------------------------------------
+// Колонка Country не нужна, когда выбрана одна страна. Ширины, заданные
+// пользователем мышью, запоминаются по логическим колонкам.
+void TfmMain::UpdateColumns()
+{
+	const TNavNode *node = CurrentNode();
+	const bool showCountry = !node || node->Kind != nkCountry;
+	std::vector<int> columns;
+	for (int c = 0; c < icCount; ++c)
+		if (c != icCountry || showCountry)
+			columns.push_back(c);
+	if (columns == FColumns && dgItems->ColCount == (int)columns.size())
+		return;
+
+	for (size_t i = 0; i < FColumns.size() && (int)i < dgItems->ColCount; ++i)
+		FColWidths[FColumns[i]] = dgItems->ColWidths[(int)i];
+	FColumns = columns;
+	dgItems->ColCount = (int)FColumns.size();
+	for (size_t i = 0; i < FColumns.size(); ++i)
+		dgItems->ColWidths[(int)i] = FColWidths[FColumns[i]];
+
+	// Сортировка по скрытой колонке теряет смысл — вернуть порядок по номиналу.
+	if (std::find(FColumns.begin(), FColumns.end(), FSortColumn) == FColumns.end())
+	{
+		FSortColumn = icDenomination;
+		FSortAscending = true;
+	}
+}
+//---------------------------------------------------------------------------
+int TfmMain::Column(int AGridCol) const
+{
+	return AGridCol >= 0 && AGridCol < (int)FColumns.size() ? FColumns[AGridCol] : -1;
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::tvNavChange(TObject *Sender, TTreeNode *Node)
+{
+	if (!FBuildingTree)
+		ApplyFilter();
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::edSearchChange(TObject *Sender)
+{
+	ApplyFilter();
+}
+//---------------------------------------------------------------------------
+// Esc — очистить поиск; Enter / стрелка вниз — к списку.
+void __fastcall TfmMain::edSearchKeyDown(TObject *Sender, WORD &Key, TShiftState Shift)
+{
+	if (Key == VK_ESCAPE)
+	{
+		edSearch->Text = L"";
+		Key = 0;
+	}
+	else if (Key == VK_RETURN || Key == VK_DOWN)
+	{
+		dgItems->SetFocus();
+		Key = 0;
+	}
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::tbClearSearchClick(TObject *Sender)
+{
+	edSearch->Text = L"";
+	dgItems->SetFocus();
 }
 //---------------------------------------------------------------------------
 // Сравнение по колонке; пустые значения — в начале (при сортировке по возрастанию).
@@ -342,6 +610,7 @@ int TfmMain::CompareItems(const TCoinRecord &A, const TCoinRecord &B, int AColum
 {
 	switch (AColumn)
 	{
+		case icCountry:      return CompareStrings(A.Country, B.Country);
 		case icPeriod:       return CompareStrings(A.Period, B.Period);
 		case icCurrency:     return CompareStrings(A.Currency, B.Currency);
 		case icDenomination: return CompareStrings(A.Denomination, B.Denomination);
@@ -381,6 +650,7 @@ String TfmMain::CellText(const TCoinRecord &R, int AColumn) const
 {
 	switch (AColumn)
 	{
+		case icCountry:      return R.Country;
 		case icPeriod:       return R.Period;
 		case icCurrency:     return R.Currency;
 		case icDenomination: return R.Denomination;
@@ -435,20 +705,21 @@ void TfmMain::SelectIndex(int AIndex)
 void __fastcall TfmMain::dgItemsDrawCell(TObject *Sender, int ACol, int ARow,
 	TRect &Rect, TGridDrawState State)
 {
-	if (ACol < 0 || ACol >= icCount)
+	const int column = Column(ACol);
+	if (column < 0)
 		return;
 
 	String text;
 	if (ARow == 0)
-		text = Tr(cColumnKeys[ACol]);
+		text = Tr(cColumnKeys[column]);
 	else if (ARow - 1 < (int)FItems.size())
-		text = CellText(FItems[ARow - 1], ACol);
+		text = CellText(FItems[ARow - 1], column);
 
 	TCanvas *canvas = dgItems->Canvas;
 	RECT r = { Rect.Left + 4, Rect.Top, Rect.Right - 4, Rect.Bottom };
 
 	// Стрелка сортировки справа в заголовке текущей колонки.
-	if (ARow == 0 && ACol == FSortColumn && r.right - r.left > 16)
+	if (ARow == 0 && column == FSortColumn && r.right - r.left > 16)
 	{
 		const int cx = r.right - 5, cy = (Rect.Top + Rect.Bottom) / 2;
 		TPoint arrow[3];
@@ -468,7 +739,7 @@ void __fastcall TfmMain::dgItemsDrawCell(TObject *Sender, int ACol, int ARow,
 	}
 
 	UINT flags = DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX;
-	if (ARow > 0 && (ACol == icYear || ACol == icValue))
+	if (ARow > 0 && (column == icYear || column == icValue))
 		flags |= DT_RIGHT;
 	canvas->Brush->Style = bsClear;
 	DrawTextW(canvas->Handle, text.c_str(), -1, &r, flags);
@@ -477,13 +748,14 @@ void __fastcall TfmMain::dgItemsDrawCell(TObject *Sender, int ACol, int ARow,
 // Клик по заголовку: та же колонка — обратный порядок, другая — по возрастанию.
 void __fastcall TfmMain::dgItemsFixedCellClick(TObject *Sender, int ACol, int ARow)
 {
-	if (ARow != 0 || ACol < 0 || ACol >= icCount)
+	const int column = Column(ACol);
+	if (ARow != 0 || column < 0)
 		return;
-	if (ACol == FSortColumn)
+	if (column == FSortColumn)
 		FSortAscending = !FSortAscending;
 	else
 	{
-		FSortColumn = ACol;
+		FSortColumn = column;
 		FSortAscending = true;
 	}
 
@@ -517,9 +789,20 @@ void __fastcall TfmMain::dgItemsKeyDown(TObject *Sender, WORD &Key, TShiftState 
 	}
 }
 //---------------------------------------------------------------------------
+// Итоги по показанным записям: число, сумма Quantity, сумма Value × Quantity.
 void TfmMain::UpdateStatus()
 {
-	if (StatusBar->Panels->Count > 0)
-		StatusBar->Panels->Items[0]->Text = Format(Tr(L"Main.Status.Items"), ARRAYOFCONST(((int)FItems.size())));
+	if (StatusBar->Panels->Count < 3)
+		return;
+	int quantity = 0;
+	double value = 0.0;
+	for (size_t i = 0; i < FItems.size(); ++i)
+	{
+		quantity += FItems[i].Quantity;
+		value    += FItems[i].CatalogValueUah * FItems[i].Quantity;
+	}
+	StatusBar->Panels->Items[0]->Text = Format(Tr(L"Main.Status.Items"), ARRAYOFCONST(((int)FItems.size(), (int)FAll.size())));
+	StatusBar->Panels->Items[1]->Text = Format(Tr(L"Main.Status.Quantity"), ARRAYOFCONST((quantity)));
+	StatusBar->Panels->Items[2]->Text = Format(Tr(L"Main.Status.Value"), ARRAYOFCONST((FormatFloat(L"#,##0.00", value))));
 }
 //---------------------------------------------------------------------------

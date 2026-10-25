@@ -1,9 +1,10 @@
 object fmMain: TfmMain
   Left = 0
   Top = 0
+  ActiveControl = dgItems
   Caption = 'Coins Collection'
   ClientHeight = 521
-  ClientWidth = 884
+  ClientWidth = 1100
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -60,32 +61,78 @@ object fmMain: TfmMain
       AutoSize = True
       Caption = 'Import'
     end
+    object tbSep2: TToolButton
+      Left = 210
+      Top = 0
+      Width = 16
+      Style = tbsSeparator
+    end
+    object edSearch: TEdit
+      Left = 226
+      Top = 0
+      Width = 220
+      Height = 21
+      TabOrder = 0
+      TextHint = 'Search'
+      OnChange = edSearchChange
+      OnKeyDown = edSearchKeyDown
+    end
+    object tbClearSearch: TToolButton
+      Left = 446
+      Top = 0
+      Hint = 'Clear search'
+      AutoSize = True
+      Caption = #215
+      ParentShowHint = False
+      ShowHint = True
+      OnClick = tbClearSearchClick
+    end
   end
-  object dgItems: TDrawGrid
+  object tvNav: TTreeView
     Left = 0
     Top = 22
-    Width = 884
+    Width = 240
+    Height = 480
+    Align = alLeft
+    HideSelection = False
+    Indent = 19
+    ReadOnly = True
+    TabOrder = 1
+    OnChange = tvNavChange
+  end
+  object Splitter: TSplitter
+    Left = 240
+    Top = 22
+    Width = 4
+    Height = 480
+    MinSize = 120
+  end
+  object dgItems: TDrawGrid
+    Left = 244
+    Top = 22
+    Width = 856
     Height = 480
     Align = alClient
-    ColCount = 7
+    ColCount = 8
     DefaultRowHeight = 18
     FixedCols = 0
     RowCount = 2
     Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goColSizing, goRowSelect, goDrawFocusSelected, goThumbTracking, goFixedRowClick, goFixedHotTrack]
-    TabOrder = 1
+    TabOrder = 2
     OnDblClick = dgItemsDblClick
     OnDrawCell = dgItemsDrawCell
     OnFixedCellClick = dgItemsFixedCellClick
     OnKeyDown = dgItemsKeyDown
     OnMouseDown = dgItemsMouseDown
     ColWidths = (
-      200
-      110
+      130
       160
-      60
-      75
       120
-      90)
+      130
+      50
+      65
+      90
+      85)
   end
   object StatusBar: TStatusBar
     Left = 0
@@ -94,7 +141,13 @@ object fmMain: TfmMain
     Height = 19
     Panels = <
       item
-        Width = 200
+        Width = 220
+      end
+      item
+        Width = 160
+      end
+      item
+        Width = 250
       end>
   end
   object ActionList: TActionList
@@ -139,7 +192,7 @@ object fmMain: TfmMain
       Category = 'Collection'
       AutoCheck = True
       Caption = '&Need to replace'
-      Enabled = False
+      OnExecute = actNeedToReplaceExecute
     end
     object actRefresh: TAction
       Category = 'Collection'
@@ -224,7 +277,6 @@ object fmMain: TfmMain
       end
       object miNeedToReplace: TMenuItem
         Action = actNeedToReplace
-        AutoCheck = True
       end
       object miCollectionSep2: TMenuItem
         Caption = '-'
