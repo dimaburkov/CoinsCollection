@@ -40,7 +40,10 @@ __published:	// IDE-managed Components
 	TAction *actCurrencies;
 	TAction *actNumistaSettings;
 	TAction *actNumistaFind;
-	TAction *actNumistaMatch;
+	TAction *actNumistaIssue;
+	TAction *actNumistaCheck;
+	TAction *actCheckAll;
+	TAction *actUncheckAll;
 	TAction *actNumistaUploadSelected;
 	TAction *actNumistaUploadAll;
 	TAction *actSettings;
@@ -67,7 +70,8 @@ __published:	// IDE-managed Components
 	TMenuItem *miNumistaSettings;
 	TMenuItem *miNumistaSep1;
 	TMenuItem *miNumistaFind;
-	TMenuItem *miNumistaMatch;
+	TMenuItem *miNumistaIssue;
+	TMenuItem *miNumistaCheck;
 	TMenuItem *miNumistaSep2;
 	TMenuItem *miNumistaUploadSelected;
 	TMenuItem *miNumistaUploadAll;
@@ -103,6 +107,13 @@ __published:	// IDE-managed Components
 	TScrollBox *sbInfo;
 	TLabel *lblDetailsTitle;
 	TStatusBar *StatusBar;
+	TPopupMenu *pmItems;
+	TMenuItem *miPopNumistaCheck;
+	TMenuItem *miPopNumistaFind;
+	TMenuItem *miPopNumistaIssue;
+	TMenuItem *miPopSep1;
+	TMenuItem *miPopCheckAll;
+	TMenuItem *miPopUncheckAll;
 	void __fastcall FormCreate(TObject *Sender);
 	void __fastcall FormDestroy(TObject *Sender);
 	void __fastcall actImportExecute(TObject *Sender);
@@ -130,10 +141,16 @@ __published:	// IDE-managed Components
 	void __fastcall actNumistaSettingsExecute(TObject *Sender);
 	void __fastcall actNumistaFindExecute(TObject *Sender);
 	void __fastcall actNumistaFindUpdate(TObject *Sender);
-	void __fastcall actNumistaMatchExecute(TObject *Sender);
+	void __fastcall actNumistaIssueExecute(TObject *Sender);
+	void __fastcall actNumistaIssueUpdate(TObject *Sender);
+	void __fastcall actNumistaCheckExecute(TObject *Sender);
+	void __fastcall actNumistaCheckUpdate(TObject *Sender);
+	void __fastcall actCheckAllExecute(TObject *Sender);
+	void __fastcall actCheckAllUpdate(TObject *Sender);
 private:	// User declarations
 	// Колонки списка (логические; видимые и их порядок — FColumns).
-	enum TItemColumn { icCountry, icPeriod, icCurrency, icDenomination, icYear, icCondition, icValue, icCount };
+	// icCheck — флажок отметки, icNumista — N# (задача 12a).
+	enum TItemColumn { icCheck, icNumista, icCountry, icPeriod, icCurrency, icDenomination, icYear, icCondition, icValue, icCount };
 
 	// Строка панели подробностей: подпись и значение (создаются в коде, см. CreateDetailRows).
 	struct TDetailRow
@@ -170,6 +187,7 @@ private:	// User declarations
 	int                              FLanguageToken;
 	int                              FMouseDownRow;    // строка сетки последнего нажатия мыши (для двойного клика)
 	int                              FDetailsTypeId;   // N# монеты в панели подробностей (0 — нет)
+	std::set<int>                    FChecked;         // отмеченные экземпляры (coin_items.id), только в памяти
 
 	void BuildLanguageMenu();
 	void __fastcall LanguageClick(TObject *Sender);
@@ -189,6 +207,12 @@ private:	// User declarations
 	int  CompareItems(const TCoinRecord &A, const TCoinRecord &B, int AColumn) const;
 	String CellText(const TCoinRecord &ARecord, int AColumn) const;
 	void UpdateStatus();
+
+	// Отметки (флажки) строк
+	void ToggleChecked(int AIndex);	// AIndex в FItems
+	void SetAllChecked(bool AChecked);	// для строк текущего списка
+	int  CheckedState() const;	// строки текущего списка: 0 — ни одной, 1 — часть, 2 — все
+	void DrawCheckBox(const TRect &ARect, int AState);
 
 	void CreateDetailRows();
 	void ShowDetails(int AIndex);	// AIndex в FItems, -1 — пусто

@@ -8,6 +8,7 @@
 #include <shlwapi.h>
 #include <shellapi.h>
 #include <Vcl.Dialogs.hpp>
+#include <Vcl.Themes.hpp>
 #include "f_Main.h"
 #include "dm_Data.h"
 #include "u_AppConfig.h"
@@ -18,6 +19,7 @@
 #include "f_Reference.h"
 #include "f_NumistaSettings.h"
 #include "f_NumistaChoose.h"
+#include "f_NumistaIssue.h"
 #include "u_NumistaClient.h"
 #include "u_NumistaMatcher.h"
 #include "versionConfig.h"
@@ -32,7 +34,7 @@ namespace
 	// Ключи заголовков колонок (порядок = TItemColumn).
 	const wchar_t *const cColumnKeys[] =
 	{
-		L"Main.Column.Country", L"Main.Column.Period", L"Main.Column.Currency", L"Main.Column.Denomination",
+		L"", L"Main.Column.Numista", L"Main.Column.Country", L"Main.Column.Period", L"Main.Column.Currency", L"Main.Column.Denomination",
 		L"Main.Column.Year", L"Main.Column.Condition", L"Main.Column.Value"
 	};
 	//-----------------------------------------------------------------------
@@ -43,7 +45,9 @@ namespace
 		return StrCmpLogicalW(A.c_str(), B.c_str());
 	}
 	// Ширина колонок по умолчанию (порядок = TItemColumn).
-	const int cDefaultWidths[] = { 130, 160, 120, 130, 50, 65, 85 };
+	// Auto-link checked: больше стольких монет — подтверждение.
+	const int cConfirmCheckCoins = 10;
+	const int cDefaultWidths[] = { 22, 60, 130, 160, 120, 130, 50, 65, 85 };
 	// Подписи строк панели подробностей (порядок = TDetailRowIndex).
 	const wchar_t *const cDetailKeys[] =
 	{
@@ -381,7 +385,7 @@ String TfmMain::NumistaRequestsText(int ASent) const
 		TNumistaClient::RequestsThisMonth(), AppConfig().NumistaMonthlyQuota)));
 }
 //---------------------------------------------------------------------------
-// Numista → Find in Numista: тип для текущей монеты (один результат — сразу,
+// Numista → Link manually: тип для текущей монеты (один результат — сразу,
 // несколько — выбор), затем выпуск. Документация: searchTypes, getIssues
 // (https://en.numista.com/api/doc/index.php).
 void __fastcall TfmMain::actNumistaFindExecute(TObject *Sender)
@@ -433,7 +437,14 @@ void __fastcall TfmMain::actNumistaFindExecute(TObject *Sender)
 			message = Tr(L"Numista.Find.Cancelled");
 		else
 		{
-			const int issueId = matcher.FindIssue(typeId, coin);
+			// Выпуск не определился однозначно — выбор вручную (Cancel — только тип).
+			int issueId = matcher.FindIssue(typeId, coin);
+			if (issueId == 0)
+			{
+				const std::vector<TNumistaIssue> issues = matcher.LoadIssues(typeId);
+				if (!issues.empty())
+					issueId = std::max(0, TfmNumistaIssue::Execute(this, CoinText(coin), typeId, coin.Year, issues, 0));
+			}
 			FRepository->SetCoinNumista(coin.CoinId, typeId, issueId);
 			String title;
 			for (size_t i = 0; i < types.size(); ++i)
@@ -459,12 +470,64 @@ void __fastcall TfmMain::actNumistaFindUpdate(TObject *Sender)
 	actNumistaFind->Enabled = CurrentIndex() >= 0;
 }
 //---------------------------------------------------------------------------
-// Numista → Match by catalogue number: монеты текущего списка без N# и с номером
-// KM / Y / C; связывается только однозначный результат. Лимит запросов —
-// по умолчанию 10 (ответы из кэша его не расходуют); остановка на лимите и на ошибке (429).
-void __fastcall TfmMain::actNumistaMatchExecute(TObject *Sender)
+// Choose issue: выпуск для монеты, уже связанной с типом (getIssues; из кэша —
+// без запросов). Type only — снять выпуск, оставить тип.
+void __fastcall TfmMain::actNumistaIssueExecute(TObject *Sender)
 {
-	const String caption = StripHotkey(actNumistaMatch->Caption);
+	const int index = CurrentIndex();
+	if (index < 0 || FItems[index].NumistaTypeId == 0)
+		return;
+	const TCoinRecord coin = FItems[index];
+	const String caption = StripHotkey(actNumistaIssue->Caption);
+
+	TNumistaClient client;
+	TNumistaMatcher matcher(client);
+	try
+	{
+		std::vector<TNumistaIssue> issues;
+		const TCursor saved = Screen->Cursor;
+		Screen->Cursor = crHourGlass;
+		try
+		{
+			issues = matcher.LoadIssues(coin.NumistaTypeId);
+		}
+		__finally
+		{
+			Screen->Cursor = saved;
+		}
+		if (issues.empty())
+		{
+			Application->MessageBox((Tr(L"Numista.Issue.None") + L"\r\n\r\n" + NumistaRequestsText(client.RequestsMade)).c_str(),
+				caption.c_str(), MB_OK | MB_ICONINFORMATION);
+			return;
+		}
+		const int issueId = TfmNumistaIssue::Execute(this, CoinText(coin), coin.NumistaTypeId, coin.Year,
+			issues, coin.NumistaIssueId);
+		if (issueId < 0)
+			return;
+		FRepository->SetCoinNumista(coin.CoinId, coin.NumistaTypeId, issueId);
+	}
+	catch (Exception &e)
+	{
+		Application->MessageBox((e.Message + L"\r\n\r\n" + NumistaRequestsText(client.RequestsMade)).c_str(),
+			caption.c_str(), MB_OK | MB_ICONERROR);
+		return;
+	}
+	LoadItems();
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::actNumistaIssueUpdate(TObject *Sender)
+{
+	const int index = CurrentIndex();
+	actNumistaIssue->Enabled = index >= 0 && FItems[index].NumistaTypeId != 0;
+}
+//---------------------------------------------------------------------------
+// Auto-link checked: отмеченные монеты без N# и с номером KM / Y / C; связывается
+// только однозначный результат. Больше 10 монет — подтверждение с оценкой запросов;
+// остановка на ошибке (429). Со связанных монет флажок снимается.
+void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
+{
+	const String caption = StripHotkey(Tr(L"Main.Numista.CheckTitle"));
 	TNumistaClient client;
 	TNumistaMatcher matcher(client);
 	if (!matcher.LoadReferences())
@@ -474,32 +537,42 @@ void __fastcall TfmMain::actNumistaMatchExecute(TObject *Sender)
 	}
 
 	// Кандидаты — по одной записи на монету (экземпляры одной монеты — один тип).
+	// Уже связанные и без номера KM / Y / C — пропускаются без запросов.
 	std::vector<TCoinRecord> coins;
-	std::set<int> seen;
-	for (size_t i = 0; i < FItems.size(); ++i)
+	std::set<int> seen, linkedBefore, noNumber;
+	for (size_t i = 0; i < FAll.size(); ++i)
 	{
-		const TCoinRecord &r = FItems[i];
+		const TCoinRecord &r = FAll[i];
+		if (!FChecked.count(r.Id))
+			continue;
 		int catalogueId = 0;
 		String number;
-		if (r.NumistaTypeId == 0 && matcher.ParseCatalogNumber(r.CatalogNumber, catalogueId, number)
-			&& seen.insert(r.CoinId).second)
+		if (r.NumistaTypeId != 0)
+			linkedBefore.insert(r.CoinId);
+		else if (!matcher.ParseCatalogNumber(r.CatalogNumber, catalogueId, number))
+			noNumber.insert(r.CoinId);
+		else if (seen.insert(r.CoinId).second)
 			coins.push_back(r);
 	}
+	const String skipped = Format(Tr(L"Numista.Check.AlreadyLinked"), ARRAYOFCONST(((int)linkedBefore.size()))) + L"\r\n"
+		+ Format(Tr(L"Numista.Check.NoNumber"), ARRAYOFCONST(((int)noNumber.size())));
 	if (coins.empty())
 	{
-		Application->MessageBox(Tr(L"Numista.Match.Nothing").c_str(), caption.c_str(), MB_OK | MB_ICONINFORMATION);
+		Application->MessageBox((Tr(L"Numista.Check.Nothing") + L"\r\n\r\n" + skipped).c_str(), caption.c_str(),
+			MB_OK | MB_ICONINFORMATION);
 		return;
 	}
 
-	String limitText = L"10";
-	if (!InputQuery(caption, Format(Tr(L"Numista.Match.Limit"), ARRAYOFCONST(((int)coins.size()))), limitText))
+	// Монеты выбраны флажками — лимит не спрашивается. Много отмеченных (например, флажок
+	// в заголовке на узле All) — подтверждение с оценкой: обычно 2 запроса на монету.
+	const int count = (int)coins.size();
+	if (count > cConfirmCheckCoins && !Confirm(Format(Tr(L"Numista.Check.Confirm"), ARRAYOFCONST((count, count * 2,
+		TNumistaClient::RequestsThisMonth(), AppConfig().NumistaMonthlyQuota))), caption))
 		return;
-	const int limit = StrToIntDef(limitText.Trim(), 0);
-	if (limit <= 0)
-		return;
-	client.RequestBudget = limit;
+	client.RequestBudget = count * 3;	// не больше 3 запросов на монету: поиск, повтор без issuer, выпуски
 
 	int linked = 0, withIssue = 0, ambiguous = 0, notFound = 0, processed = 0;
+	std::set<int> linkedCoins;
 	String stopReason;
 	const TCursor saved = Screen->Cursor;
 	Screen->Cursor = crHourGlass;
@@ -528,6 +601,7 @@ void __fastcall TfmMain::actNumistaMatchExecute(TObject *Sender)
 						stopReason = e.Message;	// тип найден — сохраняем без выпуска и останавливаемся
 					}
 					FRepository->SetCoinNumista(coin.CoinId, types[0].Id, issueId);
+					linkedCoins.insert(coin.CoinId);
 					++linked;
 					if (issueId != 0)
 						++withIssue;
@@ -550,15 +624,29 @@ void __fastcall TfmMain::actNumistaMatchExecute(TObject *Sender)
 	}
 	Screen->Cursor = saved;
 
+	// Со связанных монет флажок снимается (со всех её экземпляров).
+	for (size_t i = 0; i < FAll.size(); ++i)
+		if (linkedCoins.count(FAll[i].CoinId))
+			FChecked.erase(FAll[i].Id);
 	LoadItems();	// и строка состояния
 	String report = Format(Tr(L"Numista.Match.Linked"), ARRAYOFCONST((linked, withIssue))) + L"\r\n"
 		+ Format(Tr(L"Numista.Match.Ambiguous"), ARRAYOFCONST((ambiguous))) + L"\r\n"
 		+ Format(Tr(L"Numista.Match.NotFound"), ARRAYOFCONST((notFound))) + L"\r\n"
-		+ Format(Tr(L"Numista.Match.NotProcessed"), ARRAYOFCONST(((int)coins.size() - processed)));
+		+ Format(Tr(L"Numista.Match.NotProcessed"), ARRAYOFCONST(((int)coins.size() - processed))) + L"\r\n"
+		+ skipped;
 	if (!stopReason.IsEmpty())
 		report += L"\r\n\r\n" + Tr(L"Numista.Match.Stopped") + L" " + stopReason;
 	Application->MessageBox((report + L"\r\n\r\n" + NumistaRequestsText(client.RequestsMade)).c_str(),
 		caption.c_str(), MB_OK | (stopReason.IsEmpty() ? MB_ICONINFORMATION : MB_ICONWARNING));
+}
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::actNumistaCheckUpdate(TObject *Sender)
+{
+	actNumistaCheck->Enabled = !FChecked.empty();
+	const String caption = Format(Tr(L"Main.Numista.Check"), ARRAYOFCONST(((int)FChecked.size())));
+	if (actNumistaCheck->Caption != caption)
+		actNumistaCheck->Caption = caption;
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::NumistaLinkClick(TObject *Sender)
@@ -596,6 +684,13 @@ void TfmMain::LoadItems()
 		FConditionOrder[conditions[i].Code] = conditions[i].SortOrder;
 
 	FAll = FRepository->LoadAll();
+
+	// Отметки — только у существующих экземпляров (удаление, импорт).
+	std::set<int> ids;
+	for (size_t i = 0; i < FAll.size(); ++i)
+		ids.insert(FAll[i].Id);
+	for (std::set<int>::iterator it = FChecked.begin(); it != FChecked.end(); )
+		it = ids.count(*it) ? std::next(it) : FChecked.erase(it);
 
 	// Текст для поиска: поля через разделитель, в верхнем регистре.
 	const String sep = String(L'\x1F');
@@ -860,6 +955,7 @@ int TfmMain::CompareItems(const TCoinRecord &A, const TCoinRecord &B, int AColum
 {
 	switch (AColumn)
 	{
+		case icNumista:      return CompareValues(A.NumistaTypeId, B.NumistaTypeId);
 		case icCountry:      return CompareStrings(A.Country, B.Country);
 		case icPeriod:       return CompareStrings(A.Period, B.Period);
 		case icCurrency:     return CompareStrings(A.Currency, B.Currency);
@@ -899,6 +995,7 @@ String TfmMain::CellText(const TCoinRecord &R, int AColumn) const
 {
 	switch (AColumn)
 	{
+		case icNumista:      return R.NumistaTypeId == 0 ? String() : IntToStr(R.NumistaTypeId);
 		case icCountry:      return R.Country;
 		case icPeriod:       return R.Period;
 		case icCurrency:     return R.Currency;
@@ -958,6 +1055,15 @@ void __fastcall TfmMain::dgItemsDrawCell(TObject *Sender, int ACol, int ARow,
 	if (column < 0)
 		return;
 
+	if (column == icCheck)
+	{
+		if (ARow == 0)
+			DrawCheckBox(Rect, CheckedState());
+		else if (ARow - 1 < (int)FItems.size())
+			DrawCheckBox(Rect, FChecked.count(FItems[ARow - 1].Id) ? 2 : 0);
+		return;
+	}
+
 	String text;
 	if (ARow == 0)
 		text = Tr(cColumnKeys[column]);
@@ -988,8 +1094,12 @@ void __fastcall TfmMain::dgItemsDrawCell(TObject *Sender, int ACol, int ARow,
 	}
 
 	UINT flags = DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX;
-	if (ARow > 0 && (column == icYear || column == icValue))
+	if (ARow > 0 && (column == icYear || column == icValue || column == icNumista))
 		flags |= DT_RIGHT;
+	// Тип связан, выпуск не определён — N# серым.
+	if (ARow > 0 && column == icNumista && ARow - 1 < (int)FItems.size()
+		&& FItems[ARow - 1].NumistaIssueId == 0 && !State.Contains(gdSelected))
+		canvas->Font->Color = clGrayText;
 	canvas->Brush->Style = bsClear;
 	DrawTextW(canvas->Handle, text.c_str(), -1, &r, flags);
 }
@@ -1000,6 +1110,11 @@ void __fastcall TfmMain::dgItemsFixedCellClick(TObject *Sender, int ACol, int AR
 	const int column = Column(ACol);
 	if (ARow != 0 || column < 0)
 		return;
+	if (column == icCheck)
+	{
+		SetAllChecked(CheckedState() != 2);
+		return;
+	}
 	if (column == FSortColumn)
 		FSortAscending = !FSortAscending;
 	else
@@ -1019,12 +1134,22 @@ void __fastcall TfmMain::dgItemsMouseDown(TObject *Sender, TMouseButton Button,
 {
 	int col = -1;
 	dgItems->MouseToCell(X, Y, col, FMouseDownRow);
+	const int index = FMouseDownRow - 1;
+	if (index < 0 || index >= (int)FItems.size())
+		return;
+	if (Button == mbLeft && Column(col) == icCheck)
+		ToggleChecked(index);
+	else if (Button == mbRight)
+		SelectIndex(index);	// контекстное меню — для строки под курсором
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::dgItemsDblClick(TObject *Sender)
 {
 	// Двойной клик по заголовку (например, по границе колонки) — не правка.
-	if (FMouseDownRow > 0 && actEdit->Enabled)
+	const TPoint pt = dgItems->ScreenToClient(Mouse->CursorPos);
+	int col = -1, row = -1;
+	dgItems->MouseToCell(pt.X, pt.Y, col, row);
+	if (FMouseDownRow > 0 && Column(col) != icCheck && actEdit->Enabled)
 		actEdit->Execute();
 }
 //---------------------------------------------------------------------------
@@ -1034,6 +1159,12 @@ void __fastcall TfmMain::dgItemsKeyDown(TObject *Sender, WORD &Key, TShiftState 
 	{
 		if (actEdit->Enabled)
 			actEdit->Execute();
+		Key = 0;
+	}
+	else if (Key == VK_SPACE && Shift.Empty())
+	{
+		if (CurrentIndex() >= 0)
+			ToggleChecked(CurrentIndex());
 		Key = 0;
 	}
 }
@@ -1053,6 +1184,69 @@ void TfmMain::UpdateStatus()
 	StatusBar->Panels->Items[0]->Text = Format(Tr(L"Main.Status.Items"), ARRAYOFCONST(((int)FItems.size(), (int)FAll.size())));
 	StatusBar->Panels->Items[1]->Text = Format(Tr(L"Main.Status.Quantity"), ARRAYOFCONST((quantity)));
 	StatusBar->Panels->Items[2]->Text = Format(Tr(L"Main.Status.Value"), ARRAYOFCONST((FormatFloat(L"#,##0.00", value))));
+	if (StatusBar->Panels->Count > 3)
+		StatusBar->Panels->Items[3]->Text = Format(Tr(L"Main.Status.Checked"), ARRAYOFCONST(((int)FChecked.size())));
+}
+//---------------------------------------------------------------------------
+// Отметки строк (флажки)
+//---------------------------------------------------------------------------
+void TfmMain::ToggleChecked(int AIndex)
+{
+	const int id = FItems[AIndex].Id;
+	if (!FChecked.erase(id))
+		FChecked.insert(id);
+	dgItems->Invalidate();	// и флажок в заголовке
+	UpdateStatus();
+}
+//---------------------------------------------------------------------------
+void TfmMain::SetAllChecked(bool AChecked)
+{
+	for (size_t i = 0; i < FItems.size(); ++i)
+		if (AChecked)
+			FChecked.insert(FItems[i].Id);
+		else
+			FChecked.erase(FItems[i].Id);
+	dgItems->Invalidate();
+	UpdateStatus();
+}
+//---------------------------------------------------------------------------
+int TfmMain::CheckedState() const
+{
+	size_t checked = 0;
+	for (size_t i = 0; i < FItems.size(); ++i)
+		checked += FChecked.count(FItems[i].Id);
+	return checked == 0 ? 0 : (checked == FItems.size() ? 2 : 1);
+}
+//---------------------------------------------------------------------------
+// Флажок по центру ячейки в стиле системы; AState: 0 — снят, 1 — частично, 2 — отмечен.
+void TfmMain::DrawCheckBox(const TRect &ARect, int AState)
+{
+	const int size = 13;
+	TRect box(0, 0, size, size);
+	OffsetRect(&box, ARect.Left + (ARect.Width() - size) / 2, ARect.Top + (ARect.Height() - size) / 2);
+	if (StyleServices()->Enabled)
+	{
+		const TThemedButton part = AState == 2 ? tbCheckBoxCheckedNormal
+			: (AState == 1 ? tbCheckBoxMixedNormal : tbCheckBoxUncheckedNormal);
+		StyleServices()->DrawElement(dgItems->Canvas->Handle, StyleServices()->GetElementDetails(part), box);
+	}
+	else
+	{
+		RECT r = box;
+		DrawFrameControl(dgItems->Canvas->Handle, &r, DFC_BUTTON,
+			DFCS_BUTTONCHECK | DFCS_FLAT | (AState == 2 ? DFCS_CHECKED : 0) | (AState == 1 ? DFCS_INACTIVE | DFCS_CHECKED : 0));
+	}
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::actCheckAllExecute(TObject *Sender)
+{
+	SetAllChecked(Sender == actCheckAll);
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::actCheckAllUpdate(TObject *Sender)
+{
+	actCheckAll->Enabled   = !FItems.empty();
+	actUncheckAll->Enabled = !FItems.empty();
 }
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------

@@ -11,6 +11,7 @@ USEFORM("f_Import.cpp", fmImport);
 USEFORM("f_Reference.cpp", fmReference);
 USEFORM("f_NumistaSettings.cpp", fmNumistaSettings);
 USEFORM("f_NumistaChoose.cpp", fmNumistaChoose);
+USEFORM("f_NumistaIssue.cpp", fmNumistaIssue);
 USEUNIT("u_CoinCollection.cpp");
 USEUNIT("u_Database.cpp");
 USEUNIT("u_CoinRepository.cpp");
