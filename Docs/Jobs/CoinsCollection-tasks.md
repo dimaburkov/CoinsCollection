@@ -461,7 +461,7 @@ miLanguage.Caption=Language
 
 ## Общие правила для задач интерфейса (5, 7–9)
 
-- Только стоковый VCL: TMainMenu, TActionList, TToolBar, TListView, TTreeView, TSplitter, TStatusBar, TComboBox, TDateTimePicker, TUpDown. Без EhLib, AlphaControls и прочих библиотек PawnShop.
+- Только стоковый VCL: TMainMenu, TActionList, TToolBar, TDrawGrid (с задачи 7a; в задаче 5 был TListView), TTreeView, TSplitter, TStatusBar, TComboBox, TDateTimePicker, TUpDown. Без EhLib, AlphaControls и прочих библиотек PawnShop.
 - Команды меню и кнопок — через TActionList (одно действие на пункт меню и кнопку). Ещё не реализованные команды: `Enabled = false`.
 - Все тексты — по правилам задачи 4: английский в .dfm / en.ini, ключи в ru.ini и uk.ini.
 - Иконки не рисуем: кнопки панели с текстом (ShowCaptions). Иконки — отдельной задачей при необходимости.
@@ -663,7 +663,7 @@ miLanguage.Caption=Language
 
 - Add (Ins): пустая карточка; OK → Save → Refresh, выделить новую запись.
 - Edit (Enter / двойной клик): карточка текущей записи; OK → Save → Refresh.
-- Delete (Del): подтверждение «Delete N item(s)?» → Delete для каждой выделенной записи → Refresh.
+- Delete (Del): подтверждение «Delete N item(s)?» → Delete для каждой выделенной записи → Refresh. (С задачи 7a — только одна текущая запись.)
 - Enabled: Edit — ровно одна выделенная запись; Delete — хотя бы одна.
 
 ### Не входит в задачу
@@ -682,6 +682,44 @@ miLanguage.Caption=Language
 
 ---
 
+## Задача 7a. Список коллекции на TDrawGrid
+
+### Цель
+
+Заменить TListView в главном окне на TDrawGrid — так же, как сделаны списки в проекте Склад (форма Ov): данные в std::vector, ячейки рисуются в OnDrawCell. Удаление — по одной записи.
+
+### Ветка
+
+7a-drawgrid от master (после merge задачи 7); по завершении — merge в master. Коммит: «7a - Список на TDrawGrid».
+
+### Объём работ
+
+- `lvItems: TListView` → `dgItems: TDrawGrid`: FixedRows = 1 (строка 0 — заголовок), FixedCols = 0, ColCount = 7, строка N = FItems[N - 1]; при пустом списке одна пустая строка данных.
+- Options: линии, goRowSelect, goDrawFocusSelected, goColSizing (ширина колонок мышью), goThumbTracking, goFixedRowClick + goFixedHotTrack (клик и подсветка заголовка).
+- OnDrawCell: фон и выделение рисует сетка (DefaultDrawing), в обработчике — текст ячейки (CellText) с многоточием при нехватке места; Year и Value — по правому краю; заголовок — Tr(ключ колонки) и стрелка сортировки (треугольник на Canvas) у текущей колонки.
+- OnFixedCellClick по строке 0 — сортировка (та же колонка — обратный порядок); текущая запись сохраняется.
+- Текущая запись — dgItems->Row: CurrentIndex() / CurrentId() / SelectId() / SelectIndex(); F5, Add, Edit сохраняют / выделяют запись по Id.
+- Enter и двойной клик по строке данных — Edit; двойной клик по заголовку — ничего (строка нажатия запоминается в OnMouseDown).
+- Delete — только текущая запись; подтверждение с её описанием («Delete the item '¼ dollar, 1976, KM# 204'?»); после удаления курсор на следующей записи. Edit / Delete доступны, если список не пуст.
+- Убрать код TListView (сообщения LVM_*, CommCtrl.h, множественный выбор).
+- Post-build копирование Lang: путь вывода через `System.IO.Path::Combine`, чтобы работал и абсолютный FinalOutputDir.
+
+### Не входит в задачу
+
+- Множественный выбор и удаление нескольких записей
+- Сохранение ширины колонок между запусками
+
+### Критерий приёмки
+
+- Проект собирается в RAD Studio 13 (Win32, Debug и Release) без ошибок и предупреждений.
+- Список показывает коллекцию, сортировка кликом по заголовку работает по всем колонкам в обе стороны, стрелка у текущей колонки.
+- Навигация клавишами, Enter / двойной клик — карточка текущей записи; F5 сохраняет текущую запись.
+- Delete удаляет одну текущую запись после подтверждения; курсор остаётся на соседней записи.
+- Тексты заголовков переключаются языком.
+- Ветка 7a-drawgrid смержена в master.
+
+---
+
 ## Задача 8 (UI-3). Дерево континентов и стран, поиск, фильтры
 
 ### Цель
@@ -690,7 +728,7 @@ miLanguage.Caption=Language
 
 ### Ветка
 
-8-ui-filters от master (после merge задачи 7); по завершении — merge в master. Коммит: «8 - Дерево и фильтры».
+8-ui-filters от master (после merge задачи 7a); по завершении — merge в master. Коммит: «8 - Дерево и фильтры».
 
 ### Объём работ
 
@@ -720,7 +758,7 @@ All (1234)
 
 **Список**
 
-- Колонка Country (первой) показывается, когда выбран не узел одной страны (All, континент, Extinct states, No continent); при выборе страны скрывается.
+- Колонка Country (первой) показывается (в dgItems — отдельная колонка сетки, при скрытии ширина 0 или ColCount меньше), когда выбран не узел одной страны (All, континент, Extinct states, No continent); при выборе страны скрывается.
 
 **Поиск и фильтры**
 

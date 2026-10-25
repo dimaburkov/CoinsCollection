@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <set>
 #include <shlwapi.h>
-#include <CommCtrl.h>
 #include <Vcl.Dialogs.hpp>
 #include "f_Main.h"
 #include "dm_Data.h"
@@ -49,7 +48,8 @@ __fastcall TfmMain::TfmMain(TComponent* Owner)
 	: TForm(Owner),
 	  FSortColumn(icDenomination),
 	  FSortAscending(true),
-	  FLanguageToken(0)
+	  FLanguageToken(0),
+	  FMouseDownRow(-1)
 {
 	Translator().TranslateForm(this);
 	BuildLanguageMenu();
@@ -74,7 +74,6 @@ void __fastcall TfmMain::FormCreate(TObject *Sender)
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::FormDestroy(TObject *Sender)
 {
-	lvItems->Items->Count = 0;
 	FItems.clear();
 	FRepository.reset();
 	if (FDatabase)
@@ -82,15 +81,14 @@ void __fastcall TfmMain::FormDestroy(TObject *Sender)
 	FDatabase.reset();
 }
 //---------------------------------------------------------------------------
-// Тексты, которые не берутся из .dfm напрямую: заголовки колонок, короткая
-// подпись кнопки импорта, строка состояния. Вызывается и при смене языка.
+// Тексты, которые не берутся из .dfm напрямую: короткая подпись кнопки
+// импорта, строка состояния; заголовки колонок рисуются в dgItemsDrawCell.
+// Вызывается и при смене языка.
 void TfmMain::ApplyTexts()
 {
-	for (int i = 0; i < icCount && i < lvItems->Columns->Count; ++i)
-		lvItems->Columns->Items[i]->Caption = Tr(cColumnKeys[i]);
 	// Кнопка связана с actImport, но подпись у неё короче, чем пункт меню.
 	tbImport->Caption = Tr(L"Main.Toolbar.Import");
-	UpdateSortArrows();
+	dgItems->Invalidate();
 	UpdateStatus();
 }
 //---------------------------------------------------------------------------
@@ -246,51 +244,47 @@ void __fastcall TfmMain::actAddExecute(TObject *Sender)
 		return;
 
 	LoadItems();
-	SelectIds(std::vector<int>(1, record.Id), record.Id);
-	UpdateStatus();
+	SelectId(record.Id);
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::actEditExecute(TObject *Sender)
 {
-	const int focused = FocusedId();
-	const std::vector<int> selected = SelectedIds();
-	if (selected.size() != 1)
+	const int index = CurrentIndex();
+	if (index < 0)
 		return;
 
-	for (size_t i = 0; i < FItems.size(); ++i)
+	TCoinRecord record = FItems[index];
+	if (TfmCoinEdit::Execute(this, *FRepository, record) && SaveRecord(record))
 	{
-		if (FItems[i].Id != selected[0])
-			continue;
-		TCoinRecord record = FItems[i];
-		if (TfmCoinEdit::Execute(this, *FRepository, record) && SaveRecord(record))
-		{
-			LoadItems();
-			SelectIds(selected, focused != 0 ? focused : selected[0]);
-		}
-		return;
+		LoadItems();
+		SelectId(record.Id);
 	}
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::actEditUpdate(TObject *Sender)
 {
-	actEdit->Enabled = lvItems->SelCount == 1;
+	actEdit->Enabled = CurrentIndex() >= 0;
 }
 //---------------------------------------------------------------------------
+// Удаляется одна текущая запись; курсор остаётся на той же позиции списка.
 void __fastcall TfmMain::actDeleteExecute(TObject *Sender)
 {
-	const std::vector<int> ids = SelectedIds();
-	if (ids.empty())
-		return;
-	if (!Confirm(Format(Tr(L"Main.Delete.Confirm"), ARRAYOFCONST(((int)ids.size()))), StripHotkey(actDelete->Caption)))
+	const int index = CurrentIndex();
+	if (index < 0)
 		return;
 
-	// Все выбранные — одной транзакцией: либо удалены все, либо ни один.
+	const TCoinRecord &r = FItems[index];
+	String what = r.Denomination;
+	if (r.Year != 0)
+		what += L", " + IntToStr(r.Year);
+	if (!r.CatalogNumber.IsEmpty())
+		what += L", " + r.CatalogNumber;
+	if (!Confirm(Format(Tr(L"Main.Delete.Confirm"), ARRAYOFCONST((what))), StripHotkey(actDelete->Caption)))
+		return;
+
 	try
 	{
-		TDbTransaction tx(FDatabase->Connection());
-		for (size_t i = 0; i < ids.size(); ++i)
-			FRepository->Delete(ids[i]);
-		tx.Commit();
+		FRepository->Delete(r.Id);
 	}
 	catch (Exception &e)
 	{
@@ -298,11 +292,12 @@ void __fastcall TfmMain::actDeleteExecute(TObject *Sender)
 			StripHotkey(actDelete->Caption).c_str(), MB_OK | MB_ICONERROR);
 	}
 	LoadItems();
+	SelectIndex(index);
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::actDeleteUpdate(TObject *Sender)
 {
-	actDelete->Enabled = lvItems->SelCount > 0;
+	actDelete->Enabled = CurrentIndex() >= 0;
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::actExitExecute(TObject *Sender)
@@ -323,11 +318,10 @@ void __fastcall TfmMain::actAboutExecute(TObject *Sender)
 	Application->MessageBox(text.c_str(), caption.c_str(), MB_OK | MB_ICONINFORMATION);
 }
 //---------------------------------------------------------------------------
-// Перечитать коллекцию из БД; выделение и фокус сохраняются по Id.
+// Перечитать коллекцию из БД; текущая запись сохраняется по Id.
 void TfmMain::LoadItems()
 {
-	const std::vector<int> selected = SelectedIds();
-	const int focused = FocusedId();
+	const int current = CurrentId();
 
 	FConditionOrder.clear();
 	const std::vector<TCondition> conditions = FRepository->Lookups().Conditions();
@@ -337,19 +331,9 @@ void TfmMain::LoadItems()
 	FItems = FRepository->LoadAll();
 	SortItems();
 
-	lvItems->HandleNeeded();	// виртуальному списку число строк задаётся через окно
-	lvItems->Items->BeginUpdate();
-	try
-	{
-		lvItems->Items->Count = (int)FItems.size();
-		SelectIds(selected, focused);
-	}
-	__finally
-	{
-		lvItems->Items->EndUpdate();
-	}
-	lvItems->Invalidate();
-	UpdateSortArrows();
+	UpdateRowCount();
+	SelectId(current);
+	dgItems->Invalidate();
 	UpdateStatus();
 }
 //---------------------------------------------------------------------------
@@ -408,41 +392,122 @@ String TfmMain::CellText(const TCoinRecord &R, int AColumn) const
 	return String();
 }
 //---------------------------------------------------------------------------
-void __fastcall TfmMain::lvItemsData(TObject *Sender, TListItem *Item)
+// Строка 0 — заголовок (FixedRows = 1), строка N — FItems[N - 1].
+// У сетки всегда есть хотя бы одна строка данных; при пустом списке она пустая.
+void TfmMain::UpdateRowCount()
 {
-	if (Item->Index < 0 || Item->Index >= (int)FItems.size())
-		return;
-	const TCoinRecord &r = FItems[Item->Index];
-	Item->Caption = CellText(r, 0);
-	for (int c = 1; c < icCount; ++c)
-		Item->SubItems->Add(CellText(r, c));
+	dgItems->RowCount = std::max<int>(1, (int)FItems.size()) + 1;
 }
 //---------------------------------------------------------------------------
-void __fastcall TfmMain::lvItemsColumnClick(TObject *Sender, TListColumn *Column)
+int TfmMain::CurrentIndex() const
 {
-	if (Column->Index == FSortColumn)
+	const int index = dgItems->Row - 1;
+	return index >= 0 && index < (int)FItems.size() ? index : -1;
+}
+//---------------------------------------------------------------------------
+int TfmMain::CurrentId() const
+{
+	const int index = CurrentIndex();
+	return index >= 0 ? FItems[index].Id : 0;
+}
+//---------------------------------------------------------------------------
+// Сделать текущей запись AId; если её нет — оставить строку на месте.
+void TfmMain::SelectId(int AId)
+{
+	for (size_t i = 0; i < FItems.size(); ++i)
+		if (FItems[i].Id == AId)
+		{
+			SelectIndex((int)i);
+			return;
+		}
+	SelectIndex(dgItems->Row - 1);
+}
+//---------------------------------------------------------------------------
+// Сделать текущей строку FItems[AIndex] (с поправкой на границы списка).
+void TfmMain::SelectIndex(int AIndex)
+{
+	const int last = std::max<int>(0, (int)FItems.size() - 1);
+	dgItems->Row = std::min(std::max(AIndex, 0), last) + 1;
+}
+//---------------------------------------------------------------------------
+// Ячейку рисуем сами: фон и выделение строки сетка уже нарисовала
+// (DefaultDrawing), здесь — только текст и стрелка сортировки в заголовке.
+void __fastcall TfmMain::dgItemsDrawCell(TObject *Sender, int ACol, int ARow,
+	TRect &Rect, TGridDrawState State)
+{
+	if (ACol < 0 || ACol >= icCount)
+		return;
+
+	String text;
+	if (ARow == 0)
+		text = Tr(cColumnKeys[ACol]);
+	else if (ARow - 1 < (int)FItems.size())
+		text = CellText(FItems[ARow - 1], ACol);
+
+	TCanvas *canvas = dgItems->Canvas;
+	RECT r = { Rect.Left + 4, Rect.Top, Rect.Right - 4, Rect.Bottom };
+
+	// Стрелка сортировки справа в заголовке текущей колонки.
+	if (ARow == 0 && ACol == FSortColumn && r.right - r.left > 16)
+	{
+		const int cx = r.right - 5, cy = (Rect.Top + Rect.Bottom) / 2;
+		TPoint arrow[3];
+		if (FSortAscending)
+		{
+			arrow[0] = TPoint(cx - 4, cy + 2); arrow[1] = TPoint(cx + 4, cy + 2); arrow[2] = TPoint(cx, cy - 2);
+		}
+		else
+		{
+			arrow[0] = TPoint(cx - 4, cy - 2); arrow[1] = TPoint(cx + 4, cy - 2); arrow[2] = TPoint(cx, cy + 2);
+		}
+		canvas->Pen->Color   = clGrayText;
+		canvas->Brush->Style = bsSolid;
+		canvas->Brush->Color = clGrayText;
+		canvas->Polygon(arrow, 2);
+		r.right -= 14;
+	}
+
+	UINT flags = DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX;
+	if (ARow > 0 && (ACol == icYear || ACol == icValue))
+		flags |= DT_RIGHT;
+	canvas->Brush->Style = bsClear;
+	DrawTextW(canvas->Handle, text.c_str(), -1, &r, flags);
+}
+//---------------------------------------------------------------------------
+// Клик по заголовку: та же колонка — обратный порядок, другая — по возрастанию.
+void __fastcall TfmMain::dgItemsFixedCellClick(TObject *Sender, int ACol, int ARow)
+{
+	if (ARow != 0 || ACol < 0 || ACol >= icCount)
+		return;
+	if (ACol == FSortColumn)
 		FSortAscending = !FSortAscending;
 	else
 	{
-		FSortColumn = Column->Index;
+		FSortColumn = ACol;
 		FSortAscending = true;
 	}
 
-	const std::vector<int> selected = SelectedIds();
-	const int focused = FocusedId();
+	const int current = CurrentId();
 	SortItems();
-	SelectIds(selected, focused);
-	lvItems->Invalidate();
-	UpdateSortArrows();
+	SelectId(current);
+	dgItems->Invalidate();
 }
 //---------------------------------------------------------------------------
-void __fastcall TfmMain::lvItemsDblClick(TObject *Sender)
+void __fastcall TfmMain::dgItemsMouseDown(TObject *Sender, TMouseButton Button,
+	TShiftState Shift, int X, int Y)
 {
-	if (actEdit->Enabled)
+	int col = -1;
+	dgItems->MouseToCell(X, Y, col, FMouseDownRow);
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::dgItemsDblClick(TObject *Sender)
+{
+	// Двойной клик по заголовку (например, по границе колонки) — не правка.
+	if (FMouseDownRow > 0 && actEdit->Enabled)
 		actEdit->Execute();
 }
 //---------------------------------------------------------------------------
-void __fastcall TfmMain::lvItemsKeyDown(TObject *Sender, WORD &Key, TShiftState Shift)
+void __fastcall TfmMain::dgItemsKeyDown(TObject *Sender, WORD &Key, TShiftState Shift)
 {
 	if (Key == VK_RETURN && Shift.Empty())
 	{
@@ -452,73 +517,9 @@ void __fastcall TfmMain::lvItemsKeyDown(TObject *Sender, WORD &Key, TShiftState 
 	}
 }
 //---------------------------------------------------------------------------
-// Стрелка сортировки в заголовке (HDF_SORTUP / HDF_SORTDOWN, comctl32 v6).
-void TfmMain::UpdateSortArrows()
-{
-	if (!lvItems->HandleAllocated())
-		return;
-	const HWND header = ListView_GetHeader(lvItems->Handle);
-	for (int i = 0; i < lvItems->Columns->Count; ++i)
-	{
-		HDITEMW item = {};
-		item.mask = HDI_FORMAT;
-		Header_GetItem(header, i, &item);
-		item.fmt &= ~(HDF_SORTUP | HDF_SORTDOWN);
-		if (i == FSortColumn)
-			item.fmt |= FSortAscending ? HDF_SORTUP : HDF_SORTDOWN;
-		Header_SetItem(header, i, &item);
-	}
-}
-//---------------------------------------------------------------------------
 void TfmMain::UpdateStatus()
 {
 	if (StatusBar->Panels->Count > 0)
 		StatusBar->Panels->Items[0]->Text = Format(Tr(L"Main.Status.Items"), ARRAYOFCONST(((int)FItems.size())));
-}
-//---------------------------------------------------------------------------
-std::vector<int> TfmMain::SelectedIds() const
-{
-	std::vector<int> ids;
-	if (!lvItems->HandleAllocated())
-		return ids;
-	for (int i = ListView_GetNextItem(lvItems->Handle, -1, LVNI_SELECTED); i >= 0;
-	     i = ListView_GetNextItem(lvItems->Handle, i, LVNI_SELECTED))
-	{
-		if (i < (int)FItems.size())
-			ids.push_back(FItems[i].Id);
-	}
-	return ids;
-}
-//---------------------------------------------------------------------------
-int TfmMain::FocusedId() const
-{
-	if (!lvItems->HandleAllocated())
-		return 0;
-	const int i = ListView_GetNextItem(lvItems->Handle, -1, LVNI_FOCUSED);
-	return i >= 0 && i < (int)FItems.size() ? FItems[i].Id : 0;
-}
-//---------------------------------------------------------------------------
-void TfmMain::SelectIds(const std::vector<int> &AIds, int AFocusedId)
-{
-	if (!lvItems->HandleAllocated())
-		return;
-	const HWND list = lvItems->Handle;
-	ListView_SetItemState(list, -1, 0, LVIS_SELECTED | LVIS_FOCUSED);
-
-	const std::set<int> ids(AIds.begin(), AIds.end());
-	for (int i = 0; i < (int)FItems.size(); ++i)
-	{
-		UINT state = 0;
-		if (ids.count(FItems[i].Id))
-			state |= LVIS_SELECTED;
-		if (AFocusedId != 0 && FItems[i].Id == AFocusedId)
-			state |= LVIS_FOCUSED;
-		if (state)
-		{
-			ListView_SetItemState(list, i, state, LVIS_SELECTED | LVIS_FOCUSED);
-			if (state & LVIS_FOCUSED)
-				ListView_EnsureVisible(list, i, FALSE);
-		}
-	}
 }
 //---------------------------------------------------------------------------
