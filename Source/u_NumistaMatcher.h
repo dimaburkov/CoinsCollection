@@ -61,6 +61,9 @@ public:
 	std::vector<TNumistaIssue> LoadIssues(int ATypeId, bool ARefresh = false);
 	// Адрес getIssues типа (ключ кэша — TNumistaClient::IsCached).
 	static String IssuesPath(int ATypeId);
+	// Характеристики типа (getType, с кэшем; ARefresh — мимо кэша). Задача 13d.
+	TNumistaTypeInfo LoadType(int ATypeId, bool ARefresh = false);
+	static String TypePath(int ATypeId);
 
 	static String TypeUrl(int ATypeId);
 

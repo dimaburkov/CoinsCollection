@@ -48,7 +48,10 @@ void TNumistaUploader::ReadCollection(TJSONValue *AJson, const std::vector<TCoin
 		if (internalId != 0 && our != typeOf.end() && our->second == JsonInt(item, L"type.id"))
 			FUploaded[internalId] = numistaId;
 		else
-			FForeign.insert(std::make_pair(JsonInt(item, L"type.id"), JsonInt(item, L"issue.id")));
+		{
+			const TForeignItem foreign = { numistaId, JsonInt(item, L"type.id"), JsonInt(item, L"issue.id"), false };
+			FForeign.push_back(foreign);
+		}
 	}
 }
 //---------------------------------------------------------------------------
@@ -58,13 +61,23 @@ int TNumistaUploader::UploadedItem(int AItemId) const
 	return it == FUploaded.end() ? 0 : it->second;
 }
 //---------------------------------------------------------------------------
-bool TNumistaUploader::HasForeign(int ATypeId, int AIssueId) const
+int TNumistaUploader::TakeForeign(int ATypeId, int AIssueId)
 {
-	auto range = FForeign.equal_range(ATypeId);
-	for (auto it = range.first; it != range.second; ++it)
-		if (it->second == 0 || AIssueId == 0 || it->second == AIssueId)
-			return true;
-	return false;
+	// Проход 0 — тот же выпуск; проход 1 — выпуск не указан у предмета или у экземпляра.
+	for (int pass = 0; pass < 2; ++pass)
+		for (size_t i = 0; i < FForeign.size(); ++i)
+		{
+			TForeignItem &f = FForeign[i];
+			if (f.Taken || f.Id == 0 || f.TypeId != ATypeId)
+				continue;
+			const bool sameIssue = AIssueId != 0 && f.IssueId == AIssueId;
+			if (pass == 0 ? sameIssue : (f.IssueId == 0 || AIssueId == 0))
+			{
+				f.Taken = true;
+				return f.Id;
+			}
+		}
+	return 0;
 }
 //---------------------------------------------------------------------------
 String TNumistaUploader::Grade(const String &ACondition)

@@ -65,6 +65,10 @@ public:
 	// Выпуски типа Numista (getIssues) в numista_issues — вставка или обновление
 	// по id (задача 13c). Возвращает число выпусков.
 	int  SaveNumistaIssues(int ATypeId, const std::vector<TNumistaIssue> &AIssues);
+	// Характеристики типа Numista (getType) в numista_types (задача 13d).
+	void SaveNumistaType(const TNumistaTypeInfo &AType);
+	// false — тип не загружен.
+	bool LoadNumistaType(int ATypeId, TNumistaTypeInfo &AType);
 
 	TLookupRepository &Lookups() { return FLookups; }
 

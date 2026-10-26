@@ -4,7 +4,7 @@ object fmMain: TfmMain
   ActiveControl = dgItems
   Caption = 'Coins Collection'
   ClientHeight = 660
-  ClientWidth = 1310
+  ClientWidth = 1430
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -110,7 +110,7 @@ object fmMain: TfmMain
   object pnlRight: TPanel
     Left = 244
     Top = 22
-    Width = 1066
+    Width = 1186
     Height = 619
     Align = alClient
     BevelOuter = bvNone
@@ -118,10 +118,10 @@ object fmMain: TfmMain
     object dgItems: TDrawGrid
       Left = 0
       Top = 0
-      Width = 1066
+      Width = 1186
       Height = 425
       Align = alClient
-      ColCount = 12
+      ColCount = 13
       DefaultRowHeight = 18
       FixedCols = 0
       RowCount = 2
@@ -145,6 +145,7 @@ object fmMain: TfmMain
         24
         70
         85
+        120
         50
         65
         85)
@@ -152,7 +153,7 @@ object fmMain: TfmMain
     object splDetails: TSplitter
       Left = 0
       Top = 425
-      Width = 1066
+      Width = 1186
       Height = 4
       Cursor = crVSplit
       Align = alBottom
@@ -161,7 +162,7 @@ object fmMain: TfmMain
     object pnlDetails: TPanel
       Left = 0
       Top = 429
-      Width = 1066
+      Width = 1186
       Height = 190
       Align = alBottom
       BevelOuter = bvNone

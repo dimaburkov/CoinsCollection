@@ -66,7 +66,8 @@ void TDatabase::EnsureSchema()
 		if (version < 2) { MigrateTo2(); version = 2; }
 		if (version < 3) { MigrateTo3(); version = 3; }
 		if (version < 4) { MigrateTo4(); version = 4; }
-		// if (version < 5) { MigrateTo5(); version = 5; }
+		if (version < 5) { MigrateTo5(); version = 5; }
+		// if (version < 6) { MigrateTo6(); version = 6; }
 
 		// PRAGMA не принимает параметры; version — целое из кода.
 		FConnection->ExecSQL(L"PRAGMA user_version = " + IntToStr(version));
@@ -214,6 +215,34 @@ void TDatabase::MigrateTo4()
 		L"  updated_at  TEXT NOT NULL"
 		L")");
 	FConnection->ExecSQL(L"CREATE INDEX ix_numista_issues_type ON numista_issues (type_id)");
+}
+//---------------------------------------------------------------------------
+// v5: характеристики типов Numista (задача 13d, getType); coins.numista_type_id
+// ссылается на id без внешнего ключа. Правители и дворы — текстом через "; " (только показ).
+void TDatabase::MigrateTo5()
+{
+	FConnection->ExecSQL(
+		L"CREATE TABLE numista_types ("
+		L"  id                  INTEGER PRIMARY KEY,"
+		L"  title               TEXT,"
+		L"  object_type         TEXT,"
+		L"  min_year            INTEGER,"
+		L"  max_year            INTEGER,"
+		L"  composition         TEXT,"
+		L"  technique           TEXT,"
+		L"  weight              REAL,"
+		L"  size                REAL,"
+		L"  size2               REAL,"
+		L"  thickness           REAL,"
+		L"  shape               TEXT,"
+		L"  is_demonetized      INTEGER,"
+		L"  demonetization_date TEXT,"
+		L"  rulers              TEXT,"
+		L"  series              TEXT,"
+		L"  commemorated_topic  TEXT,"
+		L"  mints               TEXT,"
+		L"  updated_at          TEXT NOT NULL"
+		L")");
 }
 //---------------------------------------------------------------------------
 // Справочники с начальным составом (u_SeedData). «Extinct states» — не континент:

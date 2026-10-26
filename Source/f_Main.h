@@ -183,9 +183,10 @@ __published:	// IDE-managed Components
 private:	// User declarations
 	// Колонки списка (логические; видимые и их порядок — FColumns).
 	// icCheck — флажок отметки, icNumista — N# (задача 12a), icUploaded — выгружен в коллекцию Numista (задача 13),
-	// icRarity — индекс редкости (задача 13a), icMintage — тираж выпуска (задача 13c).
+	// icRarity — индекс редкости (задача 13a), icMintage — тираж выпуска (задача 13c),
+	// icComposition — металл типа (задача 13d).
 	enum TItemColumn { icCheck, icCountry, icPeriod, icCurrency, icDenomination, icNumista, icUploaded, icRarity, icMintage,
-		icYear, icCondition, icValue, icCount };
+		icComposition, icYear, icCondition, icValue, icCount };
 
 	// Строка панели подробностей: подпись и значение (создаются в коде, см. CreateDetailRows).
 	struct TDetailRow
@@ -194,7 +195,11 @@ private:	// User declarations
 		TLabel        *Caption;
 		TLabel        *Value;
 	};
-	enum TDetailRowIndex { drPeriod, drCurrency, drSubject, drNumber, drNumista, drNumistaItem, drIssueComment, drCount };
+	// Две колонки: drPeriod … drIssueComment — всегда («—», если пусто); со drWeight — характеристики
+	// типа Numista (задача 13d), пустые не показываются. Металл — только в таблице.
+	enum TDetailRowIndex { drPeriod, drCurrency, drRuler, drSubject, drNumber, drNumista, drNumistaItem, drIssueComment,
+		drWeight, drSize, drShape, drTechnique, drSeries, drCommemorated, drTypeYears, drMints, drCategory,
+		drDemonetized, drCount };
 
 	// Узел дерева навигации: что он отбирает.
 	// nkChecked — отмеченные экземпляры из любых стран (задача 13e).
@@ -271,6 +276,7 @@ private:	// User declarations
 	// Меню Numista (задача 13e): одна монета / отмеченные.
 	std::vector<TCoinRecord> CheckedRecords() const;
 	void UpdateNumistaMenuTitles();
+	void ShowTypeDetails(int ATypeId);
 	void UploadItems(const std::vector<TCoinRecord> &ACandidates);
 	void ReadRarity(const std::set<int> &ACoinIds, const String &ACaption);
 	String NumistaRequestsText(int ASent) const;

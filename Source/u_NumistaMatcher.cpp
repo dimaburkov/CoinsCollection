@@ -55,6 +55,27 @@ namespace
 		return StrToIntDef(JsonString(AJson, AName), 0);
 	}
 	//-----------------------------------------------------------------------
+	// Число JSON с точкой как разделителем; 0 — нет данных.
+	double JsonFloat(TJSONValue *AJson, const String &AName)
+	{
+		TFormatSettings fs = TFormatSettings::Invariant();
+		return StrToFloatDef(JsonString(AJson, AName), 0.0, fs);
+	}
+	//-----------------------------------------------------------------------
+	// Имена из массива объектов ("ruler", "mints") через "; ".
+	String JsonNames(TJSONValue *AJson, const String &AName)
+	{
+		TJSONArray *items = AJson ? dynamic_cast<TJSONArray *>(AJson->FindValue(AName)) : nullptr;
+		String result;
+		for (int i = 0; items && i < items->Count; ++i)
+		{
+			const String name = JsonString(items->Items[i], L"name").Trim();
+			if (!name.IsEmpty())
+				result += (result.IsEmpty() ? L"" : L"; ") + name;
+		}
+		return result;
+	}
+	//-----------------------------------------------------------------------
 	std::unique_ptr<TJSONValue> ReadCache(const String &AName)
 	{
 		const String file = TNumistaClient::CacheDir() + AName + L".json";
@@ -318,6 +339,38 @@ int TNumistaMatcher::FindIssue(int ATypeId, const TCoinRecord &ACoin)
 	if (matches == 1)
 		return result;
 	return plainMatches == 1 ? plain : 0;
+}
+//---------------------------------------------------------------------------
+String TNumistaMatcher::TypePath(int ATypeId)
+{
+	return L"/types/" + IntToStr(ATypeId) + L"?lang=en";
+}
+//---------------------------------------------------------------------------
+TNumistaTypeInfo TNumistaMatcher::LoadType(int ATypeId, bool ARefresh)
+{
+	std::unique_ptr<TJSONValue> json = FClient.GetCached(TypePath(ATypeId), nullptr, ARefresh);
+	TJSONValue *j = json.get();
+	TNumistaTypeInfo t;
+	t.Id                 = ATypeId;
+	t.Title              = JsonString(j, L"title");
+	t.ObjectType         = JsonString(j, L"object_type.name");
+	t.MinYear            = JsonInt   (j, L"min_year");
+	t.MaxYear            = JsonInt   (j, L"max_year");
+	t.Composition        = JsonString(j, L"composition.text");
+	t.Technique          = JsonString(j, L"technique.text");
+	t.Weight             = JsonFloat (j, L"weight");
+	t.Size               = JsonFloat (j, L"size");
+	t.Size2              = JsonFloat (j, L"size2");
+	t.Thickness          = JsonFloat (j, L"thickness");
+	t.Shape              = JsonString(j, L"shape");
+	const String demonetized = JsonString(j, L"demonetization.is_demonetized");
+	t.Demonetized        = SameText(demonetized, L"true") ? 1 : (SameText(demonetized, L"false") ? 0 : -1);
+	t.DemonetizationDate = JsonString(j, L"demonetization.demonetization_date");
+	t.Rulers             = JsonNames (j, L"ruler");
+	t.Series             = JsonString(j, L"series");
+	t.CommemoratedTopic  = JsonString(j, L"commemorated_topic");
+	t.Mints              = JsonNames (j, L"mints");
+	return t;
 }
 //---------------------------------------------------------------------------
 String TNumistaMatcher::IssuesPath(int ATypeId)

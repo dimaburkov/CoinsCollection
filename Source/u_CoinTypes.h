@@ -70,6 +70,9 @@ struct TCoinRecord
 	bool      NumistaIssueLoaded;  // выпуск монеты загружен в numista_issues
 	__int64   NumistaMintage;      // тираж; -1 — не известен
 	String    NumistaIssueComment; // примечание выпуска ("Proof", "BU set" ...)
+	// Тип из numista_types (задача 13d)
+	bool      NumistaTypeLoaded;   // характеристики типа загружены
+	String    NumistaComposition;  // металл ("Silver (.925)", "Aluminium" ...)
 
 	TCoinRecord()
 		: Id(0),
@@ -85,7 +88,8 @@ struct TCoinRecord
 		  NumistaItemId(0),
 		  NumistaRarity(-1),
 		  NumistaIssueLoaded(false),
-		  NumistaMintage(-1)
+		  NumistaMintage(-1),
+		  NumistaTypeLoaded(false)
 	{
 	}
 };
@@ -105,6 +109,34 @@ struct TNumistaIssue
 	String Comment;         // "Brussels Mint", "BU set", "Proof" ...
 	TNumistaIssue() : Id(0), Year(0), GregorianYear(0), MinYear(0), MaxYear(0) {}
 	int EffectiveYear() const { return GregorianYear != 0 ? GregorianYear : Year; }
+};
+
+//---------------------------------------------------------------------------
+// Характеристики типа Numista (getType; таблица numista_types — задача 13d).
+// Числа: 0 — нет данных; списки (правители, дворы) — через "; ".
+//---------------------------------------------------------------------------
+struct TNumistaTypeInfo
+{
+	int    Id;
+	String Title;
+	String ObjectType;          // категория: "Standard circulation coins" ...
+	int    MinYear;
+	int    MaxYear;
+	String Composition;
+	String Technique;
+	double Weight;              // г
+	double Size;                // мм; для круглых — диаметр
+	double Size2;               // мм; второй размер некруглых
+	double Thickness;           // мм
+	String Shape;
+	int    Demonetized;         // -1 — неизвестно, 0 — нет, 1 — да
+	String DemonetizationDate;  // yyyy-mm-dd
+	String Rulers;
+	String Series;
+	String CommemoratedTopic;
+	String Mints;
+	TNumistaTypeInfo() : Id(0), MinYear(0), MaxYear(0), Weight(0.0), Size(0.0), Size2(0.0), Thickness(0.0),
+		Demonetized(-1) {}
 };
 
 //---------------------------------------------------------------------------

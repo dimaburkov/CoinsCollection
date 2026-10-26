@@ -24,9 +24,11 @@ public:
 
 	// id предмета Numista, выгруженного раньше для экземпляра AItemId; 0 — нет.
 	int  UploadedItem(int AItemId) const;
-	// Такая монета уже есть в коллекции, добавленная не программой: тот же тип и
-	// (если у обоих известен выпуск) тот же выпуск.
-	bool HasForeign(int ATypeId, int AIssueId) const;
+	// Такая монета уже есть в коллекции, добавленная не программой (на сайте): тот же
+	// тип и (если у обоих известен выпуск) тот же выпуск — сначала с тем же выпуском.
+	// Возвращает id предмета Numista и помечает его занятым (не отдаётся второму
+	// экземпляру); 0 — нет.
+	int  TakeForeign(int ATypeId, int AIssueId);
 
 	// Тело POST addCollectedItems для экземпляра.
 	static String ItemJson(const TCoinRecord &AItem);
@@ -35,7 +37,14 @@ public:
 
 private:
 	std::map<int, int> FUploaded;                    // Id экземпляра -> id предмета Numista
-	std::multimap<int, int> FForeign;                // тип -> выпуск (0 — не указан)
+	struct TForeignItem
+	{
+		int  Id;        // id предмета Numista
+		int  TypeId;
+		int  IssueId;   // 0 — не указан
+		bool Taken;     // уже связан с экземпляром
+	};
+	std::vector<TForeignItem> FForeign;              // предметы, добавленные не программой
 };
 //---------------------------------------------------------------------------
 #endif
