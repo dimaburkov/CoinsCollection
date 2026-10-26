@@ -44,9 +44,14 @@ __published:	// IDE-managed Components
 	TAction *actNumistaCheck;
 	TAction *actCheckAll;
 	TAction *actUncheckAll;
+	TAction *actUncheckEverywhere;
+	TAction *actShowChecked;
 	TAction *actNumistaUpload;
 	TAction *actNumistaRarity;
 	TAction *actNumistaCatalog;
+	TAction *actNumistaUploadOne;
+	TAction *actNumistaRarityOne;
+	TAction *actNumistaRefreshOne;
 	TAction *actSettings;
 	TAction *actAbout;
 	TMainMenu *MainMenu;
@@ -77,6 +82,11 @@ __published:	// IDE-managed Components
 	TMenuItem *miNumistaUpload;
 	TMenuItem *miNumistaRarity;
 	TMenuItem *miNumistaCatalog;
+	TMenuItem *miNumistaCoinTitle;
+	TMenuItem *miNumistaUploadOne;
+	TMenuItem *miNumistaRarityOne;
+	TMenuItem *miNumistaRefreshOne;
+	TMenuItem *miNumistaCheckedTitle;
 	TMenuItem *miSettings;
 	TMenuItem *miLanguage;
 	TMenuItem *miSettingsDialog;
@@ -116,9 +126,18 @@ __published:	// IDE-managed Components
 	TMenuItem *miPopNumistaUpload;
 	TMenuItem *miPopNumistaRarity;
 	TMenuItem *miPopNumistaCatalog;
+	TMenuItem *miPopCoinTitle;
+	TMenuItem *miPopNumistaUploadOne;
+	TMenuItem *miPopNumistaRarityOne;
+	TMenuItem *miPopNumistaRefreshOne;
+	TMenuItem *miPopCheckedTitle;
+	TPopupMenu *pmHeader;
+	TMenuItem *miHdrCheckAll;
+	TMenuItem *miHdrUncheckAll;
+	TMenuItem *miHdrUncheckEverywhere;
+	TMenuItem *miHdrSep1;
+	TMenuItem *miHdrShowChecked;
 	TMenuItem *miPopSep1;
-	TMenuItem *miPopCheckAll;
-	TMenuItem *miPopUncheckAll;
 	void __fastcall FormCreate(TObject *Sender);
 	void __fastcall FormDestroy(TObject *Sender);
 	void __fastcall actImportExecute(TObject *Sender);
@@ -145,17 +164,22 @@ __published:	// IDE-managed Components
 	void __fastcall actReferenceExecute(TObject *Sender);
 	void __fastcall actNumistaSettingsExecute(TObject *Sender);
 	void __fastcall actNumistaFindExecute(TObject *Sender);
-	void __fastcall actNumistaFindUpdate(TObject *Sender);
 	void __fastcall actNumistaIssueExecute(TObject *Sender);
-	void __fastcall actNumistaIssueUpdate(TObject *Sender);
 	void __fastcall actNumistaCheckExecute(TObject *Sender);
-	void __fastcall actNumistaCheckUpdate(TObject *Sender);
 	void __fastcall actNumistaUploadExecute(TObject *Sender);
-	void __fastcall actNumistaUploadUpdate(TObject *Sender);
+	void __fastcall actNumistaUploadOneExecute(TObject *Sender);
+	void __fastcall actNumistaRarityOneExecute(TObject *Sender);
+	void __fastcall actNumistaRefreshOneExecute(TObject *Sender);
+	void __fastcall actNumistaUpdate(TObject *Sender);
+	void __fastcall pmItemsPopup(TObject *Sender);
+	void __fastcall miNumistaClick(TObject *Sender);
+	void __fastcall dgItemsContextPopup(TObject *Sender, const TPoint &MousePos, bool &Handled);
 	void __fastcall actNumistaRarityExecute(TObject *Sender);
 	void __fastcall actNumistaCatalogExecute(TObject *Sender);
 	void __fastcall actCheckAllExecute(TObject *Sender);
 	void __fastcall actCheckAllUpdate(TObject *Sender);
+	void __fastcall actUncheckEverywhereExecute(TObject *Sender);
+	void __fastcall actShowCheckedExecute(TObject *Sender);
 private:	// User declarations
 	// Колонки списка (логические; видимые и их порядок — FColumns).
 	// icCheck — флажок отметки, icNumista — N# (задача 12a), icUploaded — выгружен в коллекцию Numista (задача 13),
@@ -173,7 +197,8 @@ private:	// User declarations
 	enum TDetailRowIndex { drPeriod, drCurrency, drSubject, drNumber, drNumista, drNumistaItem, drIssueComment, drCount };
 
 	// Узел дерева навигации: что он отбирает.
-	enum TNavKind { nkAll, nkContinent, nkNoContinent, nkExtinct, nkCountry };
+	// nkChecked — отмеченные экземпляры из любых стран (задача 13e).
+	enum TNavKind { nkAll, nkContinent, nkNoContinent, nkExtinct, nkCountry, nkChecked };
 	struct TNavNode
 	{
 		int    Kind;   // TNavKind
@@ -189,6 +214,7 @@ private:	// User declarations
 	std::map<String, TCountry>       FCountryByName;   // имя страны (AnsiUpperCase) -> страна
 	std::vector<TNavNode>            FNav;             // узлы дерева; TTreeNode::Data = индекс
 	bool                             FBuildingTree;    // перестройка дерева — не фильтровать на каждом OnChange
+	TTreeNode                       *FCheckedNode;     // узел «Отмеченные» (счётчик меняется без перестройки дерева)
 	std::vector<int>                 FColumns;         // видимые колонки сетки (TItemColumn)
 	int                              FColWidths[icCount];
 	std::vector<TDetailRow>          FDetailRows;      // порядок = TDetailRowIndex
@@ -222,6 +248,8 @@ private:	// User declarations
 	// Отметки (флажки) строк
 	void ToggleChecked(int AIndex);	// AIndex в FItems
 	void SetAllChecked(bool AChecked);	// для строк текущего списка
+	int  CheckedOutside() const;		// отмеченные вне текущего списка
+	void UpdateCheckedNode();			// счётчик узла «Отмеченные»
 	int  CheckedState() const;	// строки текущего списка: 0 — ни одной, 1 — часть, 2 — все
 	void DrawCheckBox(const TRect &ARect, int AState);
 
@@ -240,6 +268,11 @@ private:	// User declarations
 	// Numista (задача 12)
 	std::map<String, String> NumistaIssuers();	// страна (AnsiUpperCase) -> код эмитента
 	static String CoinText(const TCoinRecord &ARecord);
+	// Меню Numista (задача 13e): одна монета / отмеченные.
+	std::vector<TCoinRecord> CheckedRecords() const;
+	void UpdateNumistaMenuTitles();
+	void UploadItems(const std::vector<TCoinRecord> &ACandidates);
+	void ReadRarity(const std::set<int> &ACoinIds, const String &ACaption);
 	String NumistaRequestsText(int ASent) const;
 public:		// User declarations
 	__fastcall TfmMain(TComponent* Owner);

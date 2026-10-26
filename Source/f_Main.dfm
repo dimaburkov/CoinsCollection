@@ -131,6 +131,7 @@ object fmMain: TfmMain
       OnDrawCell = dgItemsDrawCell
       OnFixedCellClick = dgItemsFixedCellClick
       OnKeyDown = dgItemsKeyDown
+      OnContextPopup = dgItemsContextPopup
       OnMouseDown = dgItemsMouseDown
       OnSelectCell = dgItemsSelectCell
       PopupMenu = pmItems
@@ -313,20 +314,41 @@ object fmMain: TfmMain
         Width = 250
       end
       item
-        Width = 150
+        Width = 230
       end>
   end
   object pmItems: TPopupMenu
+    OnPopup = pmItemsPopup
     Left = 424
     Top = 96
-    object miPopNumistaCheck: TMenuItem
-      Action = actNumistaCheck
+    object miPopCoinTitle: TMenuItem
+      Caption = 'Coin'
+      Enabled = False
     end
     object miPopNumistaFind: TMenuItem
       Action = actNumistaFind
     end
     object miPopNumistaIssue: TMenuItem
       Action = actNumistaIssue
+    end
+    object miPopNumistaUploadOne: TMenuItem
+      Action = actNumistaUploadOne
+    end
+    object miPopNumistaRarityOne: TMenuItem
+      Action = actNumistaRarityOne
+    end
+    object miPopNumistaRefreshOne: TMenuItem
+      Action = actNumistaRefreshOne
+    end
+    object miPopSep1: TMenuItem
+      Caption = '-'
+    end
+    object miPopCheckedTitle: TMenuItem
+      Caption = 'Coin'
+      Enabled = False
+    end
+    object miPopNumistaCheck: TMenuItem
+      Action = actNumistaCheck
     end
     object miPopNumistaUpload: TMenuItem
       Action = actNumistaUpload
@@ -337,14 +359,24 @@ object fmMain: TfmMain
     object miPopNumistaCatalog: TMenuItem
       Action = actNumistaCatalog
     end
-    object miPopSep1: TMenuItem
-      Caption = '-'
-    end
-    object miPopCheckAll: TMenuItem
+  end
+  object pmHeader: TPopupMenu
+    Left = 504
+    Top = 96
+    object miHdrCheckAll: TMenuItem
       Action = actCheckAll
     end
-    object miPopUncheckAll: TMenuItem
+    object miHdrUncheckAll: TMenuItem
       Action = actUncheckAll
+    end
+    object miHdrUncheckEverywhere: TMenuItem
+      Action = actUncheckEverywhere
+    end
+    object miHdrSep1: TMenuItem
+      Caption = '-'
+    end
+    object miHdrShowChecked: TMenuItem
+      Action = actShowChecked
     end
   end
   object ActionList: TActionList
@@ -421,19 +453,19 @@ object fmMain: TfmMain
       Category = 'Numista'
       Caption = 'Link &manually...'
       OnExecute = actNumistaFindExecute
-      OnUpdate = actNumistaFindUpdate
+      OnUpdate = actNumistaUpdate
     end
     object actNumistaIssue: TAction
       Category = 'Numista'
       Caption = 'Choose &issue...'
       OnExecute = actNumistaIssueExecute
-      OnUpdate = actNumistaIssueUpdate
+      OnUpdate = actNumistaUpdate
     end
     object actNumistaCheck: TAction
       Category = 'Numista'
-      Caption = 'Auto-&link checked (0)...'
+      Caption = 'Auto-&link...'
       OnExecute = actNumistaCheckExecute
-      OnUpdate = actNumistaCheckUpdate
+      OnUpdate = actNumistaUpdate
     end
     object actCheckAll: TAction
       Category = 'Collection'
@@ -447,21 +479,53 @@ object fmMain: TfmMain
       OnExecute = actCheckAllExecute
       OnUpdate = actCheckAllUpdate
     end
+    object actUncheckEverywhere: TAction
+      Category = 'Collection'
+      Caption = 'Uncheck &everywhere (0)'
+      OnExecute = actUncheckEverywhereExecute
+      OnUpdate = actCheckAllUpdate
+    end
+    object actShowChecked: TAction
+      Category = 'Collection'
+      Caption = '&Show checked (0)'
+      OnExecute = actShowCheckedExecute
+      OnUpdate = actCheckAllUpdate
+    end
     object actNumistaRarity: TAction
       Category = 'Numista'
-      Caption = 'Read &rarity index from Numista...'
+      Caption = 'Read rarity in&dex'
       OnExecute = actNumistaRarityExecute
+      OnUpdate = actNumistaUpdate
     end
     object actNumistaCatalog: TAction
       Category = 'Numista'
-      Caption = 'Update &catalogue data (mintage)...'
+      Caption = 'Update catalo&gue data'
       OnExecute = actNumistaCatalogExecute
+      OnUpdate = actNumistaUpdate
+    end
+    object actNumistaUploadOne: TAction
+      Category = 'Numista'
+      Caption = 'Upload to &Numista'
+      OnExecute = actNumistaUploadOneExecute
+      OnUpdate = actNumistaUpdate
+    end
+    object actNumistaRarityOne: TAction
+      Category = 'Numista'
+      Caption = 'Read &rarity index'
+      OnExecute = actNumistaRarityOneExecute
+      OnUpdate = actNumistaUpdate
+    end
+    object actNumistaRefreshOne: TAction
+      Category = 'Numista'
+      Caption = 'Update &catalogue data (no cache)'
+      OnExecute = actNumistaRefreshOneExecute
+      OnUpdate = actNumistaUpdate
     end
     object actNumistaUpload: TAction
       Category = 'Numista'
-      Caption = 'U&pload checked (0)...'
+      Caption = 'U&pload...'
       OnExecute = actNumistaUploadExecute
-      OnUpdate = actNumistaUploadUpdate
+      OnUpdate = actNumistaUpdate
     end
     object actSettings: TAction
       Category = 'Settings'
@@ -532,11 +596,16 @@ object fmMain: TfmMain
     end
     object miNumista: TMenuItem
       Caption = '&Numista'
+      OnClick = miNumistaClick
       object miNumistaSettings: TMenuItem
         Action = actNumistaSettings
       end
       object miNumistaSep1: TMenuItem
         Caption = '-'
+      end
+      object miNumistaCoinTitle: TMenuItem
+        Caption = 'Coin'
+        Enabled = False
       end
       object miNumistaFind: TMenuItem
         Action = actNumistaFind
@@ -544,11 +613,24 @@ object fmMain: TfmMain
       object miNumistaIssue: TMenuItem
         Action = actNumistaIssue
       end
-      object miNumistaCheck: TMenuItem
-        Action = actNumistaCheck
+      object miNumistaUploadOne: TMenuItem
+        Action = actNumistaUploadOne
+      end
+      object miNumistaRarityOne: TMenuItem
+        Action = actNumistaRarityOne
+      end
+      object miNumistaRefreshOne: TMenuItem
+        Action = actNumistaRefreshOne
       end
       object miNumistaSep2: TMenuItem
         Caption = '-'
+      end
+      object miNumistaCheckedTitle: TMenuItem
+        Caption = 'Coin'
+        Enabled = False
+      end
+      object miNumistaCheck: TMenuItem
+        Action = actNumistaCheck
       end
       object miNumistaUpload: TMenuItem
         Action = actNumistaUpload

@@ -91,7 +91,8 @@ __fastcall TfmMain::TfmMain(TComponent* Owner)
 	  FLanguageToken(0),
 	  FMouseDownRow(-1),
 	  FDetailsTypeId(0),
-	  FBuildingTree(false)
+	  FBuildingTree(false),
+	  FCheckedNode(nullptr)
 {
 	for (int c = 0; c < icCount; ++c)
 		FColWidths[c] = cDefaultWidths[c];
@@ -499,11 +500,6 @@ void __fastcall TfmMain::actNumistaFindExecute(TObject *Sender)
 		caption.c_str(), MB_OK | icon);
 }
 //---------------------------------------------------------------------------
-void __fastcall TfmMain::actNumistaFindUpdate(TObject *Sender)
-{
-	actNumistaFind->Enabled = CurrentIndex() >= 0;
-}
-//---------------------------------------------------------------------------
 // Choose issue: выпуск для монеты, уже связанной с типом (getIssues; из кэша —
 // без запросов). Type only — снять выпуск, оставить тип.
 void __fastcall TfmMain::actNumistaIssueExecute(TObject *Sender)
@@ -549,12 +545,6 @@ void __fastcall TfmMain::actNumistaIssueExecute(TObject *Sender)
 		return;
 	}
 	LoadItems();
-}
-//---------------------------------------------------------------------------
-void __fastcall TfmMain::actNumistaIssueUpdate(TObject *Sender)
-{
-	const int index = CurrentIndex();
-	actNumistaIssue->Enabled = index >= 0 && FItems[index].NumistaTypeId != 0;
 }
 //---------------------------------------------------------------------------
 // Auto-link checked: отмеченные монеты без N# и с номером KM / Y / C; связывается
@@ -677,31 +667,121 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 		caption.c_str(), MB_OK | (stopReason.IsEmpty() ? MB_ICONINFORMATION : MB_ICONWARNING));
 }
 //---------------------------------------------------------------------------
-//---------------------------------------------------------------------------
-void __fastcall TfmMain::actNumistaCheckUpdate(TObject *Sender)
+// Отмеченные экземпляры (в порядке коллекции).
+std::vector<TCoinRecord> TfmMain::CheckedRecords() const
 {
-	actNumistaCheck->Enabled = !FChecked.empty();
-	const String caption = Format(Tr(L"Main.Numista.Check"), ARRAYOFCONST(((int)FChecked.size())));
-	if (actNumistaCheck->Caption != caption)
-		actNumistaCheck->Caption = caption;
+	std::vector<TCoinRecord> result;
+	for (size_t i = 0; i < FAll.size(); ++i)
+		if (FChecked.count(FAll[i].Id))
+			result.push_back(FAll[i]);
+	return result;
 }
 //---------------------------------------------------------------------------
-// Upload checked: отмеченные экземпляры с N# — в свою коллекцию Numista
-// (addCollectedItems), по запросу на экземпляр. Перед отправкой — коллекция одним
-// запросом (getCollectedItems): выгруженные раньше (internal_id = наш Id) получают
+// Активность команд Numista (задача 13e): часть «эта монета» — по выделенной строке,
+// часть «отмеченные» — по отмеченным экземплярам. Один обработчик на все команды.
+void __fastcall TfmMain::actNumistaUpdate(TObject *Sender)
+{
+	const int index = CurrentIndex();
+	const TCoinRecord *coin = index >= 0 ? &FItems[index] : nullptr;
+	bool coinUploaded = false;	// у монеты выгружен хотя бы один экземпляр
+	bool noType = false, toUpload = false, uploaded = false, noCatalog = false;
+	for (size_t i = 0; i < FAll.size(); ++i)
+	{
+		const TCoinRecord &r = FAll[i];
+		if (coin && r.CoinId == coin->CoinId && r.NumistaItemId != 0)
+			coinUploaded = true;
+		if (!FChecked.count(r.Id))
+			continue;
+		noType    = noType    || r.NumistaTypeId == 0;
+		toUpload  = toUpload  || (r.NumistaTypeId != 0 && r.NumistaItemId == 0);
+		uploaded  = uploaded  || r.NumistaItemId != 0;
+		noCatalog = noCatalog || (r.NumistaIssueId != 0 && !r.NumistaIssueLoaded);
+	}
+
+	actNumistaFind->Enabled       = coin != nullptr;
+	actNumistaIssue->Enabled      = coin && coin->NumistaTypeId != 0;
+	actNumistaUploadOne->Enabled  = coin && coin->NumistaTypeId != 0 && coin->NumistaItemId == 0;
+	actNumistaRarityOne->Enabled  = coinUploaded;
+	actNumistaRefreshOne->Enabled = coin && coin->NumistaTypeId != 0;
+
+	actNumistaCheck->Enabled   = noType;
+	actNumistaUpload->Enabled  = toUpload;
+	actNumistaRarity->Enabled  = uploaded;
+	actNumistaCatalog->Enabled = noCatalog;
+}
+//---------------------------------------------------------------------------
+// Подписи частей меню Numista (контекстного и главного): выделенная монета и
+// число отмеченных. Обновляются при открытии меню.
+void TfmMain::UpdateNumistaMenuTitles()
+{
+	const int index = CurrentIndex();
+	const String coin = index >= 0 ? CoinText(FItems[index]) : Tr(L"Main.Menu.NoCoin");
+	const int outside = CheckedOutside();
+	const String checked = outside > 0
+		? Format(Tr(L"Main.Menu.CheckedOutside"), ARRAYOFCONST(((int)FChecked.size(), outside)))
+		: Format(Tr(L"Main.Menu.Checked"), ARRAYOFCONST(((int)FChecked.size())));
+	// "&" в названии монеты — не горячая клавиша.
+	const String coinCaption = StringReplace(coin, L"&", L"&&", TReplaceFlags() << rfReplaceAll);
+	miNumistaCoinTitle->Caption    = coinCaption;
+	miPopCoinTitle->Caption        = coinCaption;
+	miNumistaCheckedTitle->Caption = checked;
+	miPopCheckedTitle->Caption     = checked;
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::pmItemsPopup(TObject *Sender)
+{
+	UpdateNumistaMenuTitles();
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::miNumistaClick(TObject *Sender)
+{
+	UpdateNumistaMenuTitles();
+}
+//---------------------------------------------------------------------------
+// Правый щелчок по заголовку: над колонкой флажков — меню «Отметить все / Снять все»,
+// по остальным ячейкам заголовка — без меню; по строкам — основное меню (pmItems).
+void __fastcall TfmMain::dgItemsContextPopup(TObject *Sender, const TPoint &MousePos, bool &Handled)
+{
+	if (MousePos.X < 0 && MousePos.Y < 0)
+		return;	// с клавиатуры — основное меню
+	int col = -1, row = -1;
+	dgItems->MouseToCell(MousePos.X, MousePos.Y, col, row);
+	if (row != 0)
+		return;
+	Handled = true;
+	if (Column(col) == icCheck)
+	{
+		const TPoint pt = dgItems->ClientToScreen(MousePos);
+		pmHeader->Popup(pt.X, pt.Y);
+	}
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::actNumistaUploadExecute(TObject *Sender)
+{
+	UploadItems(CheckedRecords());
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::actNumistaUploadOneExecute(TObject *Sender)
+{
+	const int index = CurrentIndex();
+	if (index >= 0)
+		UploadItems(std::vector<TCoinRecord>(1, FItems[index]));
+}
+//---------------------------------------------------------------------------
+// Выгрузка экземпляров ACandidates с N# в свою коллекцию Numista (addCollectedItems),
+// по запросу на экземпляр. Перед отправкой — коллекция одним запросом
+// (getCollectedItems): выгруженные раньше (internal_id = наш Id) получают
 // numista_item_id без отправки; монета того же типа, добавленная не программой, —
 // не отправляется. Со выгруженных экземпляров флажок снимается.
-void __fastcall TfmMain::actNumistaUploadExecute(TObject *Sender)
+void TfmMain::UploadItems(const std::vector<TCoinRecord> &ACandidates)
 {
 	const String caption = Tr(L"Main.Numista.UploadTitle");
 
 	std::vector<TCoinRecord> items;
 	int noType = 0, uploadedBefore = 0;
-	for (size_t i = 0; i < FAll.size(); ++i)
+	for (size_t i = 0; i < ACandidates.size(); ++i)
 	{
-		const TCoinRecord &r = FAll[i];
-		if (!FChecked.count(r.Id))
-			continue;
+		const TCoinRecord &r = ACandidates[i];
 		if (r.NumistaTypeId == 0)
 			++noType;
 		else if (r.NumistaItemId != 0)
@@ -805,20 +885,28 @@ void __fastcall TfmMain::actNumistaUploadExecute(TObject *Sender)
 		MB_OK | (stopReason.IsEmpty() && errors == 0 ? MB_ICONINFORMATION : MB_ICONWARNING));
 }
 //---------------------------------------------------------------------------
-void __fastcall TfmMain::actNumistaUploadUpdate(TObject *Sender)
-{
-	actNumistaUpload->Enabled = !FChecked.empty();
-	const String caption = Format(Tr(L"Main.Numista.Upload"), ARRAYOFCONST(((int)FChecked.size())));
-	if (actNumistaUpload->Caption != caption)
-		actNumistaUpload->Caption = caption;
-}
-//---------------------------------------------------------------------------
-// Read rarity from collection: коллекция одним запросом (getCollectedItems), атрибут R
-// комментария предмета → индекс редкости монеты (наибольший по её экземплярам).
-// Монета найдена в коллекции, но R нет ни у одного экземпляра — индекс очищается.
 void __fastcall TfmMain::actNumistaRarityExecute(TObject *Sender)
 {
-	const String caption = StripHotkey(actNumistaRarity->Caption);
+	std::set<int> coins;
+	for (size_t i = 0; i < FAll.size(); ++i)
+		if (FChecked.count(FAll[i].Id))
+			coins.insert(FAll[i].CoinId);
+	ReadRarity(coins, StripHotkey(actNumistaRarity->Caption));
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::actNumistaRarityOneExecute(TObject *Sender)
+{
+	const int index = CurrentIndex();
+	if (index >= 0)
+		ReadRarity(std::set<int>{ FItems[index].CoinId }, StripHotkey(actNumistaRarityOne->Caption));
+}
+//---------------------------------------------------------------------------
+// Индекс редкости монет ACoinIds: коллекция одним запросом (getCollectedItems), атрибут R
+// комментария предмета → индекс редкости монеты (наибольший по её экземплярам).
+// Монета найдена в коллекции, но R нет ни у одного экземпляра — индекс очищается.
+void TfmMain::ReadRarity(const std::set<int> &ACoinIds, const String &ACaption)
+{
+	const String caption = ACaption;
 
 	// Экземпляр -> монета: по id предмета Numista и по нашему Id (internal_id) —
 	// только того же типа Numista (после импорта Id могут указывать на другую монету).
@@ -866,7 +954,7 @@ void __fastcall TfmMain::actNumistaRarityExecute(TObject *Sender)
 				if (typeValue && StrToIntDef(typeValue->Value(), 0) == typeByItem[internalId])
 					coinId = it->second;
 			}
-			if (coinId == 0)
+			if (coinId == 0 || !ACoinIds.count(coinId))
 				continue;
 			++matched;
 
@@ -909,17 +997,18 @@ void __fastcall TfmMain::actNumistaRarityExecute(TObject *Sender)
 		MB_OK | icon);
 }
 //---------------------------------------------------------------------------
-// Update catalogue data (задача 13c): выпуски типов (getIssues, с кэшем) для монет,
-// у которых выбран выпуск, а его нет в numista_issues. Из кэша — без запросов.
-// Документация: https://en.numista.com/api/doc/index.php (Catalogue → getIssues).
+// Update catalogue data (задачи 13c, 13e): выпуски типов (getIssues, с кэшем) для
+// отмеченных монет, у которых выбран выпуск, а его нет в numista_issues. Из кэша —
+// без запросов. Документация: https://en.numista.com/api/doc/index.php (Catalogue → getIssues).
 void __fastcall TfmMain::actNumistaCatalogExecute(TObject *Sender)
 {
 	const String caption = StripHotkey(actNumistaCatalog->Caption);
 
 	std::set<int> typeSet;
-	for (size_t i = 0; i < FAll.size(); ++i)
-		if (FAll[i].NumistaIssueId != 0 && !FAll[i].NumistaIssueLoaded)
-			typeSet.insert(FAll[i].NumistaTypeId);
+	const std::vector<TCoinRecord> checked = CheckedRecords();
+	for (size_t i = 0; i < checked.size(); ++i)
+		if (checked[i].NumistaIssueId != 0 && !checked[i].NumistaIssueLoaded)
+			typeSet.insert(checked[i].NumistaTypeId);
 	if (typeSet.empty())
 	{
 		Application->MessageBox(Tr(L"Numista.Catalog.Nothing").c_str(), caption.c_str(), MB_OK | MB_ICONINFORMATION);
@@ -969,9 +1058,11 @@ void __fastcall TfmMain::actNumistaCatalogExecute(TObject *Sender)
 	Screen->Cursor = saved;
 
 	LoadItems();	// и строка состояния
-	std::set<int> withMintage, noMintage;	// монеты: тираж известен / выпуск загружен, тиража у Numista нет
+	std::set<int> withMintage, noMintage;	// отмеченные монеты: тираж известен / выпуск загружен, тиража у Numista нет
 	for (size_t i = 0; i < FAll.size(); ++i)
-		if (FAll[i].NumistaMintage >= 0)
+		if (!FChecked.count(FAll[i].Id))
+			continue;
+		else if (FAll[i].NumistaMintage >= 0)
 			withMintage.insert(FAll[i].CoinId);
 		else if (FAll[i].NumistaIssueLoaded)
 			noMintage.insert(FAll[i].CoinId);
@@ -983,6 +1074,57 @@ void __fastcall TfmMain::actNumistaCatalogExecute(TObject *Sender)
 		report += L"\r\n\r\n" + Tr(L"Numista.Match.Stopped") + L" " + stopReason;
 	Application->MessageBox((report + L"\r\n\r\n" + NumistaRequestsText(client.RequestsMade)).c_str(),
 		caption.c_str(), MB_OK | (stopReason.IsEmpty() ? MB_ICONINFORMATION : MB_ICONWARNING));
+}
+//---------------------------------------------------------------------------
+// Обновить данные каталога выделенной монеты мимо кэша (задача 13e): getIssues типа —
+// 1 запрос; ответ перезаписывает кэш и numista_issues. Для случая, когда данные на
+// Numista изменились (например, добавили тираж).
+void __fastcall TfmMain::actNumistaRefreshOneExecute(TObject *Sender)
+{
+	const int index = CurrentIndex();
+	if (index < 0 || FItems[index].NumistaTypeId == 0)
+		return;
+	const TCoinRecord coin = FItems[index];
+	const String caption = StripHotkey(actNumistaRefreshOne->Caption);
+	const String nl = L"\r\n";
+
+	TNumistaClient client;
+	TNumistaMatcher matcher(client);
+	String message;
+	UINT icon = MB_ICONINFORMATION;
+	const TCursor saved = Screen->Cursor;
+	Screen->Cursor = crHourGlass;
+	try
+	{
+		const int issues = FRepository->SaveNumistaIssues(coin.NumistaTypeId, matcher.LoadIssues(coin.NumistaTypeId, true));
+		message = Format(Tr(L"Numista.Refresh.Issues"), ARRAYOFCONST((issues)));
+	}
+	catch (Exception &e)
+	{
+		message = e.Message;
+		icon = MB_ICONERROR;
+	}
+	Screen->Cursor = saved;
+
+	LoadItems();
+	if (icon != MB_ICONERROR)
+	{
+		if (coin.NumistaIssueId == 0)
+			message += nl + Tr(L"Numista.Refresh.NoIssue");
+		else
+		{
+			// Тираж до и после — как в колонке («—» — пусто).
+			String after;
+			for (size_t i = 0; i < FAll.size(); ++i)
+				if (FAll[i].Id == coin.Id)
+					after = CellText(FAll[i], icMintage);
+			const String before = CellText(coin, icMintage);
+			message += nl + Format(Tr(L"Numista.Refresh.Mintage"), ARRAYOFCONST((
+				before.IsEmpty() ? String(L"—") : before, after.IsEmpty() ? String(L"—") : after)));
+		}
+	}
+	Application->MessageBox((CoinText(coin) + nl + nl + message + nl + nl + NumistaRequestsText(client.RequestsMade)).c_str(),
+		caption.c_str(), MB_OK | icon);
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::NumistaLinkClick(TObject *Sender)
@@ -1145,6 +1287,9 @@ void TfmMain::BuildTree()
 			if (!countries[i].IsExist && count(countries[i].Id) > 0)
 				AddNavNode(extinctNode, nkCountry, countries[i].Id, countries[i].Name, count(countries[i].Id));
 
+		// Отмеченные из любых стран — отдельный узел после All (задача 13e).
+		FCheckedNode = AddNavNode(nullptr, nkChecked, 0, Tr(L"Main.Tree.Checked"), (int)FChecked.size());
+
 		// Восстановить раскрытие и выбор (при первом построении — раскрыт и выбран All).
 		TTreeNode *select = root;
 		for (int i = 0; i < tvNav->Items->Count; ++i)
@@ -1177,6 +1322,8 @@ bool TfmMain::MatchNode(const TCoinRecord &ARecord, const TNavNode &ANode) const
 {
 	if (ANode.Kind == nkAll)
 		return true;
+	if (ANode.Kind == nkChecked)
+		return FChecked.count(ARecord.Id) > 0;
 	std::map<String, TCountry>::const_iterator it = FCountryByName.find(AnsiUpperCase(ARecord.Country));
 	if (it == FCountryByName.end())
 		return ANode.Kind == nkNoContinent;
@@ -1531,7 +1678,13 @@ void TfmMain::UpdateStatus()
 	StatusBar->Panels->Items[1]->Text = Format(Tr(L"Main.Status.Quantity"), ARRAYOFCONST((quantity)));
 	StatusBar->Panels->Items[2]->Text = Format(Tr(L"Main.Status.Value"), ARRAYOFCONST((FormatFloat(L"#,##0.00", value))));
 	if (StatusBar->Panels->Count > 3)
-		StatusBar->Panels->Items[3]->Text = Format(Tr(L"Main.Status.Checked"), ARRAYOFCONST(((int)FChecked.size())));
+	{
+		const int outside = CheckedOutside();
+		StatusBar->Panels->Items[3]->Text = outside > 0
+			? Format(Tr(L"Main.Status.CheckedOutside"), ARRAYOFCONST(((int)FChecked.size(), outside)))
+			: Format(Tr(L"Main.Status.Checked"), ARRAYOFCONST(((int)FChecked.size())));
+	}
+	UpdateCheckedNode();
 }
 //---------------------------------------------------------------------------
 // Отметки строк (флажки)
@@ -1554,6 +1707,24 @@ void TfmMain::SetAllChecked(bool AChecked)
 			FChecked.erase(FItems[i].Id);
 	dgItems->Invalidate();
 	UpdateStatus();
+}
+//---------------------------------------------------------------------------
+// Отмеченные экземпляры, которых нет в текущем списке (другие страны, поиск).
+int TfmMain::CheckedOutside() const
+{
+	size_t shown = 0;
+	for (size_t i = 0; i < FItems.size(); ++i)
+		shown += FChecked.count(FItems[i].Id);
+	return (int)(FChecked.size() - shown);
+}
+//---------------------------------------------------------------------------
+void TfmMain::UpdateCheckedNode()
+{
+	if (!FCheckedNode)
+		return;
+	const String text = Tr(L"Main.Tree.Checked") + L" (" + IntToStr((int)FChecked.size()) + L")";
+	if (FCheckedNode->Text != text)
+		FCheckedNode->Text = text;
 }
 //---------------------------------------------------------------------------
 int TfmMain::CheckedState() const
@@ -1593,6 +1764,37 @@ void __fastcall TfmMain::actCheckAllUpdate(TObject *Sender)
 {
 	actCheckAll->Enabled   = !FItems.empty();
 	actUncheckAll->Enabled = !FItems.empty();
+	actUncheckEverywhere->Enabled = !FChecked.empty();
+	actShowChecked->Enabled       = !FChecked.empty();
+	// Число отмеченных — в подписи (во всей коллекции).
+	const String clear = Format(Tr(L"Main.Check.Everywhere"), ARRAYOFCONST(((int)FChecked.size())));
+	if (actUncheckEverywhere->Caption != clear)
+		actUncheckEverywhere->Caption = clear;
+	const String show = Format(Tr(L"Main.Check.Show"), ARRAYOFCONST(((int)FChecked.size())));
+	if (actShowChecked->Caption != show)
+		actShowChecked->Caption = show;
+}
+//---------------------------------------------------------------------------
+// Снять отметки во всей коллекции, а не только в текущем списке.
+void __fastcall TfmMain::actUncheckEverywhereExecute(TObject *Sender)
+{
+	FChecked.clear();
+	const TNavNode *node = CurrentNode();
+	if (node && node->Kind == nkChecked)
+		ApplyFilter();	// узел «Отмеченные» становится пустым
+	dgItems->Invalidate();
+	UpdateStatus();
+}
+//---------------------------------------------------------------------------
+// Показать отмеченные из любых стран — узел «Отмеченные» в дереве.
+void __fastcall TfmMain::actShowCheckedExecute(TObject *Sender)
+{
+	if (!FCheckedNode)
+		return;
+	if (tvNav->Selected == FCheckedNode)
+		ApplyFilter();	// список отмеченных мог измениться
+	else
+		tvNav->Selected = FCheckedNode;
 }
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
