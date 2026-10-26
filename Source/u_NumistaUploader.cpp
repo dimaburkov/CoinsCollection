@@ -23,18 +23,30 @@ namespace
 	}
 }
 //---------------------------------------------------------------------------
-void TNumistaUploader::ReadCollection(TJSONValue *AJson, const std::vector<int> &AOurIds)
+void TNumistaUploader::ReadCollection(TJSONValue *AJson, const std::vector<TCoinRecord> &AAll)
 {
 	FUploaded.clear();
 	FForeign.clear();
-	const std::set<int> ours(AOurIds.begin(), AOurIds.end());
+	std::set<int> known;		// id предметов Numista у наших экземпляров
+	std::map<int, int> typeOf;	// Id экземпляра -> тип Numista
+	for (size_t i = 0; i < AAll.size(); ++i)
+	{
+		if (AAll[i].NumistaItemId != 0)
+			known.insert(AAll[i].NumistaItemId);
+		typeOf[AAll[i].Id] = AAll[i].NumistaTypeId;
+	}
+
 	TJSONArray *items = AJson ? dynamic_cast<TJSONArray *>(AJson->FindValue(L"items")) : nullptr;
 	for (int i = 0; items && i < items->Count; ++i)
 	{
 		TJSONValue *item = items->Items[i];
+		const int numistaId  = JsonInt(item, L"id");
 		const int internalId = StrToIntDef(JsonString(item, L"internal_id").Trim(), 0);
-		if (internalId != 0 && ours.count(internalId))
-			FUploaded[internalId] = JsonInt(item, L"id");
+		std::map<int, int>::const_iterator our = typeOf.find(internalId);
+		if (known.count(numistaId))
+			continue;	// уже связан с экземпляром программы
+		if (internalId != 0 && our != typeOf.end() && our->second == JsonInt(item, L"type.id"))
+			FUploaded[internalId] = numistaId;
 		else
 			FForeign.insert(std::make_pair(JsonInt(item, L"type.id"), JsonInt(item, L"issue.id")));
 	}

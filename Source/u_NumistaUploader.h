@@ -16,9 +16,11 @@
 class TNumistaUploader
 {
 public:
-	// Разобрать ответ getCollectedItems: предметы, выгруженные программой
-	// (internal_id = Id экземпляра из AOurIds), и остальные (добавлены не программой).
-	void ReadCollection(TJSONValue *AJson, const std::vector<int> &AOurIds);
+	// Разобрать ответ getCollectedItems: предметы, выгруженные программой, и
+	// остальные (добавлены не программой). Свой предмет — id = numista_item_id
+	// экземпляра из AAll или internal_id = Id экземпляра того же типа Numista
+	// (после импорта Id меняются, internal_id может указывать на другую монету).
+	void ReadCollection(TJSONValue *AJson, const std::vector<TCoinRecord> &AAll);
 
 	// id предмета Numista, выгруженного раньше для экземпляра AItemId; 0 — нет.
 	int  UploadedItem(int AItemId) const;

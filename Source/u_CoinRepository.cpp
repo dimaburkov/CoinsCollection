@@ -342,13 +342,165 @@ bool TCoinRepository::Delete(int AId)
 	return true;
 }
 //---------------------------------------------------------------------------
-int TCoinRepository::ReplaceAll(const std::vector<TCoinRecord> &ARecords)
+namespace
+{
+	// Связи Numista монеты до импорта (задача 13b). Значения — как в БД (NULL — Null()).
+	struct TOldNumistaItem
+	{
+		int     NumistaItemId;
+		Variant Condition, Quantity, MyValue, PurchaseDate, Comment, Swap;
+	};
+	struct TOldNumistaCoin
+	{
+		Variant TypeId, IssueId, Rarity;
+		std::vector<TOldNumistaItem> Items;
+	};
+	//-----------------------------------------------------------------------
+	void SetVariant(TFDParam *AParam, TFieldType AType, const Variant &AValue)
+	{
+		AParam->DataType = AType;
+		if (AValue.IsNull())
+			AParam->Clear();
+		else
+			AParam->Value = AValue;
+	}
+	//-----------------------------------------------------------------------
+	// Монеты с N#, индексом или выгруженными экземплярами — по ключу монеты
+	// импорта (ReplaceAll): период, валюта, номинал, год, разновидность, сюжет, номер.
+	std::map<String, TOldNumistaCoin> ReadNumistaLinks(TDatabase *ADatabase, const String &ASep)
+	{
+		std::map<String, TOldNumistaCoin> result;
+		std::map<int, String> keys;	// id монеты -> ключ
+		std::unique_ptr<TFDQuery> q = NewQuery(ADatabase,
+			L"SELECT id, id_period, id_currency, denomination, year, variety, subject, catalog_number,"
+			L"       numista_type_id, numista_issue_id, numista_rarity"
+			L"  FROM coins c"
+			L" WHERE numista_type_id IS NOT NULL OR numista_rarity IS NOT NULL"
+			L"    OR EXISTS (SELECT 1 FROM coin_items i WHERE i.id_coin = c.id AND i.numista_item_id IS NOT NULL)");
+		for (q->Open(); !q->Eof; q->Next())
+		{
+			const String key = IntToStr(FieldInt(q.get(), L"id_period")) + ASep + IntToStr(FieldInt(q.get(), L"id_currency"))
+				+ ASep + FieldText(q.get(), L"denomination") + ASep + IntToStr(FieldInt(q.get(), L"year"))
+				+ ASep + FieldText(q.get(), L"variety") + ASep + FieldText(q.get(), L"subject")
+				+ ASep + FieldText(q.get(), L"catalog_number");
+			TOldNumistaCoin &coin = result[key];
+			coin.TypeId  = q->FieldByName(L"numista_type_id")->Value;
+			coin.IssueId = q->FieldByName(L"numista_issue_id")->Value;
+			coin.Rarity  = q->FieldByName(L"numista_rarity")->Value;
+			keys[q->FieldByName(L"id")->AsInteger] = key;
+		}
+		q->Close();
+
+		q->SQL->Text = L"SELECT id_coin, numista_item_id, id_condition, quantity, my_value_uah, purchase_date,"
+		               L"       comment, swap_info"
+		               L"  FROM coin_items WHERE numista_item_id IS NOT NULL ORDER BY id";
+		for (q->Open(); !q->Eof; q->Next())
+		{
+			TOldNumistaItem item;
+			item.NumistaItemId = q->FieldByName(L"numista_item_id")->AsInteger;
+			item.Condition     = q->FieldByName(L"id_condition")->Value;
+			item.Quantity      = q->FieldByName(L"quantity")->Value;
+			item.MyValue       = q->FieldByName(L"my_value_uah")->Value;
+			item.PurchaseDate  = q->FieldByName(L"purchase_date")->Value;
+			item.Comment       = q->FieldByName(L"comment")->Value;
+			item.Swap          = q->FieldByName(L"swap_info")->Value;
+			result[keys[q->FieldByName(L"id_coin")->AsInteger]].Items.push_back(item);
+		}
+		return result;
+	}
+	//-----------------------------------------------------------------------
+	// Перенести связи на новые монеты (ANewCoins: ключ -> id). Экземпляр — с теми же
+	// полями; нет такого — единственный экземпляр монеты, если и выгружен был один.
+	void RestoreNumistaLinks(TDatabase *ADatabase, const std::map<String, TOldNumistaCoin> &AOldCoins,
+		const std::map<String, int> &ANewCoins, TNumistaKept &AKept)
+	{
+		std::unique_ptr<TFDQuery> updateCoin = NewQuery(ADatabase,
+			L"UPDATE coins SET numista_type_id = :type_id, numista_issue_id = :issue_id,"
+			L"       numista_rarity = :rarity WHERE id = :id");
+		std::unique_ptr<TFDQuery> findItem = NewQuery(ADatabase,
+			L"SELECT id FROM coin_items"
+			L" WHERE id_coin = :id_coin AND numista_item_id IS NULL"
+			L"   AND id_condition IS :id_condition AND quantity IS :quantity AND my_value_uah IS :my_value_uah"
+			L"   AND purchase_date IS :purchase_date AND comment IS :comment AND swap_info IS :swap_info");
+		std::unique_ptr<TFDQuery> onlyItem = NewQuery(ADatabase,
+			L"SELECT MIN(id), COUNT(*) FROM coin_items WHERE id_coin = :id_coin");
+		std::unique_ptr<TFDQuery> updateItem = NewQuery(ADatabase,
+			L"UPDATE coin_items SET numista_item_id = :numista_item_id WHERE id = :id");
+
+		for (std::map<String, TOldNumistaCoin>::const_iterator old = AOldCoins.begin(); old != AOldCoins.end(); ++old)
+		{
+			const TOldNumistaCoin &coin = old->second;
+			std::map<String, int>::const_iterator found = ANewCoins.find(old->first);
+			if (found == ANewCoins.end())
+			{
+				++AKept.CoinsLost;
+				AKept.ItemsLost += (int)coin.Items.size();
+				continue;
+			}
+			const int coinId = found->second;
+
+			SetVariant(updateCoin->ParamByName(L"type_id"),  ftInteger, coin.TypeId);
+			SetVariant(updateCoin->ParamByName(L"issue_id"), ftInteger, coin.IssueId);
+			SetVariant(updateCoin->ParamByName(L"rarity"),   ftInteger, coin.Rarity);
+			updateCoin->ParamByName(L"id")->AsInteger = coinId;
+			updateCoin->ExecSQL();
+			++AKept.Coins;
+
+			for (size_t i = 0; i < coin.Items.size(); ++i)
+			{
+				const TOldNumistaItem &item = coin.Items[i];
+				int itemId = 0;
+
+				findItem->ParamByName(L"id_coin")->AsInteger = coinId;
+				SetVariant(findItem->ParamByName(L"id_condition"),  ftInteger,    item.Condition);
+				SetVariant(findItem->ParamByName(L"quantity"),      ftInteger,    item.Quantity);
+				SetVariant(findItem->ParamByName(L"my_value_uah"),  ftFloat,      item.MyValue);
+				SetVariant(findItem->ParamByName(L"purchase_date"), ftWideString, item.PurchaseDate);
+				SetVariant(findItem->ParamByName(L"comment"),       ftWideString, item.Comment);
+				SetVariant(findItem->ParamByName(L"swap_info"),     ftWideString, item.Swap);
+				findItem->Open();
+				if (!findItem->Eof)
+				{
+					itemId = findItem->Fields->Fields[0]->AsInteger;
+					findItem->Next();
+					if (!findItem->Eof)
+						itemId = 0;	// несколько одинаковых — неоднозначно
+				}
+				findItem->Close();
+
+				if (itemId == 0 && coin.Items.size() == 1)
+				{
+					onlyItem->ParamByName(L"id_coin")->AsInteger = coinId;
+					onlyItem->Open();
+					if (onlyItem->Fields->Fields[1]->AsInteger == 1)
+						itemId = onlyItem->Fields->Fields[0]->AsInteger;
+					onlyItem->Close();
+				}
+
+				if (itemId == 0)
+				{
+					++AKept.ItemsLost;
+					continue;
+				}
+				updateItem->ParamByName(L"numista_item_id")->AsInteger = item.NumistaItemId;
+				updateItem->ParamByName(L"id")->AsInteger = itemId;
+				updateItem->ExecSQL();
+				++AKept.Items;
+			}
+		}
+	}
+}
+//---------------------------------------------------------------------------
+int TCoinRepository::ReplaceAll(const std::vector<TCoinRecord> &ARecords, TNumistaKept *AKept)
 {
 	// Пакетная запись: справочники и монеты этого импорта кешируются в памяти,
 	// два INSERT создаются один раз (FireDAC готовит их при первом выполнении).
 	// Правила те же, что у Save: пустые страна / номинал и неизвестное состояние —
 	// исключение и откат всего импорта.
 	TDbTransaction tx(FDatabase->Connection());
+
+	const String sep = String(L'\x1F');	// разделитель частей ключа
+	std::map<String, TOldNumistaCoin> oldCoins = ReadNumistaLinks(FDatabase, sep);
 
 	FDatabase->Connection()->ExecSQL(L"DELETE FROM coin_items");
 	FDatabase->Connection()->ExecSQL(L"DELETE FROM coins");
@@ -361,7 +513,6 @@ int TCoinRepository::ReplaceAll(const std::vector<TCoinRecord> &ARecords)
 	std::unique_ptr<TFDQuery> insertCoin = NewQuery(FDatabase, cInsertCoin);
 	std::unique_ptr<TFDQuery> insertItem = NewQuery(FDatabase, cInsertItem);
 
-	const String sep = String(L'\x1F');	// разделитель частей ключа
 	for (size_t i = 0; i < ARecords.size(); ++i)
 	{
 		const TCoinRecord &r = ARecords[i];
@@ -410,7 +561,12 @@ int TCoinRepository::ReplaceAll(const std::vector<TCoinRecord> &ARecords)
 		insertItem->ExecSQL();
 	}
 
+	TNumistaKept kept;
+	RestoreNumistaLinks(FDatabase, oldCoins, coins, kept);
+
 	tx.Commit();
+	if (AKept)
+		*AKept = kept;
 	return (int)ARecords.size();
 }
 //---------------------------------------------------------------------------
