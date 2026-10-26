@@ -419,6 +419,38 @@ bool TLookupRepository::DeleteCurrency(int AId)
 }
 //---------------------------------------------------------------------------
 // Код эмитента Numista у страны ("" — не указан).
+String TLookupRepository::PeriodKey(const String &ACountry, const String &APeriod)
+{
+	return AnsiUpperCase(ACountry.Trim()) + String(L'\x1F') + APeriod.Trim();
+}
+//---------------------------------------------------------------------------
+std::map<String, String> TLookupRepository::PeriodIssuers()
+{
+	std::map<String, String> result;
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
+		L"SELECT c.name AS country, p.name AS period, p.numista_issuer"
+		L"  FROM periods p JOIN countries c ON c.id = p.id_country"
+		L" WHERE p.numista_issuer IS NOT NULL");
+	for (q->Open(); !q->Eof; q->Next())
+		result[PeriodKey(q->FieldByName(L"country")->AsString, q->FieldByName(L"period")->AsString)] =
+			q->FieldByName(L"numista_issuer")->AsString;
+	return result;
+}
+//---------------------------------------------------------------------------
+void TLookupRepository::SetPeriodIssuer(const String &ACountry, const String &APeriod, const String &AIssuer)
+{
+	const int periodId = FindOrCreatePeriod(FindOrCreateCountry(ACountry), APeriod);
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, L"UPDATE periods SET numista_issuer = :issuer WHERE id = :id");
+	TFDParam *issuer = q->ParamByName(L"issuer");
+	issuer->DataType = ftWideString;
+	if (AIssuer.Trim().IsEmpty())
+		issuer->Clear();
+	else
+		issuer->AsWideString = AIssuer.Trim();
+	q->ParamByName(L"id")->AsInteger = periodId;
+	q->ExecSQL();
+}
+//---------------------------------------------------------------------------
 void TLookupRepository::SetCountryIssuer(int ACountryId, const String &AIssuer)
 {
 	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, L"UPDATE countries SET numista_issuer = :issuer WHERE id = :id");

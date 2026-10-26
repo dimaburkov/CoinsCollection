@@ -486,20 +486,25 @@ void __fastcall TfmMain::actNumistaFindExecute(TObject *Sender)
 	try
 	{
 		std::vector<TNumistaType> types;
+		String countryIssuer, periodIssuer;
 		const TCursor saved = Screen->Cursor;
 		Screen->Cursor = crHourGlass;
 		try
 		{
 			matcher.EnsureCountryIssuers(FRepository->Lookups());
-			types = matcher.Search(coin, NumistaIssuers()[AnsiUpperCase(coin.Country)]);
+			countryIssuer = NumistaIssuers()[AnsiUpperCase(coin.Country)];
+			periodIssuer = FRepository->Lookups().PeriodIssuers()[
+				TLookupRepository::PeriodKey(coin.Country, coin.Period)];
+			types = matcher.Search(coin, periodIssuer.IsEmpty() ? countryIssuer : periodIssuer, countryIssuer);
 		}
 		__finally
 		{
 			Screen->Cursor = saved;
 		}
 
+		// Другой эмитент (историческое государство) — всегда через окно выбора (задача 15a).
 		int typeId = 0;
-		if (types.size() == 1)
+		if (types.size() == 1 && !types[0].OtherIssuer)
 			typeId = types[0].Id;
 		else if (types.size() > 1)
 			typeId = TfmNumistaChoose::Execute(this,
@@ -525,12 +530,21 @@ void __fastcall TfmMain::actNumistaFindExecute(TObject *Sender)
 			FRepository->SetCoinNumista(coin.CoinId, typeId, issueId);
 			if (issueId != 0)
 				StoreIssues(*FRepository, matcher, typeId);
-			String title;
+			TNumistaType chosen;
 			for (size_t i = 0; i < types.size(); ++i)
 				if (types[i].Id == typeId)
-					title = types[i].Title;
-			message = Format(Tr(L"Numista.Find.Linked"), ARRAYOFCONST((typeId, title))) + L"\r\n"
+					chosen = types[i];
+			message = Format(Tr(L"Numista.Find.Linked"), ARRAYOFCONST((typeId, chosen.Title))) + L"\r\n"
 				+ (issueId != 0 ? Tr(L"Numista.Find.IssueFound") : Tr(L"Numista.Find.IssueNotFound"));
+			// Эмитент вне ветки страны — запомнить для периода: следующие монеты периода
+			// найдутся сразу, в том числе автосвязью (задача 15a).
+			if (!chosen.IssuerCode.IsEmpty() && !matcher.SameBranch(chosen.IssuerCode, countryIssuer)
+				&& !matcher.SameBranch(chosen.IssuerCode, periodIssuer))
+			{
+				FRepository->Lookups().SetPeriodIssuer(coin.Country, coin.Period, chosen.IssuerCode);
+				message += L"\r\n" + Format(Tr(L"Numista.Find.PeriodIssuer"), ARRAYOFCONST((chosen.IssuerName,
+					coin.Period.IsEmpty() ? coin.Country : coin.Period)));
+			}
 			// Характеристики типа сразу (getType, задача 13d): связь уже сохранена,
 			// ошибка здесь — только примечание в итоге.
 			try
@@ -651,7 +665,7 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 		return;
 	client.RequestBudget = count * 3;	// не больше 3 запросов на монету: поиск, повтор без issuer, выпуски
 
-	int linked = 0, withIssue = 0, ambiguous = 0, notFound = 0, processed = 0;
+	int linked = 0, withIssue = 0, ambiguous = 0, notFound = 0, otherIssuer = 0, processed = 0;
 	std::set<int> linkedCoins;
 	String stopReason;
 	const TCursor saved = Screen->Cursor;
@@ -660,6 +674,7 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 	{
 		matcher.EnsureCountryIssuers(FRepository->Lookups());
 		std::map<String, String> issuers = NumistaIssuers();
+		std::map<String, String> periodIssuers = FRepository->Lookups().PeriodIssuers();
 		for (size_t i = 0; i < coins.size() && stopReason.IsEmpty(); ++i)
 		{
 			const TCoinRecord &coin = coins[i];
@@ -668,8 +683,13 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 			StatusBar->Update();
 			try
 			{
-				const std::vector<TNumistaType> types = matcher.Search(coin, issuers[AnsiUpperCase(coin.Country)]);
-				if (types.size() == 1)
+				const String countryIssuer = issuers[AnsiUpperCase(coin.Country)];
+				const String periodIssuer = periodIssuers[TLookupRepository::PeriodKey(coin.Country, coin.Period)];
+				const std::vector<TNumistaType> types = matcher.Search(coin,
+					periodIssuer.IsEmpty() ? countryIssuer : periodIssuer, countryIssuer);
+				if (types.size() == 1 && types[0].OtherIssuer)
+					++otherIssuer;	// другой эмитент — только вручную, с подтверждением
+				else if (types.size() == 1)
 				{
 					int issueId = 0;
 					try
@@ -714,6 +734,7 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 	String report = Format(Tr(L"Numista.Match.Linked"), ARRAYOFCONST((linked, withIssue))) + L"\r\n"
 		+ Format(Tr(L"Numista.Match.Ambiguous"), ARRAYOFCONST((ambiguous))) + L"\r\n"
 		+ Format(Tr(L"Numista.Match.NotFound"), ARRAYOFCONST((notFound))) + L"\r\n"
+		+ Format(Tr(L"Numista.Match.OtherIssuer"), ARRAYOFCONST((otherIssuer))) + L"\r\n"
 		+ Format(Tr(L"Numista.Match.NotProcessed"), ARRAYOFCONST(((int)coins.size() - processed))) + L"\r\n"
 		+ skipped;
 	if (!stopReason.IsEmpty())

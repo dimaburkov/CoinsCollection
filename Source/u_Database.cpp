@@ -68,7 +68,8 @@ void TDatabase::EnsureSchema()
 		if (version < 4) { MigrateTo4(); version = 4; }
 		if (version < 5) { MigrateTo5(); version = 5; }
 		if (version < 6) { MigrateTo6(); version = 6; }
-		// if (version < 7) { MigrateTo7(); version = 7; }
+		if (version < 7) { MigrateTo7(); version = 7; }
+		// if (version < 8) { MigrateTo8(); version = 8; }
 
 		// PRAGMA не принимает параметры; version — целое из кода.
 		FConnection->ExecSQL(L"PRAGMA user_version = " + IntToStr(version));
@@ -263,6 +264,13 @@ void TDatabase::MigrateTo6()
 		L")");
 	FConnection->ExecSQL(L"CREATE UNIQUE INDEX ux_coin_photos_item ON coin_photos (id_item, side) WHERE id_item IS NOT NULL");
 	FConnection->ExecSQL(L"CREATE UNIQUE INDEX ux_coin_photos_coin ON coin_photos (id_coin, side) WHERE id_coin IS NOT NULL");
+}
+//---------------------------------------------------------------------------
+// v7: эмитент Numista периода (задача 15a) — для исторических государств, которые
+// у Numista числятся не у эмитента страны (Poland 1766 -> pologne-lituanie). NULL — как у страны.
+void TDatabase::MigrateTo7()
+{
+	FConnection->ExecSQL(L"ALTER TABLE periods ADD COLUMN numista_issuer TEXT");
 }
 //---------------------------------------------------------------------------
 // Справочники с начальным составом (u_SeedData). «Extinct states» — не континент:
