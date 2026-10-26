@@ -22,6 +22,8 @@
 #include <vector>
 #include "u_Database.h"
 #include "u_CoinRepository.h"
+#include "u_PhotoRepository.h"
+struct TPhotoEdits;
 //---------------------------------------------------------------------------
 class TfmMain : public TForm
 {
@@ -213,6 +215,7 @@ private:	// User declarations
 
 	std::unique_ptr<TDatabase>       FDatabase;
 	std::unique_ptr<TCoinRepository> FRepository;
+	std::unique_ptr<TPhotoRepository> FPhotos;
 	std::vector<TCoinRecord>         FAll;             // вся коллекция из БД
 	std::vector<String>              FSearchTexts;     // текст для поиска по FAll[i] (в верхнем регистре)
 	std::vector<TCoinRecord>         FItems;           // показанные (после фильтров), в порядке показа (строка сетки = индекс + 1)
@@ -244,6 +247,7 @@ private:	// User declarations
 	void UpdateColumns();
 	int  Column(int AGridCol) const;	// колонка сетки -> TItemColumn, -1 — нет
 	bool Confirm(const String &AText, const String &ACaption);
+	void ApplyPhotoEdits(const TPhotoEdits &AEdits, const TCoinRecord &ARecord);
 	bool SaveRecord(TCoinRecord &ARecord);
 	void SortItems();
 	int  CompareItems(const TCoinRecord &A, const TCoinRecord &B, int AColumn) const;

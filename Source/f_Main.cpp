@@ -128,6 +128,7 @@ void __fastcall TfmMain::FormCreate(TObject *Sender)
 	FDatabase->EnsureSchema();
 
 	FRepository.reset(new TCoinRepository(FDatabase.get()));
+	FPhotos.reset(new TPhotoRepository(FDatabase.get()));
 	LoadItems();
 #ifdef _DEBUG
 	const String selfTest = TNumistaComment::SelfTest();
@@ -261,7 +262,7 @@ void __fastcall TfmMain::actImportExecute(TObject *Sender)
 	const int current = FRepository->ItemCount();
 	if (current > 0)
 		text += nl + nl + Format(Tr(L"Import.Confirm.Replace"), ARRAYOFCONST((current)));
-	const int photos = TPhotoRepository(FDatabase.get()).PhotoCount();
+	const int photos = FPhotos->PhotoCount();
 	if (photos > 0)
 		text += nl + Format(Tr(L"Import.Confirm.Photos"), ARRAYOFCONST((photos)));
 	text += nl + nl + Tr(L"Import.Confirm.Question");
@@ -312,6 +313,23 @@ bool TfmMain::Confirm(const String &AText, const String &ACaption)
 		MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) == IDYES;
 }
 //---------------------------------------------------------------------------
+// Фото из карточки — после сохранения записи (Id экземпляра и монеты известны).
+// Ошибка — сообщение; запись уже сохранена.
+void TfmMain::ApplyPhotoEdits(const TPhotoEdits &AEdits, const TCoinRecord &ARecord)
+{
+	if (AEdits.Empty())
+		return;
+	try
+	{
+		AEdits.Apply(*FPhotos, ARecord.Id, ARecord.CoinId);
+	}
+	catch (Exception &e)
+	{
+		Application->MessageBox((Tr(L"Main.Error.Photo") + L"\r\n\r\n" + e.Message).c_str(),
+			StripHotkey(actEdit->Caption).c_str(), MB_OK | MB_ICONERROR);
+	}
+}
+//---------------------------------------------------------------------------
 // Сохранить запись из карточки; ошибка БД — сообщение, false.
 bool TfmMain::SaveRecord(TCoinRecord &ARecord)
 {
@@ -331,8 +349,10 @@ bool TfmMain::SaveRecord(TCoinRecord &ARecord)
 void __fastcall TfmMain::actAddExecute(TObject *Sender)
 {
 	TCoinRecord record;
-	if (!TfmCoinEdit::Execute(this, *FRepository, record) || !SaveRecord(record))
+	TPhotoEdits photos;
+	if (!TfmCoinEdit::Execute(this, *FRepository, *FPhotos, record, photos) || !SaveRecord(record))
 		return;
+	ApplyPhotoEdits(photos, record);
 
 	LoadItems();
 	SelectId(record.Id);
@@ -345,8 +365,10 @@ void __fastcall TfmMain::actEditExecute(TObject *Sender)
 		return;
 
 	TCoinRecord record = FItems[index];
-	if (TfmCoinEdit::Execute(this, *FRepository, record) && SaveRecord(record))
+	TPhotoEdits photos;
+	if (TfmCoinEdit::Execute(this, *FRepository, *FPhotos, record, photos) && SaveRecord(record))
 	{
+		ApplyPhotoEdits(photos, record);
 		LoadItems();
 		SelectId(record.Id);
 	}
