@@ -23,6 +23,7 @@
 #include "u_NumistaClient.h"
 #include "u_NumistaMatcher.h"
 #include "u_NumistaUploader.h"
+#include "u_NumistaComment.h"
 #include "versionConfig.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -35,7 +36,8 @@ namespace
 	// Ключи заголовков колонок (порядок = TItemColumn).
 	const wchar_t *const cColumnKeys[] =
 	{
-		L"", L"Main.Column.Numista", L"Main.Column.Uploaded", L"Main.Column.Country", L"Main.Column.Period", L"Main.Column.Currency", L"Main.Column.Denomination",
+		L"", L"Main.Column.Country", L"Main.Column.Period", L"Main.Column.Currency", L"Main.Column.Denomination",
+		L"Main.Column.Numista", L"Main.Column.Uploaded", L"Main.Column.Rarity",
 		L"Main.Column.Year", L"Main.Column.Condition", L"Main.Column.Value"
 	};
 	//-----------------------------------------------------------------------
@@ -48,12 +50,12 @@ namespace
 	// Ширина колонок по умолчанию (порядок = TItemColumn).
 	// Auto-link checked: больше стольких монет — подтверждение.
 	const int cConfirmCheckCoins = 10;
-	const int cDefaultWidths[] = { 22, 60, 24, 130, 160, 120, 130, 50, 65, 85 };
+	const int cDefaultWidths[] = { 22, 130, 160, 120, 130, 70, 24, 70, 50, 65, 85 };
 	// Подписи строк панели подробностей (порядок = TDetailRowIndex).
 	const wchar_t *const cDetailKeys[] =
 	{
 		L"Main.Details.Period", L"Main.Details.Currency", L"Main.Details.Subject", L"Main.Details.Number",
-		L"Main.Details.Numista", L"Main.Details.NumistaItem"
+		L"Main.Details.Numista", L"Main.Details.NumistaItem", L"Main.Details.Rarity"
 	};
 	//-----------------------------------------------------------------------
 	template <typename T>
@@ -96,6 +98,11 @@ void __fastcall TfmMain::FormCreate(TObject *Sender)
 
 	FRepository.reset(new TCoinRepository(FDatabase.get()));
 	LoadItems();
+#ifdef _DEBUG
+	const String selfTest = TNumistaComment::SelfTest();
+	if (!selfTest.IsEmpty())
+		Application->MessageBox((L"TNumistaComment::SelfTest\r\n\r\n" + selfTest).c_str(), L"Debug", MB_OK | MB_ICONERROR);
+#endif
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::FormDestroy(TObject *Sender)
@@ -779,6 +786,96 @@ void __fastcall TfmMain::actNumistaUploadUpdate(TObject *Sender)
 		actNumistaUpload->Caption = caption;
 }
 //---------------------------------------------------------------------------
+// Read rarity from collection: коллекция одним запросом (getCollectedItems), атрибут R
+// комментария предмета → индекс редкости монеты (наибольший по её экземплярам).
+// Монета найдена в коллекции, но R нет ни у одного экземпляра — индекс очищается.
+void __fastcall TfmMain::actNumistaRarityExecute(TObject *Sender)
+{
+	const String caption = StripHotkey(actNumistaRarity->Caption);
+
+	// Экземпляр -> монета: по id предмета Numista и по нашему Id (internal_id).
+	std::map<int, int> coinByNumistaItem, coinByItem;
+	std::map<int, int> oldRarity;	// монета -> индекс сейчас
+	for (size_t i = 0; i < FAll.size(); ++i)
+	{
+		const TCoinRecord &r = FAll[i];
+		if (r.NumistaItemId != 0)
+			coinByNumistaItem[r.NumistaItemId] = r.CoinId;
+		coinByItem[r.Id] = r.CoinId;
+		oldRarity[r.CoinId] = r.NumistaRarity;
+	}
+
+	TNumistaClient client;
+	int total = 0, matched = 0, withRarity = 0, changed = 0, cleared = 0;
+	String message;
+	UINT icon = MB_ICONINFORMATION;
+	const TCursor saved = Screen->Cursor;
+	Screen->Cursor = crHourGlass;
+	try
+	{
+		client.Authorize();
+		std::unique_ptr<TJSONValue> json = client.GetCollectedItems();
+		TJSONArray *items = dynamic_cast<TJSONArray *>(json->FindValue(L"items"));
+
+		std::map<int, int> newRarity;	// монета -> наибольший R (-1 — нет)
+		for (int i = 0; items && i < items->Count; ++i)
+		{
+			TJSONValue *item = items->Items[i];
+			++total;
+			TJSONValue *idValue = item->FindValue(L"id");
+			TJSONValue *internalValue = item->FindValue(L"internal_id");
+			const int numistaId = idValue ? StrToIntDef(idValue->Value(), 0) : 0;
+			const int internalId = internalValue ? StrToIntDef(internalValue->Value().Trim(), 0) : 0;
+
+			int coinId = 0;
+			std::map<int, int>::const_iterator it = coinByNumistaItem.find(numistaId);
+			if (it != coinByNumistaItem.end())
+				coinId = it->second;
+			else if ((it = coinByItem.find(internalId)) != coinByItem.end())
+				coinId = it->second;
+			if (coinId == 0)
+				continue;
+			++matched;
+
+			TJSONValue *commentValue = item->FindValue(L"private_comment");
+			const int rarity = TNumistaComment::Parse(commentValue ? commentValue->Value() : String()).Rarity;
+			std::map<int, int>::iterator n = newRarity.find(coinId);
+			if (n == newRarity.end())
+				newRarity[coinId] = rarity;
+			else if (rarity > n->second)
+				n->second = rarity;
+		}
+
+		for (std::map<int, int>::const_iterator n = newRarity.begin(); n != newRarity.end(); ++n)
+		{
+			if (n->second >= 0)
+				++withRarity;
+			if (n->second == oldRarity[n->first])
+				continue;
+			FRepository->SetCoinRarity(n->first, n->second);
+			if (n->second < 0)
+				++cleared;
+			else
+				++changed;
+		}
+		message = Format(Tr(L"Numista.Rarity.Total"), ARRAYOFCONST((total))) + L"\r\n"
+			+ Format(Tr(L"Numista.Rarity.Matched"), ARRAYOFCONST((matched, (int)newRarity.size()))) + L"\r\n"
+			+ Format(Tr(L"Numista.Rarity.With"), ARRAYOFCONST((withRarity))) + L"\r\n"
+			+ Format(Tr(L"Numista.Rarity.Changed"), ARRAYOFCONST((changed))) + L"\r\n"
+			+ Format(Tr(L"Numista.Rarity.Cleared"), ARRAYOFCONST((cleared)));
+	}
+	catch (Exception &e)
+	{
+		message = e.Message;
+		icon = MB_ICONERROR;
+	}
+	Screen->Cursor = saved;
+
+	LoadItems();
+	Application->MessageBox((message + L"\r\n\r\n" + NumistaRequestsText(client.RequestsMade)).c_str(), caption.c_str(),
+		MB_OK | icon);
+}
+//---------------------------------------------------------------------------
 void __fastcall TfmMain::NumistaLinkClick(TObject *Sender)
 {
 	if (FDetailsTypeId != 0)
@@ -1087,6 +1184,7 @@ int TfmMain::CompareItems(const TCoinRecord &A, const TCoinRecord &B, int AColum
 	{
 		case icNumista:      return CompareValues(A.NumistaTypeId, B.NumistaTypeId);
 		case icUploaded:     return CompareValues(A.NumistaItemId != 0, B.NumistaItemId != 0);
+		case icRarity:       return CompareValues(A.NumistaRarity, B.NumistaRarity);
 		case icCountry:      return CompareStrings(A.Country, B.Country);
 		case icPeriod:       return CompareStrings(A.Period, B.Period);
 		case icCurrency:     return CompareStrings(A.Currency, B.Currency);
@@ -1128,6 +1226,7 @@ String TfmMain::CellText(const TCoinRecord &R, int AColumn) const
 	{
 		case icNumista:      return R.NumistaTypeId == 0 ? String() : IntToStr(R.NumistaTypeId);
 		case icUploaded:     return R.NumistaItemId == 0 ? String() : String(L"\u2713");
+		case icRarity:       return R.NumistaRarity < 0 ? String() : IntToStr(R.NumistaRarity);
 		case icCountry:      return R.Country;
 		case icPeriod:       return R.Period;
 		case icCurrency:     return R.Currency;
@@ -1226,7 +1325,7 @@ void __fastcall TfmMain::dgItemsDrawCell(TObject *Sender, int ACol, int ARow,
 	}
 
 	UINT flags = DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX;
-	if (ARow > 0 && (column == icYear || column == icValue || column == icNumista))
+	if (ARow > 0 && (column == icYear || column == icValue || column == icNumista || column == icRarity))
 		flags |= DT_RIGHT;
 	if (column == icUploaded)
 		flags = (flags & ~DT_END_ELLIPSIS) | DT_CENTER;
@@ -1441,6 +1540,7 @@ void TfmMain::ShowDetails(int AIndex)
 		FDetailsTypeId = r.NumistaTypeId;
 		FDetailRows[drNumistaItem].Value->Caption = r.NumistaItemId == 0 ? String(L"\u2014")
 			: L"#" + IntToStr(r.NumistaItemId);
+		FDetailRows[drRarity].Value->Caption = r.NumistaRarity < 0 ? String(L"\u2014") : IntToStr(r.NumistaRarity);
 	}
 	else
 	{

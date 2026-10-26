@@ -19,7 +19,7 @@ namespace
 		L"       cd.code AS condition, i.quantity, i.need_to_replace, i.catalog_value_uah,"
 		L"       i.my_value_uah, i.purchase_date, i.published_date, i.swap_info, i.color,"
 		L"       i.grading_company, i.grading_number, i.grade, i.label_text, i.comment,"
-		L"       c.numista_type_id, c.numista_issue_id, i.numista_item_id"
+		L"       c.numista_type_id, c.numista_issue_id, i.numista_item_id, c.numista_rarity"
 		L"  FROM coin_items i"
 		L"  JOIN coins c       ON c.id  = i.id_coin"
 		L"  JOIN periods p     ON p.id  = c.id_period"
@@ -136,6 +136,7 @@ namespace
 		r.NumistaTypeId   = FieldInt  (D, L"numista_type_id");
 		r.NumistaIssueId  = FieldInt  (D, L"numista_issue_id");
 		r.NumistaItemId   = FieldInt  (D, L"numista_item_id");
+		r.NumistaRarity   = FieldInt  (D, L"numista_rarity", -1);
 		return r;
 	}
 }
@@ -443,6 +444,20 @@ void TCoinRepository::SetItemNumista(int AItemId, int ANumistaItemId)
 		L"UPDATE coin_items SET numista_item_id = :numista_item_id WHERE id = :id");
 	SetIntOrNull(q->ParamByName(L"numista_item_id"), ANumistaItemId);
 	q->ParamByName(L"id")->AsInteger = AItemId;
+	q->ExecSQL();
+}
+//---------------------------------------------------------------------------
+// Индекс редкости монеты (-1 — очистить; 0 — допустимое значение).
+void TCoinRepository::SetCoinRarity(int ACoinId, int ARarity)
+{
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, L"UPDATE coins SET numista_rarity = :rarity WHERE id = :id");
+	TFDParam *rarity = q->ParamByName(L"rarity");
+	rarity->DataType = ftInteger;
+	if (ARarity < 0)
+		rarity->Clear();
+	else
+		rarity->AsInteger = ARarity;
+	q->ParamByName(L"id")->AsInteger = ACoinId;
 	q->ExecSQL();
 }
 //---------------------------------------------------------------------------

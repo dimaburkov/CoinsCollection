@@ -64,7 +64,8 @@ void TDatabase::EnsureSchema()
 		// Лестница миграций: каждый шаг поднимает схему на одну версию.
 		if (version < 1) { MigrateTo1(); version = 1; }
 		if (version < 2) { MigrateTo2(); version = 2; }
-		// if (version < 3) { MigrateTo3(); version = 3; }
+		if (version < 3) { MigrateTo3(); version = 3; }
+		// if (version < 4) { MigrateTo4(); version = 4; }
 
 		// PRAGMA не принимает параметры; version — целое из кода.
 		FConnection->ExecSQL(L"PRAGMA user_version = " + IntToStr(version));
@@ -189,6 +190,12 @@ void TDatabase::MigrateTo2()
 	FConnection->ExecSQL(L"ALTER TABLE coins ADD COLUMN numista_type_id INTEGER");
 	FConnection->ExecSQL(L"ALTER TABLE coins ADD COLUMN numista_issue_id INTEGER");
 	FConnection->ExecSQL(L"ALTER TABLE coin_items ADD COLUMN numista_item_id INTEGER");
+}
+//---------------------------------------------------------------------------
+// v3: индекс редкости Numista (задача 13a) — из атрибута R комментария коллекции.
+void TDatabase::MigrateTo3()
+{
+	FConnection->ExecSQL(L"ALTER TABLE coins ADD COLUMN numista_rarity INTEGER");
 }
 //---------------------------------------------------------------------------
 // Справочники с начальным составом (u_SeedData). «Extinct states» — не континент:
