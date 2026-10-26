@@ -5,6 +5,7 @@
 #include <memory>
 #include <set>
 #include "u_NumistaUploader.h"
+#include "u_NumistaComment.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 //---------------------------------------------------------------------------
@@ -85,9 +86,8 @@ String TNumistaUploader::ItemJson(const TCoinRecord &AItem)
 	if ((double)AItem.PurchaseDate != 0.0)
 		json->AddPair(L"acquisition_date", FormatDateTime(L"yyyy-mm-dd", AItem.PurchaseDate));
 
-	String comment = AItem.Comment.Trim();
-	if (!AItem.SwapInfo.Trim().IsEmpty())
-		comment += String(comment.IsEmpty() ? L"" : L"\n") + L"Swap: " + AItem.SwapInfo.Trim();
+	// Атрибуты: S — обмен, C — комментарий (R — индекс редкости — пишет пользователь на сайте).
+	const String comment = TNumistaComment::Build(AItem.SwapInfo, AItem.Comment);
 	if (!comment.IsEmpty())
 		json->AddPair(L"private_comment", comment);
 

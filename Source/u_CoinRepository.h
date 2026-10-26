@@ -46,6 +46,8 @@ public:
 	void SetCoinNumista(int ACoinId, int ATypeId, int AIssueId);
 	// id предмета в коллекции Numista у экземпляра (0 — не выгружен).
 	void SetItemNumista(int AItemId, int ANumistaItemId);
+	// Индекс редкости монеты (-1 — не известен).
+	void SetCoinRarity(int ACoinId, int ARarity);
 
 	TLookupRepository &Lookups() { return FLookups; }
 

@@ -4,7 +4,7 @@ object fmMain: TfmMain
   ActiveControl = dgItems
   Caption = 'Coins Collection'
   ClientHeight = 660
-  ClientWidth = 1100
+  ClientWidth = 1220
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -110,7 +110,7 @@ object fmMain: TfmMain
   object pnlRight: TPanel
     Left = 244
     Top = 22
-    Width = 856
+    Width = 976
     Height = 619
     Align = alClient
     BevelOuter = bvNone
@@ -118,10 +118,10 @@ object fmMain: TfmMain
     object dgItems: TDrawGrid
       Left = 0
       Top = 0
-      Width = 856
+      Width = 976
       Height = 425
       Align = alClient
-      ColCount = 10
+      ColCount = 11
       DefaultRowHeight = 18
       FixedCols = 0
       RowCount = 2
@@ -136,12 +136,13 @@ object fmMain: TfmMain
       PopupMenu = pmItems
       ColWidths = (
         22
-        60
-        24
         130
         160
         120
         130
+        70
+        24
+        70
         50
         65
         85)
@@ -149,7 +150,7 @@ object fmMain: TfmMain
     object splDetails: TSplitter
       Left = 0
       Top = 425
-      Width = 856
+      Width = 976
       Height = 4
       Cursor = crVSplit
       Align = alBottom
@@ -158,7 +159,7 @@ object fmMain: TfmMain
     object pnlDetails: TPanel
       Left = 0
       Top = 429
-      Width = 856
+      Width = 976
       Height = 190
       Align = alBottom
       BevelOuter = bvNone
@@ -329,6 +330,9 @@ object fmMain: TfmMain
     object miPopNumistaUpload: TMenuItem
       Action = actNumistaUpload
     end
+    object miPopNumistaRarity: TMenuItem
+      Action = actNumistaRarity
+    end
     object miPopSep1: TMenuItem
       Caption = '-'
     end
@@ -439,6 +443,11 @@ object fmMain: TfmMain
       OnExecute = actCheckAllExecute
       OnUpdate = actCheckAllUpdate
     end
+    object actNumistaRarity: TAction
+      Category = 'Numista'
+      Caption = 'Read &rarity index from Numista...'
+      OnExecute = actNumistaRarityExecute
+    end
     object actNumistaUpload: TAction
       Category = 'Numista'
       Caption = 'U&pload checked (0)...'
@@ -534,6 +543,9 @@ object fmMain: TfmMain
       end
       object miNumistaUpload: TMenuItem
         Action = actNumistaUpload
+      end
+      object miNumistaRarity: TMenuItem
+        Action = actNumistaRarity
       end
     end
     object miSettings: TMenuItem

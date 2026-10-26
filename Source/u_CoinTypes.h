@@ -65,6 +65,7 @@ struct TCoinRecord
 	int       NumistaTypeId;   // coins.numista_type_id (N#)
 	int       NumistaIssueId;  // coins.numista_issue_id
 	int       NumistaItemId;   // coin_items.numista_item_id (предмет в коллекции Numista)
+	int       NumistaRarity;   // coins.numista_rarity, 0–100; -1 — не известен
 
 	TCoinRecord()
 		: Id(0),
@@ -77,7 +78,8 @@ struct TCoinRecord
 		  MyValueUah(0.0),
 		  NumistaTypeId(0),
 		  NumistaIssueId(0),
-		  NumistaItemId(0)
+		  NumistaItemId(0),
+		  NumistaRarity(-1)
 	{
 	}
 };
