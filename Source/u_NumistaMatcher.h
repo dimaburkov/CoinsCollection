@@ -28,18 +28,6 @@ struct TNumistaType
 	TNumistaType() : Id(0), MinYear(0), MaxYear(0) {}
 };
 //---------------------------------------------------------------------------
-struct TNumistaIssue
-{
-	int    Id;
-	int    Year;            // как на монете (0 — без даты)
-	int    GregorianYear;   // 0 — нет данных
-	String MintLetter;
-	String Mintage;         // тираж как в ответе ("" — нет данных)
-	String Comment;         // "Brussels Mint", "BU set", "Proof" ...
-	TNumistaIssue() : Id(0), Year(0), GregorianYear(0) {}
-	int EffectiveYear() const { return GregorianYear != 0 ? GregorianYear : Year; }
-};
-//---------------------------------------------------------------------------
 class TNumistaMatcher
 {
 public:
@@ -71,6 +59,8 @@ public:
 	int FindIssue(int ATypeId, const TCoinRecord &ACoin);
 	// Все выпуски типа (getIssues, с кэшем).
 	std::vector<TNumistaIssue> LoadIssues(int ATypeId);
+	// Адрес getIssues типа (ключ кэша — TNumistaClient::IsCached).
+	static String IssuesPath(int ATypeId);
 
 	static String TypeUrl(int ATypeId);
 

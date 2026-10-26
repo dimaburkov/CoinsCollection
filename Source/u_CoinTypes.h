@@ -66,6 +66,10 @@ struct TCoinRecord
 	int       NumistaIssueId;  // coins.numista_issue_id
 	int       NumistaItemId;   // coin_items.numista_item_id (предмет в коллекции Numista)
 	int       NumistaRarity;   // coins.numista_rarity, 0–100; -1 — не известен
+	// Выпуск из numista_issues (задача 13c)
+	bool      NumistaIssueLoaded;  // выпуск монеты загружен в numista_issues
+	__int64   NumistaMintage;      // тираж; -1 — не известен
+	String    NumistaIssueComment; // примечание выпуска ("Proof", "BU set" ...)
 
 	TCoinRecord()
 		: Id(0),
@@ -79,9 +83,28 @@ struct TCoinRecord
 		  NumistaTypeId(0),
 		  NumistaIssueId(0),
 		  NumistaItemId(0),
-		  NumistaRarity(-1)
+		  NumistaRarity(-1),
+		  NumistaIssueLoaded(false),
+		  NumistaMintage(-1)
 	{
 	}
+};
+
+//---------------------------------------------------------------------------
+// Выпуск типа Numista (getIssues; таблица numista_issues — задача 13c).
+//---------------------------------------------------------------------------
+struct TNumistaIssue
+{
+	int    Id;
+	int    Year;            // как на монете (0 — без даты)
+	int    GregorianYear;   // 0 — нет данных
+	int    MinYear;         // недатированный выпуск: годы чеканки (0 — нет данных)
+	int    MaxYear;
+	String MintLetter;
+	String Mintage;         // тираж как в ответе ("" — нет данных)
+	String Comment;         // "Brussels Mint", "BU set", "Proof" ...
+	TNumistaIssue() : Id(0), Year(0), GregorianYear(0), MinYear(0), MaxYear(0) {}
+	int EffectiveYear() const { return GregorianYear != 0 ? GregorianYear : Year; }
 };
 
 //---------------------------------------------------------------------------

@@ -54,6 +54,8 @@ public:
 
 	// GET каталога (searchTypes, getIssues) с кэшем ответов в CacheDir()\cache	// (<md5 адреса>.json). Ответ из кэша квоту не тратит; AFromCache — взят из кэша.
 	std::unique_ptr<TJSONValue> GetCached(const String &APath, bool *AFromCache = nullptr);
+	// Ответ на APath уже есть в кэше (GetCached не потратит запрос).
+	static bool IsCached(const String &APath);
 
 	// Своя коллекция (OAuth: сначала Authorize).
 	// getCollectedItems — GET /users/{user_id}/collected_items: вся коллекция одним ответом.

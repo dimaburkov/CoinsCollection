@@ -19,13 +19,15 @@ namespace
 		L"       cd.code AS condition, i.quantity, i.need_to_replace, i.catalog_value_uah,"
 		L"       i.my_value_uah, i.purchase_date, i.published_date, i.swap_info, i.color,"
 		L"       i.grading_company, i.grading_number, i.grade, i.label_text, i.comment,"
-		L"       c.numista_type_id, c.numista_issue_id, i.numista_item_id, c.numista_rarity"
+		L"       c.numista_type_id, c.numista_issue_id, i.numista_item_id, c.numista_rarity,"
+		L"       ni.id AS issue_loaded, ni.mintage, ni.comment AS issue_comment"
 		L"  FROM coin_items i"
 		L"  JOIN coins c       ON c.id  = i.id_coin"
 		L"  JOIN periods p     ON p.id  = c.id_period"
 		L"  JOIN countries co  ON co.id = p.id_country"
 		L"  LEFT JOIN currencies cu ON cu.id = c.id_currency"
 		L"  LEFT JOIN conditions cd ON cd.id = i.id_condition"
+		L"  LEFT JOIN numista_issues ni ON ni.id = c.numista_issue_id"
 		L" ORDER BY co.name, c.denomination, c.year, i.id";
 	//-----------------------------------------------------------------------
 	std::unique_ptr<TFDQuery> NewQuery(TDatabase *ADatabase, const String &ASql)
@@ -137,6 +139,10 @@ namespace
 		r.NumistaIssueId  = FieldInt  (D, L"numista_issue_id");
 		r.NumistaItemId   = FieldInt  (D, L"numista_item_id");
 		r.NumistaRarity   = FieldInt  (D, L"numista_rarity", -1);
+		r.NumistaIssueLoaded  = !D->FieldByName(L"issue_loaded")->IsNull;
+		TField *mintage = D->FieldByName(L"mintage");
+		r.NumistaMintage      = mintage->IsNull ? -1 : mintage->AsLargeInt;
+		r.NumistaIssueComment = FieldText(D, L"issue_comment");
 		return r;
 	}
 }
@@ -601,6 +607,44 @@ void TCoinRepository::SetItemNumista(int AItemId, int ANumistaItemId)
 	SetIntOrNull(q->ParamByName(L"numista_item_id"), ANumistaItemId);
 	q->ParamByName(L"id")->AsInteger = AItemId;
 	q->ExecSQL();
+}
+//---------------------------------------------------------------------------
+// Выпуски типа (ответ getIssues): вставка или обновление по id выпуска.
+// Год — как на монете; недатированный — "min–max". Возвращает число выпусков.
+int TCoinRepository::SaveNumistaIssues(int ATypeId, const std::vector<TNumistaIssue> &AIssues)
+{
+	TDbTransaction tx(FDatabase->Connection());
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
+		L"INSERT OR REPLACE INTO numista_issues (id, type_id, year, mint_letter, mintage, comment, updated_at)"
+		L" VALUES (:id, :type_id, :year, :mint_letter, :mintage, :comment, :updated_at)");
+	const String today = DateToDb(Date());
+	for (size_t i = 0; i < AIssues.size(); ++i)
+	{
+		const TNumistaIssue &issue = AIssues[i];
+		String year;
+		if (issue.Year != 0)
+			year = IntToStr(issue.Year);
+		else if (issue.MinYear != 0)
+			year = issue.MaxYear != 0 && issue.MaxYear != issue.MinYear
+				? IntToStr(issue.MinYear) + L"\u2013" + IntToStr(issue.MaxYear) : IntToStr(issue.MinYear);
+
+		q->ParamByName(L"id")->AsInteger      = issue.Id;
+		q->ParamByName(L"type_id")->AsInteger = ATypeId;
+		SetText(q->ParamByName(L"year"),        year);
+		SetText(q->ParamByName(L"mint_letter"), issue.MintLetter);
+		TFDParam *mintage = q->ParamByName(L"mintage");
+		mintage->DataType = ftLargeint;
+		const __int64 value = StrToInt64Def(issue.Mintage.Trim(), -1);
+		if (value < 0)
+			mintage->Clear();
+		else
+			mintage->AsLargeInt = value;
+		SetText(q->ParamByName(L"comment"),     issue.Comment);
+		q->ParamByName(L"updated_at")->AsWideString = today;
+		q->ExecSQL();
+	}
+	tx.Commit();
+	return (int)AIssues.size();
 }
 //---------------------------------------------------------------------------
 // Индекс редкости монеты (-1 — очистить; 0 — допустимое значение).

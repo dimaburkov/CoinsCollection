@@ -4,7 +4,7 @@ object fmMain: TfmMain
   ActiveControl = dgItems
   Caption = 'Coins Collection'
   ClientHeight = 660
-  ClientWidth = 1220
+  ClientWidth = 1310
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -110,7 +110,7 @@ object fmMain: TfmMain
   object pnlRight: TPanel
     Left = 244
     Top = 22
-    Width = 976
+    Width = 1066
     Height = 619
     Align = alClient
     BevelOuter = bvNone
@@ -118,10 +118,10 @@ object fmMain: TfmMain
     object dgItems: TDrawGrid
       Left = 0
       Top = 0
-      Width = 976
+      Width = 1066
       Height = 425
       Align = alClient
-      ColCount = 11
+      ColCount = 12
       DefaultRowHeight = 18
       FixedCols = 0
       RowCount = 2
@@ -143,6 +143,7 @@ object fmMain: TfmMain
         70
         24
         70
+        85
         50
         65
         85)
@@ -150,7 +151,7 @@ object fmMain: TfmMain
     object splDetails: TSplitter
       Left = 0
       Top = 425
-      Width = 976
+      Width = 1066
       Height = 4
       Cursor = crVSplit
       Align = alBottom
@@ -159,7 +160,7 @@ object fmMain: TfmMain
     object pnlDetails: TPanel
       Left = 0
       Top = 429
-      Width = 976
+      Width = 1066
       Height = 190
       Align = alBottom
       BevelOuter = bvNone
@@ -333,6 +334,9 @@ object fmMain: TfmMain
     object miPopNumistaRarity: TMenuItem
       Action = actNumistaRarity
     end
+    object miPopNumistaCatalog: TMenuItem
+      Action = actNumistaCatalog
+    end
     object miPopSep1: TMenuItem
       Caption = '-'
     end
@@ -448,6 +452,11 @@ object fmMain: TfmMain
       Caption = 'Read &rarity index from Numista...'
       OnExecute = actNumistaRarityExecute
     end
+    object actNumistaCatalog: TAction
+      Category = 'Numista'
+      Caption = 'Update &catalogue data (mintage)...'
+      OnExecute = actNumistaCatalogExecute
+    end
     object actNumistaUpload: TAction
       Category = 'Numista'
       Caption = 'U&pload checked (0)...'
@@ -546,6 +555,9 @@ object fmMain: TfmMain
       end
       object miNumistaRarity: TMenuItem
         Action = actNumistaRarity
+      end
+      object miNumistaCatalog: TMenuItem
+        Action = actNumistaCatalog
       end
     end
     object miSettings: TMenuItem

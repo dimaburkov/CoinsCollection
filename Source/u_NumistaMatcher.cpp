@@ -272,7 +272,7 @@ std::vector<TNumistaType> TNumistaMatcher::SearchAll(const TCoinRecord &ACoin, c
 std::vector<TNumistaIssue> TNumistaMatcher::LoadIssues(int ATypeId)
 {
 	std::vector<TNumistaIssue> result;
-	std::unique_ptr<TJSONValue> json = FClient.GetCached(L"/types/" + IntToStr(ATypeId) + L"/issues?lang=en");
+	std::unique_ptr<TJSONValue> json = FClient.GetCached(IssuesPath(ATypeId));
 	TJSONArray *issues = dynamic_cast<TJSONArray *>(json.get());
 	for (int i = 0; issues && i < issues->Count; ++i)
 	{
@@ -281,6 +281,8 @@ std::vector<TNumistaIssue> TNumistaMatcher::LoadIssues(int ATypeId)
 		issue.Id            = JsonInt   (item, L"id");
 		issue.Year          = JsonInt   (item, L"year");
 		issue.GregorianYear = JsonInt   (item, L"gregorian_year");
+		issue.MinYear       = JsonInt   (item, L"min_year");
+		issue.MaxYear       = JsonInt   (item, L"max_year");
 		issue.MintLetter    = JsonString(item, L"mint_letter");
 		issue.Mintage       = JsonString(item, L"mintage");
 		issue.Comment       = JsonString(item, L"comment");
@@ -316,6 +318,11 @@ int TNumistaMatcher::FindIssue(int ATypeId, const TCoinRecord &ACoin)
 	if (matches == 1)
 		return result;
 	return plainMatches == 1 ? plain : 0;
+}
+//---------------------------------------------------------------------------
+String TNumistaMatcher::IssuesPath(int ATypeId)
+{
+	return L"/types/" + IntToStr(ATypeId) + L"/issues?lang=en";
 }
 //---------------------------------------------------------------------------
 String TNumistaMatcher::TypeUrl(int ATypeId)

@@ -65,7 +65,8 @@ void TDatabase::EnsureSchema()
 		if (version < 1) { MigrateTo1(); version = 1; }
 		if (version < 2) { MigrateTo2(); version = 2; }
 		if (version < 3) { MigrateTo3(); version = 3; }
-		// if (version < 4) { MigrateTo4(); version = 4; }
+		if (version < 4) { MigrateTo4(); version = 4; }
+		// if (version < 5) { MigrateTo5(); version = 5; }
 
 		// PRAGMA не принимает параметры; version — целое из кода.
 		FConnection->ExecSQL(L"PRAGMA user_version = " + IntToStr(version));
@@ -196,6 +197,23 @@ void TDatabase::MigrateTo2()
 void TDatabase::MigrateTo3()
 {
 	FConnection->ExecSQL(L"ALTER TABLE coins ADD COLUMN numista_rarity INTEGER");
+}
+//---------------------------------------------------------------------------
+// v4: выпуски Numista (задача 13c) — тираж и примечание; coins.numista_issue_id
+// ссылается на id без внешнего ключа (выпуск может быть ещё не загружен).
+void TDatabase::MigrateTo4()
+{
+	FConnection->ExecSQL(
+		L"CREATE TABLE numista_issues ("
+		L"  id          INTEGER PRIMARY KEY,"
+		L"  type_id     INTEGER NOT NULL,"
+		L"  year        TEXT,"
+		L"  mint_letter TEXT,"
+		L"  mintage     INTEGER,"
+		L"  comment     TEXT,"
+		L"  updated_at  TEXT NOT NULL"
+		L")");
+	FConnection->ExecSQL(L"CREATE INDEX ix_numista_issues_type ON numista_issues (type_id)");
 }
 //---------------------------------------------------------------------------
 // Справочники с начальным составом (u_SeedData). «Extinct states» — не континент:

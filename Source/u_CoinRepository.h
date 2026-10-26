@@ -62,6 +62,9 @@ public:
 	void SetItemNumista(int AItemId, int ANumistaItemId);
 	// Индекс редкости монеты (-1 — не известен).
 	void SetCoinRarity(int ACoinId, int ARarity);
+	// Выпуски типа Numista (getIssues) в numista_issues — вставка или обновление
+	// по id (задача 13c). Возвращает число выпусков.
+	int  SaveNumistaIssues(int ATypeId, const std::vector<TNumistaIssue> &AIssues);
 
 	TLookupRepository &Lookups() { return FLookups; }
 
