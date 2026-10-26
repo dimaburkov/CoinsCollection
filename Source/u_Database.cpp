@@ -67,7 +67,8 @@ void TDatabase::EnsureSchema()
 		if (version < 3) { MigrateTo3(); version = 3; }
 		if (version < 4) { MigrateTo4(); version = 4; }
 		if (version < 5) { MigrateTo5(); version = 5; }
-		// if (version < 6) { MigrateTo6(); version = 6; }
+		if (version < 6) { MigrateTo6(); version = 6; }
+		// if (version < 7) { MigrateTo7(); version = 7; }
 
 		// PRAGMA не принимает параметры; version — целое из кода.
 		FConnection->ExecSQL(L"PRAGMA user_version = " + IntToStr(version));
@@ -243,6 +244,25 @@ void TDatabase::MigrateTo5()
 		L"  mints               TEXT,"
 		L"  updated_at          TEXT NOT NULL"
 		L")");
+}
+//---------------------------------------------------------------------------
+// v6: фото монет (задача 14). Владелец — ровно один: экземпляр (свои снимки) или
+// монета-тип; по одному фото на сторону. Файлы — в папке Photos, здесь только имена.
+void TDatabase::MigrateTo6()
+{
+	FConnection->ExecSQL(
+		L"CREATE TABLE coin_photos ("
+		L"  id        INTEGER PRIMARY KEY,"
+		L"  id_coin   INTEGER REFERENCES coins(id) ON DELETE CASCADE,"
+		L"  id_item   INTEGER REFERENCES coin_items(id) ON DELETE CASCADE,"
+		L"  side      TEXT NOT NULL CHECK (side IN ('obverse', 'reverse')),"
+		L"  file_name TEXT NOT NULL,"
+		L"  source    TEXT NOT NULL DEFAULT 'file',"
+		L"  added_at  TEXT NOT NULL,"
+		L"  CHECK ((id_coin IS NULL) <> (id_item IS NULL))"
+		L")");
+	FConnection->ExecSQL(L"CREATE UNIQUE INDEX ux_coin_photos_item ON coin_photos (id_item, side) WHERE id_item IS NOT NULL");
+	FConnection->ExecSQL(L"CREATE UNIQUE INDEX ux_coin_photos_coin ON coin_photos (id_coin, side) WHERE id_coin IS NOT NULL");
 }
 //---------------------------------------------------------------------------
 // Справочники с начальным составом (u_SeedData). «Extinct states» — не континент:

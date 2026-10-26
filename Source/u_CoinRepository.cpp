@@ -4,9 +4,11 @@
 
 #include <map>
 #include <memory>
+#include <set>
 #include <FireDAC.Comp.Client.hpp>
 #include "u_CoinRepository.h"
 #include "u_Database.h"
+#include "u_PhotoRepository.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 //---------------------------------------------------------------------------
@@ -339,6 +341,16 @@ bool TCoinRepository::Delete(int AId)
 	const int coinId = q->Fields->Fields[0]->AsInteger;
 	q->Close();
 
+	// Файлы фото экземпляра и (если монета удаляется вместе с ним) фото типа;
+	// строки coin_photos уходят каскадом, файлы удаляются после фиксации.
+	std::vector<String> photos, coinPhotos;
+	q->SQL->Text = L"SELECT id_item, file_name FROM coin_photos WHERE id_item = :id OR id_coin = :id_coin";
+	q->ParamByName(L"id")->AsInteger      = AId;
+	q->ParamByName(L"id_coin")->AsInteger = coinId;
+	for (q->Open(); !q->Eof; q->Next())
+		(q->Fields->Fields[0]->IsNull ? coinPhotos : photos).push_back(q->Fields->Fields[1]->AsString);
+	q->Close();
+
 	q->SQL->Text = L"DELETE FROM coin_items WHERE id = :id";
 	q->ParamByName(L"id")->AsInteger = AId;
 	q->ExecSQL();
@@ -347,23 +359,33 @@ bool TCoinRepository::Delete(int AId)
 	               L" AND NOT EXISTS (SELECT 1 FROM coin_items WHERE id_coin = :id)";
 	q->ParamByName(L"id")->AsInteger = coinId;
 	q->ExecSQL();
+	if (q->RowsAffected > 0)
+		photos.insert(photos.end(), coinPhotos.begin(), coinPhotos.end());
 
 	tx.Commit();
+	TPhotoRepository::DeleteFiles(photos);
 	return true;
 }
 //---------------------------------------------------------------------------
 namespace
 {
-	// Связи Numista монеты до импорта (задача 13b). Значения — как в БД (NULL — Null()).
-	struct TOldNumistaItem
+	// Связи монеты до импорта (задачи 13b, 14): Numista и фото. Значения — как в БД (NULL — Null()).
+	struct TOldPhoto
 	{
-		int     NumistaItemId;
-		Variant Condition, Quantity, MyValue, PurchaseDate, Comment, Swap;
+		Variant Side, FileName, Source, AddedAt;
 	};
-	struct TOldNumistaCoin
+	struct TOldItem
+	{
+		int     NumistaItemId;	// 0 — не выгружен (только фото)
+		Variant Condition, Quantity, MyValue, PurchaseDate, Comment, Swap;
+		std::vector<TOldPhoto> Photos;
+	};
+	struct TOldCoin
 	{
 		Variant TypeId, IssueId, Rarity;
-		std::vector<TOldNumistaItem> Items;
+		std::vector<TOldPhoto> Photos;	// фото типа
+		std::vector<TOldItem>  Items;	// выгруженные и / или с фото
+		bool HasNumista() const { return !TypeId.IsNull() || !Rarity.IsNull(); }
 	};
 	//-----------------------------------------------------------------------
 	void SetVariant(TFDParam *AParam, TFieldType AType, const Variant &AValue)
@@ -375,25 +397,37 @@ namespace
 			AParam->Value = AValue;
 	}
 	//-----------------------------------------------------------------------
-	// Монеты с N#, индексом или выгруженными экземплярами — по ключу монеты
-	// импорта (ReplaceAll): период, валюта, номинал, год, разновидность, сюжет, номер.
-	std::map<String, TOldNumistaCoin> ReadNumistaLinks(TDatabase *ADatabase, const String &ASep)
+	TOldPhoto ReadPhoto(TDataSet *D)
 	{
-		std::map<String, TOldNumistaCoin> result;
+		TOldPhoto photo;
+		photo.Side     = D->FieldByName(L"side")->Value;
+		photo.FileName = D->FieldByName(L"file_name")->Value;
+		photo.Source   = D->FieldByName(L"source")->Value;
+		photo.AddedAt  = D->FieldByName(L"added_at")->Value;
+		return photo;
+	}
+	//-----------------------------------------------------------------------
+	// Монеты с N#, индексом, выгруженными экземплярами или фото — по ключу монеты
+	// импорта (ReplaceAll): период, валюта, номинал, год, разновидность, сюжет, номер.
+	std::map<String, TOldCoin> ReadLinks(TDatabase *ADatabase, const String &ASep)
+	{
+		std::map<String, TOldCoin> result;
 		std::map<int, String> keys;	// id монеты -> ключ
 		std::unique_ptr<TFDQuery> q = NewQuery(ADatabase,
 			L"SELECT id, id_period, id_currency, denomination, year, variety, subject, catalog_number,"
 			L"       numista_type_id, numista_issue_id, numista_rarity"
 			L"  FROM coins c"
 			L" WHERE numista_type_id IS NOT NULL OR numista_rarity IS NOT NULL"
-			L"    OR EXISTS (SELECT 1 FROM coin_items i WHERE i.id_coin = c.id AND i.numista_item_id IS NOT NULL)");
+			L"    OR EXISTS (SELECT 1 FROM coin_items i WHERE i.id_coin = c.id AND i.numista_item_id IS NOT NULL)"
+			L"    OR EXISTS (SELECT 1 FROM coin_photos ph WHERE ph.id_coin = c.id)"
+			L"    OR EXISTS (SELECT 1 FROM coin_items i JOIN coin_photos ph ON ph.id_item = i.id WHERE i.id_coin = c.id)");
 		for (q->Open(); !q->Eof; q->Next())
 		{
 			const String key = IntToStr(FieldInt(q.get(), L"id_period")) + ASep + IntToStr(FieldInt(q.get(), L"id_currency"))
 				+ ASep + FieldText(q.get(), L"denomination") + ASep + IntToStr(FieldInt(q.get(), L"year"))
 				+ ASep + FieldText(q.get(), L"variety") + ASep + FieldText(q.get(), L"subject")
 				+ ASep + FieldText(q.get(), L"catalog_number");
-			TOldNumistaCoin &coin = result[key];
+			TOldCoin &coin = result[key];
 			coin.TypeId  = q->FieldByName(L"numista_type_id")->Value;
 			coin.IssueId = q->FieldByName(L"numista_issue_id")->Value;
 			coin.Rarity  = q->FieldByName(L"numista_rarity")->Value;
@@ -401,29 +435,74 @@ namespace
 		}
 		q->Close();
 
-		q->SQL->Text = L"SELECT id_coin, numista_item_id, id_condition, quantity, my_value_uah, purchase_date,"
-		               L"       comment, swap_info"
-		               L"  FROM coin_items WHERE numista_item_id IS NOT NULL ORDER BY id";
+		std::map<int, std::pair<String, size_t> > itemPos;	// id экземпляра -> (ключ монеты, индекс в Items)
+		q->SQL->Text = L"SELECT i.id, i.id_coin, i.numista_item_id, i.id_condition, i.quantity, i.my_value_uah,"
+		               L"       i.purchase_date, i.comment, i.swap_info"
+		               L"  FROM coin_items i"
+		               L" WHERE i.numista_item_id IS NOT NULL"
+		               L"    OR EXISTS (SELECT 1 FROM coin_photos ph WHERE ph.id_item = i.id)"
+		               L" ORDER BY i.id";
 		for (q->Open(); !q->Eof; q->Next())
 		{
-			TOldNumistaItem item;
-			item.NumistaItemId = q->FieldByName(L"numista_item_id")->AsInteger;
+			TOldItem item;
+			item.NumistaItemId = FieldInt(q.get(), L"numista_item_id");
 			item.Condition     = q->FieldByName(L"id_condition")->Value;
 			item.Quantity      = q->FieldByName(L"quantity")->Value;
 			item.MyValue       = q->FieldByName(L"my_value_uah")->Value;
 			item.PurchaseDate  = q->FieldByName(L"purchase_date")->Value;
 			item.Comment       = q->FieldByName(L"comment")->Value;
 			item.Swap          = q->FieldByName(L"swap_info")->Value;
-			result[keys[q->FieldByName(L"id_coin")->AsInteger]].Items.push_back(item);
+			const String key = keys[q->FieldByName(L"id_coin")->AsInteger];
+			std::vector<TOldItem> &items = result[key].Items;
+			itemPos[q->FieldByName(L"id")->AsInteger] = std::make_pair(key, items.size());
+			items.push_back(item);
+		}
+		q->Close();
+
+		q->SQL->Text = L"SELECT id_coin, id_item, side, file_name, source, added_at FROM coin_photos ORDER BY id";
+		for (q->Open(); !q->Eof; q->Next())
+		{
+			if (!q->FieldByName(L"id_coin")->IsNull)
+				result[keys[q->FieldByName(L"id_coin")->AsInteger]].Photos.push_back(ReadPhoto(q.get()));
+			else
+			{
+				std::map<int, std::pair<String, size_t> >::const_iterator pos =
+					itemPos.find(q->FieldByName(L"id_item")->AsInteger);
+				if (pos != itemPos.end())
+					result[pos->second.first].Items[pos->second.second].Photos.push_back(ReadPhoto(q.get()));
+			}
 		}
 		return result;
 	}
 	//-----------------------------------------------------------------------
-	// Перенести связи на новые монеты (ANewCoins: ключ -> id). Экземпляр — с теми же
-	// полями; нет такого — единственный экземпляр монеты, если и выгружен был один.
-	void RestoreNumistaLinks(TDatabase *ADatabase, const std::map<String, TOldNumistaCoin> &AOldCoins,
-		const std::map<String, int> &ANewCoins, TNumistaKept &AKept)
+	// Фото на нового владельца (APhotoInsert — INSERT с :owner); возвращает число.
+	int InsertPhotos(TFDQuery *APhotoInsert, int AOwnerId, const std::vector<TOldPhoto> &APhotos)
 	{
+		for (size_t i = 0; i < APhotos.size(); ++i)
+		{
+			APhotoInsert->ParamByName(L"owner")->AsInteger = AOwnerId;
+			SetVariant(APhotoInsert->ParamByName(L"side"),      ftWideString, APhotos[i].Side);
+			SetVariant(APhotoInsert->ParamByName(L"file_name"), ftWideString, APhotos[i].FileName);
+			SetVariant(APhotoInsert->ParamByName(L"source"),    ftWideString, APhotos[i].Source);
+			SetVariant(APhotoInsert->ParamByName(L"added_at"),  ftWideString, APhotos[i].AddedAt);
+			APhotoInsert->ExecSQL();
+		}
+		return (int)APhotos.size();
+	}
+	//-----------------------------------------------------------------------
+	void AddLostPhotos(const std::vector<TOldPhoto> &APhotos, TImportKept &AKept)
+	{
+		for (size_t i = 0; i < APhotos.size(); ++i)
+			AKept.LostPhotos.push_back(VarToStr(APhotos[i].FileName));
+	}
+	//-----------------------------------------------------------------------
+	// Перенести связи и фото на новые монеты (ANewCoins: ключ -> id). Экземпляр — с теми
+	// же полями; нет такого — единственный экземпляр монеты, если и старый был один.
+	// Экземпляр получает не больше одного старого (одинаковые — неоднозначно).
+	void RestoreLinks(TDatabase *ADatabase, const std::map<String, TOldCoin> &AOldCoins,
+		const std::map<String, int> &ANewCoins, TImportKept &AKept)
+	{
+		const wchar_t *const photoValues = L" side, file_name, source, added_at) VALUES (:owner, :side, :file_name, :source, :added_at)";
 		std::unique_ptr<TFDQuery> updateCoin = NewQuery(ADatabase,
 			L"UPDATE coins SET numista_type_id = :type_id, numista_issue_id = :issue_id,"
 			L"       numista_rarity = :rarity WHERE id = :id");
@@ -436,29 +515,43 @@ namespace
 			L"SELECT MIN(id), COUNT(*) FROM coin_items WHERE id_coin = :id_coin");
 		std::unique_ptr<TFDQuery> updateItem = NewQuery(ADatabase,
 			L"UPDATE coin_items SET numista_item_id = :numista_item_id WHERE id = :id");
+		std::unique_ptr<TFDQuery> coinPhoto = NewQuery(ADatabase, String(L"INSERT INTO coin_photos (id_coin,") + photoValues);
+		std::unique_ptr<TFDQuery> itemPhoto = NewQuery(ADatabase, String(L"INSERT INTO coin_photos (id_item,") + photoValues);
+		std::set<int> usedItems;	// новые экземпляры, уже получившие старый
 
-		for (std::map<String, TOldNumistaCoin>::const_iterator old = AOldCoins.begin(); old != AOldCoins.end(); ++old)
+		for (std::map<String, TOldCoin>::const_iterator old = AOldCoins.begin(); old != AOldCoins.end(); ++old)
 		{
-			const TOldNumistaCoin &coin = old->second;
+			const TOldCoin &coin = old->second;
 			std::map<String, int>::const_iterator found = ANewCoins.find(old->first);
 			if (found == ANewCoins.end())
 			{
-				++AKept.CoinsLost;
-				AKept.ItemsLost += (int)coin.Items.size();
+				if (coin.HasNumista())
+					++AKept.CoinsLost;
+				AddLostPhotos(coin.Photos, AKept);
+				for (size_t i = 0; i < coin.Items.size(); ++i)
+				{
+					if (coin.Items[i].NumistaItemId != 0)
+						++AKept.ItemsLost;
+					AddLostPhotos(coin.Items[i].Photos, AKept);
+				}
 				continue;
 			}
 			const int coinId = found->second;
 
-			SetVariant(updateCoin->ParamByName(L"type_id"),  ftInteger, coin.TypeId);
-			SetVariant(updateCoin->ParamByName(L"issue_id"), ftInteger, coin.IssueId);
-			SetVariant(updateCoin->ParamByName(L"rarity"),   ftInteger, coin.Rarity);
-			updateCoin->ParamByName(L"id")->AsInteger = coinId;
-			updateCoin->ExecSQL();
-			++AKept.Coins;
+			if (coin.HasNumista())
+			{
+				SetVariant(updateCoin->ParamByName(L"type_id"),  ftInteger, coin.TypeId);
+				SetVariant(updateCoin->ParamByName(L"issue_id"), ftInteger, coin.IssueId);
+				SetVariant(updateCoin->ParamByName(L"rarity"),   ftInteger, coin.Rarity);
+				updateCoin->ParamByName(L"id")->AsInteger = coinId;
+				updateCoin->ExecSQL();
+				++AKept.Coins;
+			}
+			AKept.Photos += InsertPhotos(coinPhoto.get(), coinId, coin.Photos);
 
 			for (size_t i = 0; i < coin.Items.size(); ++i)
 			{
-				const TOldNumistaItem &item = coin.Items[i];
+				const TOldItem &item = coin.Items[i];
 				int itemId = 0;
 
 				findItem->ParamByName(L"id_coin")->AsInteger = coinId;
@@ -487,21 +580,27 @@ namespace
 					onlyItem->Close();
 				}
 
-				if (itemId == 0)
+				if (itemId == 0 || !usedItems.insert(itemId).second)
 				{
-					++AKept.ItemsLost;
+					if (item.NumistaItemId != 0)
+						++AKept.ItemsLost;
+					AddLostPhotos(item.Photos, AKept);
 					continue;
 				}
-				updateItem->ParamByName(L"numista_item_id")->AsInteger = item.NumistaItemId;
-				updateItem->ParamByName(L"id")->AsInteger = itemId;
-				updateItem->ExecSQL();
-				++AKept.Items;
+				if (item.NumistaItemId != 0)
+				{
+					updateItem->ParamByName(L"numista_item_id")->AsInteger = item.NumistaItemId;
+					updateItem->ParamByName(L"id")->AsInteger = itemId;
+					updateItem->ExecSQL();
+					++AKept.Items;
+				}
+				AKept.Photos += InsertPhotos(itemPhoto.get(), itemId, item.Photos);
 			}
 		}
 	}
 }
 //---------------------------------------------------------------------------
-int TCoinRepository::ReplaceAll(const std::vector<TCoinRecord> &ARecords, TNumistaKept *AKept)
+int TCoinRepository::ReplaceAll(const std::vector<TCoinRecord> &ARecords, TImportKept *AKept)
 {
 	// Пакетная запись: справочники и монеты этого импорта кешируются в памяти,
 	// два INSERT создаются один раз (FireDAC готовит их при первом выполнении).
@@ -510,7 +609,7 @@ int TCoinRepository::ReplaceAll(const std::vector<TCoinRecord> &ARecords, TNumis
 	TDbTransaction tx(FDatabase->Connection());
 
 	const String sep = String(L'\x1F');	// разделитель частей ключа
-	std::map<String, TOldNumistaCoin> oldCoins = ReadNumistaLinks(FDatabase, sep);
+	std::map<String, TOldCoin> oldCoins = ReadLinks(FDatabase, sep);
 
 	FDatabase->Connection()->ExecSQL(L"DELETE FROM coin_items");
 	FDatabase->Connection()->ExecSQL(L"DELETE FROM coins");
@@ -571,8 +670,8 @@ int TCoinRepository::ReplaceAll(const std::vector<TCoinRecord> &ARecords, TNumis
 		insertItem->ExecSQL();
 	}
 
-	TNumistaKept kept;
-	RestoreNumistaLinks(FDatabase, oldCoins, coins, kept);
+	TImportKept kept;
+	RestoreLinks(FDatabase, oldCoins, coins, kept);
 
 	tx.Commit();
 	if (AKept)

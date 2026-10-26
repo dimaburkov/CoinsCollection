@@ -21,6 +21,8 @@ public:
 	String DbPath;
 	// Язык интерфейса: en / ru / uk ([UI] Language; по умолчанию en).
 	String Language;
+	// Папка фото монет с завершающим "\" ([Photos] Path; по умолчанию <каталог exe>\Photos\).
+	String PhotosPath;
 
 	// Numista ([Numista]). Ключ и токен хранятся в ini (в git не попадает).
 	String    NumistaApiKey;
@@ -36,6 +38,7 @@ public:
 
 private:
 	String FDbPathInIni;	// значение [Database] Path как записано (может быть относительным)
+	String FPhotosPathInIni;	// значение [Photos] Path как записано ("" — по умолчанию)
 
 	static String IniFileName();
 	static String DefaultDbPath();

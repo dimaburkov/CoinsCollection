@@ -35,6 +35,7 @@ Exe/*.pdi
 Exe/*.xlsx
 Exe/Lang/
 Exe/Numista/
+Exe/Photos/
 
 # IDE files
 *.cbproj.local

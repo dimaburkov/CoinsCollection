@@ -20,6 +20,9 @@ namespace
 	const String cLanguageKey     = L"Language";
 	const String cDefaultLanguage = L"en";
 
+	const String cPhotosSection   = L"Photos";
+	const String cDefaultPhotos   = L"Photos\\";
+
 	const String cNumistaSection  = L"Numista";
 	const int    cDefaultQuota    = 2000;
 	const String cDateTimeFormat  = L"yyyy-mm-dd hh:nn:ss";
@@ -87,6 +90,10 @@ void TAppConfig::Load()
 	FDbPathInIni = ini->ReadString(cDatabaseSection, cPathKey, L"").Trim();
 	DbPath = FDbPathInIni.IsEmpty() ? DefaultDbPath() : ResolveDbPath(FDbPathInIni);
 
+	FPhotosPathInIni = ini->ReadString(cPhotosSection, cPathKey, L"").Trim();
+	PhotosPath = IncludeTrailingPathDelimiter(FPhotosPathInIni.IsEmpty() ? ExeDir() + cDefaultPhotos
+		: ResolveDbPath(FPhotosPathInIni));
+
 	Language = ini->ReadString(cUiSection, cLanguageKey, L"").Trim().LowerCase();
 	if (Language.IsEmpty())
 		Language = cDefaultLanguage;
@@ -115,6 +122,10 @@ void TAppConfig::Save()
 		ini->DeleteKey(cDatabaseSection, cPathKey);
 	else
 		ini->WriteString(cDatabaseSection, cPathKey, FDbPathInIni);
+
+	// Папка фото в интерфейсе не меняется: заданная вручную пишется как была.
+	if (!FPhotosPathInIni.IsEmpty())
+		ini->WriteString(cPhotosSection, cPathKey, FPhotosPathInIni);
 
 	ini->WriteString(cUiSection, cLanguageKey, Language);
 

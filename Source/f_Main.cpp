@@ -24,6 +24,7 @@
 #include "u_NumistaMatcher.h"
 #include "u_NumistaUploader.h"
 #include "u_NumistaComment.h"
+#include "u_PhotoRepository.h"
 #include "versionConfig.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -260,6 +261,9 @@ void __fastcall TfmMain::actImportExecute(TObject *Sender)
 	const int current = FRepository->ItemCount();
 	if (current > 0)
 		text += nl + nl + Format(Tr(L"Import.Confirm.Replace"), ARRAYOFCONST((current)));
+	const int photos = TPhotoRepository(FDatabase.get()).PhotoCount();
+	if (photos > 0)
+		text += nl + Format(Tr(L"Import.Confirm.Photos"), ARRAYOFCONST((photos)));
 	text += nl + nl + Tr(L"Import.Confirm.Question");
 	if (!Confirm(text, title))
 		return;
@@ -267,11 +271,12 @@ void __fastcall TfmMain::actImportExecute(TObject *Sender)
 	// 3. Копия БД перед заменой непустой коллекции, затем замена в одной транзакции.
 	Screen->Cursor = crHourGlass;
 	int saved = 0;
-	TNumistaKept kept;
+	TImportKept kept;
+	const String stamp = L"before-import-" + FormatDateTime(L"yyyymmdd-hhnnss", Now());
 	try
 	{
 		if (current > 0)
-			FDatabase->Backup(L"before-import-" + FormatDateTime(L"yyyymmdd-hhnnss", Now()));
+			FDatabase->Backup(stamp);
 		saved = FRepository->ReplaceAll(records, &kept);
 		Screen->Cursor = oldCursor;
 	}
@@ -282,6 +287,9 @@ void __fastcall TfmMain::actImportExecute(TObject *Sender)
 		return;
 	}
 
+	// Фото без пары — в Photos\_before-import-<время>\ (восстановить вручную).
+	TPhotoRepository::MoveFiles(kept.LostPhotos, L"_" + stamp);
+
 	LoadItems();
 	std::set<int> coins;
 	for (size_t i = 0; i < FItems.size(); ++i)
@@ -291,6 +299,10 @@ void __fastcall TfmMain::actImportExecute(TObject *Sender)
 	if (kept.Coins + kept.CoinsLost > 0)
 		done += nl + nl + Format(Tr(L"Import.Numista.Kept"), ARRAYOFCONST((kept.Coins, kept.Items))) + nl
 			+ Format(Tr(L"Import.Numista.Lost"), ARRAYOFCONST((kept.CoinsLost, kept.ItemsLost)));
+	// Фото, перенесённые на те же монеты и экземпляры (задача 14).
+	if (kept.Photos > 0 || !kept.LostPhotos.empty())
+		done += nl + nl + Format(Tr(L"Import.Photos.Kept"), ARRAYOFCONST((kept.Photos))) + nl
+			+ Format(Tr(L"Import.Photos.Lost"), ARRAYOFCONST(((int)kept.LostPhotos.size(), L"_" + stamp)));
 	Application->MessageBox(done.c_str(), title.c_str(), MB_OK | MB_ICONINFORMATION);
 }
 //---------------------------------------------------------------------------
