@@ -57,8 +57,8 @@ public:
 	// совпадает знак монетного двора; из нескольких — единственный без комментария
 	// (обычный тираж, а не "BU set" / "Proof"). 0 — не найден или не однозначен.
 	int FindIssue(int ATypeId, const TCoinRecord &ACoin);
-	// Все выпуски типа (getIssues, с кэшем).
-	std::vector<TNumistaIssue> LoadIssues(int ATypeId);
+	// Все выпуски типа (getIssues, с кэшем; ARefresh — мимо кэша, кэш перезаписывается).
+	std::vector<TNumistaIssue> LoadIssues(int ATypeId, bool ARefresh = false);
 	// Адрес getIssues типа (ключ кэша — TNumistaClient::IsCached).
 	static String IssuesPath(int ATypeId);
 

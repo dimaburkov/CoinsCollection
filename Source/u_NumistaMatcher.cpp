@@ -269,10 +269,10 @@ std::vector<TNumistaType> TNumistaMatcher::SearchAll(const TCoinRecord &ACoin, c
 	return QueryTypes(path);
 }
 //---------------------------------------------------------------------------
-std::vector<TNumistaIssue> TNumistaMatcher::LoadIssues(int ATypeId)
+std::vector<TNumistaIssue> TNumistaMatcher::LoadIssues(int ATypeId, bool ARefresh)
 {
 	std::vector<TNumistaIssue> result;
-	std::unique_ptr<TJSONValue> json = FClient.GetCached(IssuesPath(ATypeId));
+	std::unique_ptr<TJSONValue> json = FClient.GetCached(IssuesPath(ATypeId), nullptr, ARefresh);
 	TJSONArray *issues = dynamic_cast<TJSONArray *>(json.get());
 	for (int i = 0; issues && i < issues->Count; ++i)
 	{
