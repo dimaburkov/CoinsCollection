@@ -55,6 +55,13 @@ public:
 	// GET каталога (searchTypes, getIssues) с кэшем ответов в CacheDir()\cache	// (<md5 адреса>.json). Ответ из кэша квоту не тратит; AFromCache — взят из кэша.
 	std::unique_ptr<TJSONValue> GetCached(const String &APath, bool *AFromCache = nullptr);
 
+	// Своя коллекция (OAuth: сначала Authorize).
+	// getCollectedItems — GET /users/{user_id}/collected_items: вся коллекция одним ответом.
+	std::unique_ptr<TJSONValue> GetCollectedItems();
+	// addCollectedItems — POST /users/{user_id}/collected_items, тело — JSON.
+	// Возвращает id добавленного предмета.
+	int AddCollectedItem(const String &AJson);
+
 	// Запросов к API за текущий месяц (по счётчику программы).
 	static int RequestsThisMonth();
 
@@ -62,6 +69,8 @@ private:
 	// GET BaseUrl + APath; AWithToken — добавить Authorization: Bearer.
 	// Не 2xx — ENumistaError с понятным текстом. Возвращает тело ответа.
 	String Get(const String &APath, bool AWithToken);
+	// Общая часть GET / POST: ABody не пустое — POST с JSON.
+	String Send(const String &APath, bool AWithToken, const String &ABody);
 	int    LoadList(const String &AName, const String &APath, const String &AArrayName, bool ARefresh);
 	static void CountRequest();
 	static std::unique_ptr<TJSONValue> ParseJson(const String &AText);

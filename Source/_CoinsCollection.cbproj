@@ -239,6 +239,10 @@
             <DependentOn>f_NumistaIssue.h</DependentOn>
             <BuildOrder>23</BuildOrder>
         </CppCompile>
+        <CppCompile Include="u_NumistaUploader.cpp">
+            <DependentOn>u_NumistaUploader.h</DependentOn>
+            <BuildOrder>24</BuildOrder>
+        </CppCompile>
         <CppCompile Include="u_NumistaMatcher.cpp">
             <DependentOn>u_NumistaMatcher.h</DependentOn>
             <BuildOrder>22</BuildOrder>

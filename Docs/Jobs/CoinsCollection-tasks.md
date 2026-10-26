@@ -1119,40 +1119,62 @@ All (1234)
 
 ### Цель
 
-Добавить экземпляры, связанные с типами Numista, в свою коллекцию на Numista без дублей.
+Добавить отмеченные экземпляры, связанные с типами Numista, в свою коллекцию на Numista без дублей; в списке видно, что уже выгружено.
 
 ### Документация
 
-- User → Add an item in the user collection (`addCollectedItems`, `POST /users/{user_id}/collected_items`; поля тела запроса, шкала `grade`: g, vg, f, vf, xf, au, unc; схема `price`: value + 3-буквенный код ISO 4217)
-- User → Get the items owned by a user (`getCollectedItems`, `GET /users/{user_id}/collected_items`) — проверка дублей
+- User → Add an item in the user collection (`addCollectedItems`, `POST /users/{user_id}/collected_items`; тело — JSON: `type` (обязательно), `issue`, `quantity`, `grade` (g, vg, f, vf, xf, au, unc), `price` {`value`, `currency` — ISO 4217}, `acquisition_date` (YYYY-MM-DD), `private_comment`, `internal_id`; ответ 201 — добавленный предмет с `id`). Требует OAuth, scope `edit_collection`.
+- User → Get the items owned by a user (`getCollectedItems`, `GET /users/{user_id}/collected_items`; вся коллекция одним ответом: `item_count`, `items[]` с `id`, `type`, `issue`, `internal_id`) — проверка дублей. Scope `view_collection`.
 - Для справки (не в этой задаче): `getCollectedItem`, `editCollectedItem`, `deleteCollectedItem` (`/users/{user_id}/collected_items/{item_id}`)
 - Документация: https://en.numista.com/api/doc/index.php · спецификация: https://en.numista.com/api/doc/swagger.yaml
 
 ### Ветка
 
-13-numista-upload от master (после merge задачи 12); по завершении — merge в master. Коммит: «13 - Выгрузка в Numista».
+13-numista-upload от коммита задачи 12a; по завершении — merge в master. Коммит: «13 - Выгрузка в Numista».
+
+### Решения и ограничения
+
+- Один экземпляр — один запрос (API не принимает пачку). В коллекции 2302 экземпляра при квоте 2000 в месяц — выгрузка частями, по отмеченным (как в 12a).
+- Экземпляры одной монеты выгружаются отдельными предметами Numista (у них может быть разное состояние / цена), `quantity` = Quantity экземпляра.
+- Токен коллекции — `Authorize()` из задачи 11 (действующий токен не запрашивается заново).
 
 ### Объём работ
 
-**Схема** — `coin_items.numista_item_id` (добавлено в задаче 12, схема v2).
+**Схема** — `coin_items.numista_item_id` (есть с задачи 12, схема v2); новых миграций нет.
 
-**Выгрузка (Numista → Upload selected / Upload all)**
+**Колонка «в коллекции Numista»** — узкая колонка после N#: ✓ — экземпляр выгружен (есть `numista_item_id`); сортируется. В панели подробностей — строка «In Numista collection: #id предмета».
 
-- `POST /users/{user_id}/collected_items`: `type`, `issue` (если есть), `quantity`, `grade` (наша шкала → g / vg / f / vf / xf / au / unc; P, FR, PRF — без оценки), `price` (`value` = My value, иначе Catalog value; `currency` = UAH), `acquisition_date` (дата покупки), `private_comment` (комментарий), `internal_id` = наш Id экземпляра.
-- Ответ → `numista_item_id`; уже выгруженные (есть numista_item_id) не отправляются повторно.
-- Upload selected — текущий экземпляр; Upload all — все экземпляры с N# и без numista_item_id в текущем узле / поиске, с лимитом запросов и остановкой на 429; итог — выгружено / пропущено / ошибки.
-- Перед первой пакетной выгрузкой — проверка дублей: `GET /users/{id}/collected_items` (1 запрос) и сопоставление по `internal_id`.
+**Команда «Upload checked (N)…»** (контекстное меню и меню Numista; заменяет Upload selected / Upload all)
+
+1. Отмеченные экземпляры делятся на: к выгрузке (есть N#, нет `numista_item_id`); без N# — пропуск; уже выгружены — пропуск.
+2. Больше 10 к выгрузке — подтверждение с числом запросов и счётчиком за месяц (как в 12a); больше, чем осталось квоты за месяц, — отказ с сообщением.
+3. Токен (`Authorize`, 0–1 запрос) → `GET /users/{id}/collected_items` (1 запрос, без файлового кэша — коллекция меняется): экземпляр, чей Id уже есть в `internal_id`, получает `numista_item_id` без повторной отправки (защита от дублей после сбоя). Монета уже есть в коллекции Numista, добавленная не программой (предмет без нашего `internal_id`) того же типа — экземпляр не отправляется (решение пользователя); если у обоих известен выпуск и выпуски разные — это не дубль.
+4. Для остальных — `POST /users/{id}/collected_items`:
+   - `type` = N#, `issue` = выпуск (если определён; серый N# — только тип);
+   - `quantity` = Quantity;
+   - `grade`: G / VG / F / VF / XF / AU / UNC → g / vg / f / vf / xf / au / unc; P, FR, PRF и пусто — без оценки;
+   - `price` = My value в UAH (если > 0; Catalog value не отправляется — это оценка uCoin, а не цена покупки);
+   - `acquisition_date` = Purchase (если указана);
+   - `private_comment` = Comment; Swap (если есть) — дописывается строкой «Swap: …»;
+   - `internal_id` = Id экземпляра в программе.
+5. Ответ 201 → `numista_item_id`, флажок с экземпляра снимается. Остановка на 429 и на ошибке сети; ошибка 400 по одному экземпляру — в итог, продолжаем.
+6. Итог: выгружено / найдено в коллекции по `internal_id` / уже есть в коллекции (добавлены вручную, флажок остаётся) / без N# / уже были выгружены / ошибки (с текстом первой) / не обработано; запросов потрачено.
+
+**Тело запроса POST** — JSON (`application/json`), `TNumistaClient::Post` (новый метод: заголовки ключа и токена, учёт в счётчике запросов, разбор ошибок как у Get).
 
 ### Не входит в задачу
 
-- Изменение и удаление предметов на Numista, обратная синхронизация (из Numista в программу)
+- Изменение и удаление предметов на Numista, обратная синхронизация (из Numista в программу); удаление экземпляра в программе не удаляет его на Numista
+- Фото экземпляров (задачи фото)
+- Коллекции Numista (`collection`), место хранения, для обмена (`for_swap`)
 
 ### Критерий приёмки
 
-- Экземпляр появляется в коллекции на Numista с правильными типом, выпуском, состоянием, количеством и ценой; повторная выгрузка не создаёт дубль.
-- Пакетная выгрузка соблюдает лимит и останавливается на 429.
+- Проект собирается в RAD Studio 13 (Win32, Debug и Release) без ошибок и предупреждений.
+- Тест пользователем на 2–3 экземплярах: появляются в коллекции на Numista с правильными типом, выпуском, состоянием, количеством, ценой, датой и комментарием; в списке — ✓, флажки сняты.
+- Повторная выгрузка тех же экземпляров не отправляет запросов POST; после ручного сброса `numista_item_id` проверка дублей находит их по `internal_id`.
+- Остановка на 429 и проверка квоты перед запуском.
 - Ветка 13-numista-upload смержена в master.
-
 ---
 
 ## Общие решения по фото (задачи 14–16)

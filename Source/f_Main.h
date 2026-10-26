@@ -44,8 +44,7 @@ __published:	// IDE-managed Components
 	TAction *actNumistaCheck;
 	TAction *actCheckAll;
 	TAction *actUncheckAll;
-	TAction *actNumistaUploadSelected;
-	TAction *actNumistaUploadAll;
+	TAction *actNumistaUpload;
 	TAction *actSettings;
 	TAction *actAbout;
 	TMainMenu *MainMenu;
@@ -73,8 +72,7 @@ __published:	// IDE-managed Components
 	TMenuItem *miNumistaIssue;
 	TMenuItem *miNumistaCheck;
 	TMenuItem *miNumistaSep2;
-	TMenuItem *miNumistaUploadSelected;
-	TMenuItem *miNumistaUploadAll;
+	TMenuItem *miNumistaUpload;
 	TMenuItem *miSettings;
 	TMenuItem *miLanguage;
 	TMenuItem *miSettingsDialog;
@@ -111,6 +109,7 @@ __published:	// IDE-managed Components
 	TMenuItem *miPopNumistaCheck;
 	TMenuItem *miPopNumistaFind;
 	TMenuItem *miPopNumistaIssue;
+	TMenuItem *miPopNumistaUpload;
 	TMenuItem *miPopSep1;
 	TMenuItem *miPopCheckAll;
 	TMenuItem *miPopUncheckAll;
@@ -145,12 +144,14 @@ __published:	// IDE-managed Components
 	void __fastcall actNumistaIssueUpdate(TObject *Sender);
 	void __fastcall actNumistaCheckExecute(TObject *Sender);
 	void __fastcall actNumistaCheckUpdate(TObject *Sender);
+	void __fastcall actNumistaUploadExecute(TObject *Sender);
+	void __fastcall actNumistaUploadUpdate(TObject *Sender);
 	void __fastcall actCheckAllExecute(TObject *Sender);
 	void __fastcall actCheckAllUpdate(TObject *Sender);
 private:	// User declarations
 	// Колонки списка (логические; видимые и их порядок — FColumns).
-	// icCheck — флажок отметки, icNumista — N# (задача 12a).
-	enum TItemColumn { icCheck, icNumista, icCountry, icPeriod, icCurrency, icDenomination, icYear, icCondition, icValue, icCount };
+	// icCheck — флажок отметки, icNumista — N# (задача 12a), icUploaded — выгружен в коллекцию Numista (задача 13).
+	enum TItemColumn { icCheck, icNumista, icUploaded, icCountry, icPeriod, icCurrency, icDenomination, icYear, icCondition, icValue, icCount };
 
 	// Строка панели подробностей: подпись и значение (создаются в коде, см. CreateDetailRows).
 	struct TDetailRow
@@ -159,7 +160,7 @@ private:	// User declarations
 		TLabel        *Caption;
 		TLabel        *Value;
 	};
-	enum TDetailRowIndex { drPeriod, drCurrency, drSubject, drNumber, drNumista, drCount };
+	enum TDetailRowIndex { drPeriod, drCurrency, drSubject, drNumber, drNumista, drNumistaItem, drCount };
 
 	// Узел дерева навигации: что он отбирает.
 	enum TNavKind { nkAll, nkContinent, nkNoContinent, nkExtinct, nkCountry };

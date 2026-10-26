@@ -437,3 +437,12 @@ void TCoinRepository::SetCoinNumista(int ACoinId, int ATypeId, int AIssueId)
 	q->ExecSQL();
 }
 //---------------------------------------------------------------------------
+void TCoinRepository::SetItemNumista(int AItemId, int ANumistaItemId)
+{
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
+		L"UPDATE coin_items SET numista_item_id = :numista_item_id WHERE id = :id");
+	SetIntOrNull(q->ParamByName(L"numista_item_id"), ANumistaItemId);
+	q->ParamByName(L"id")->AsInteger = AItemId;
+	q->ExecSQL();
+}
+//---------------------------------------------------------------------------
