@@ -25,7 +25,8 @@ struct TNumistaType
 	String IssuerName;
 	int    MinYear;         // 0 — нет данных
 	int    MaxYear;
-	TNumistaType() : Id(0), MinYear(0), MaxYear(0) {}
+	bool   OtherIssuer;     // эмитент вне ветки страны / периода (задача 15a) — только с подтверждением
+	TNumistaType() : Id(0), MinYear(0), MaxYear(0), OtherIssuer(false) {}
 };
 //---------------------------------------------------------------------------
 class TNumistaMatcher
@@ -47,11 +48,16 @@ public:
 	// false — каталог не KM / Y / C (например, UC#) или его нет в кэше.
 	bool ParseCatalogNumber(const String &AText, int &ACatalogueId, String &ANumber) const;
 
-	// Поиск типов для монеты. AIssuer — код эмитента страны ("" — не известен).
-	// С номером KM / Y / C — issuer + catalogue + number, при пустом ответе — без issuer
-	// (с отбором по стране); иначе — issuer + q=номинал + year. Затем отбор по году
-	// монеты (годы типа min_year–max_year), если под год подходит хотя бы один тип.
-	std::vector<TNumistaType> Search(const TCoinRecord &ACoin, const String &AIssuer);
+	// Поиск типов для монеты. AIssuer — эмитент периода (если запомнен) или страны,
+	// ACountryIssuer — эмитент страны ("" — не известен).
+	// С номером KM / Y / C — issuer + catalogue + number; при пустом ответе — без issuer,
+	// но с date = год монеты (задача 15a): из ветки эмитента страны / периода — как есть,
+	// таких нет — все с OtherIssuer. Без номера — issuer + q=номинал + year.
+	// Затем отбор по году монеты (годы типа min_year–max_year), если под год подходит хотя бы один тип.
+	std::vector<TNumistaType> Search(const TCoinRecord &ACoin, const String &AIssuer,
+		const String &ACountryIssuer = String());
+	// Эмитенты в одной ветке иерархии Numista (общий корень).
+	bool SameBranch(const String &AIssuer1, const String &AIssuer2) const;
 
 	// Выпуск типа для монеты: год совпадает и (если указана разновидность)
 	// совпадает знак монетного двора; из нескольких — единственный без комментария
@@ -76,7 +82,7 @@ private:
 	std::map<String, int> FCatalogues;                      // код каталога (upper) → id
 
 	String RootOf(const String &AIssuer) const;
-	std::vector<TNumistaType> SearchAll(const TCoinRecord &ACoin, const String &AIssuer);
+	std::vector<TNumistaType> SearchAll(const TCoinRecord &ACoin, const String &AIssuer, const String &ACountryIssuer);
 	std::vector<TNumistaType> QueryTypes(const String &APath);
 };
 //---------------------------------------------------------------------------

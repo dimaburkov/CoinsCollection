@@ -238,9 +238,15 @@ std::vector<TNumistaType> TNumistaMatcher::QueryTypes(const String &APath)
 // Отбор по году монеты — по годам типа (min_year–max_year) из уже полученного ответа,
 // без запросов. Под год не подошёл ни один тип (годы не указаны / иное летоисчисление) —
 // показываются все найденные.
-std::vector<TNumistaType> TNumistaMatcher::Search(const TCoinRecord &ACoin, const String &AIssuer)
+bool TNumistaMatcher::SameBranch(const String &AIssuer1, const String &AIssuer2) const
 {
-	const std::vector<TNumistaType> all = SearchAll(ACoin, AIssuer);
+	return !AIssuer1.IsEmpty() && !AIssuer2.IsEmpty() && RootOf(AIssuer1) == RootOf(AIssuer2);
+}
+//---------------------------------------------------------------------------
+std::vector<TNumistaType> TNumistaMatcher::Search(const TCoinRecord &ACoin, const String &AIssuer,
+	const String &ACountryIssuer)
+{
+	const std::vector<TNumistaType> all = SearchAll(ACoin, AIssuer, ACountryIssuer);
 	if (ACoin.Year == 0)
 		return all;
 	std::vector<TNumistaType> result;
@@ -253,7 +259,8 @@ std::vector<TNumistaType> TNumistaMatcher::Search(const TCoinRecord &ACoin, cons
 	return result.empty() ? all : result;
 }
 //---------------------------------------------------------------------------
-std::vector<TNumistaType> TNumistaMatcher::SearchAll(const TCoinRecord &ACoin, const String &AIssuer)
+std::vector<TNumistaType> TNumistaMatcher::SearchAll(const TCoinRecord &ACoin, const String &AIssuer,
+	const String &ACountryIssuer)
 {
 	const String common = L"&lang=en&count=" + IntToStr(cPageSize);
 	int catalogueId = 0;
@@ -269,16 +276,22 @@ std::vector<TNumistaType> TNumistaMatcher::SearchAll(const TCoinRecord &ACoin, c
 		}
 
 		// Эмитенты Numista иерархичны: монета может числиться у соседнего эмитента
-		// той же страны. Без issuer — и отбор по корню иерархии.
-		std::vector<TNumistaType> all = QueryTypes(path);
+		// той же страны. Без issuer — с годом монеты (без него — сотни монет с этим
+		// номером со всего мира, а читается одна страница) и отбор по ветке эмитента.
+		// Из ветки нет — монеты других эмитентов (историческое государство) с пометкой
+		// OtherIssuer: связываются только с подтверждением (задача 15a).
+		std::vector<TNumistaType> all = QueryTypes(path + (ACoin.Year > 0 ? L"&date=" + IntToStr(ACoin.Year) : String()));
 		if (AIssuer.IsEmpty())
 			return all;
-		const String root = RootOf(AIssuer);
 		std::vector<TNumistaType> result;
 		for (const TNumistaType &t : all)
-			if (RootOf(t.IssuerCode) == root)
+			if (SameBranch(t.IssuerCode, AIssuer) || SameBranch(t.IssuerCode, ACountryIssuer))
 				result.push_back(t);
-		return result;
+		if (!result.empty())
+			return result;
+		for (TNumistaType &t : all)
+			t.OtherIssuer = true;
+		return all;
 	}
 
 	// UC# / без номера — по номиналу и году.

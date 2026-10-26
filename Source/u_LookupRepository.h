@@ -40,6 +40,12 @@ public:
 	void UpdateCountry(const TCountry &ACountry);
 	// Код эмитента Numista у страны ("" — не указан).
 	void SetCountryIssuer(int ACountryId, const String &AIssuer);
+	// Эмитент Numista периода (задача 15a): ключ PeriodKey(страна, период) -> код;
+	// только периоды, у которых он задан.
+	std::map<String, String> PeriodIssuers();
+	static String PeriodKey(const String &ACountry, const String &APeriod);
+	// Запомнить эмитент периода монеты (страна и период — по имени, как в записи).
+	void SetPeriodIssuer(const String &ACountry, const String &APeriod, const String &AIssuer);
 
 	// --- Правка справочников (форма Reference) ---
 	// Число экземпляров коллекции: id записи справочника -> экземпляров.
