@@ -44,6 +44,8 @@ public:
 
 	// Связь монеты с типом и выпуском Numista (0 — нет).
 	void SetCoinNumista(int ACoinId, int ATypeId, int AIssueId);
+	// id предмета в коллекции Numista у экземпляра (0 — не выгружен).
+	void SetItemNumista(int AItemId, int ANumistaItemId);
 
 	TLookupRepository &Lookups() { return FLookups; }
 

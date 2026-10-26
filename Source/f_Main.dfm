@@ -121,7 +121,7 @@ object fmMain: TfmMain
       Width = 856
       Height = 425
       Align = alClient
-      ColCount = 9
+      ColCount = 10
       DefaultRowHeight = 18
       FixedCols = 0
       RowCount = 2
@@ -137,6 +137,7 @@ object fmMain: TfmMain
       ColWidths = (
         22
         60
+        24
         130
         160
         120
@@ -325,6 +326,9 @@ object fmMain: TfmMain
     object miPopNumistaIssue: TMenuItem
       Action = actNumistaIssue
     end
+    object miPopNumistaUpload: TMenuItem
+      Action = actNumistaUpload
+    end
     object miPopSep1: TMenuItem
       Caption = '-'
     end
@@ -435,15 +439,11 @@ object fmMain: TfmMain
       OnExecute = actCheckAllExecute
       OnUpdate = actCheckAllUpdate
     end
-    object actNumistaUploadSelected: TAction
+    object actNumistaUpload: TAction
       Category = 'Numista'
-      Caption = 'Upload &selected'
-      Enabled = False
-    end
-    object actNumistaUploadAll: TAction
-      Category = 'Numista'
-      Caption = 'Upload &all'
-      Enabled = False
+      Caption = 'U&pload checked (0)...'
+      OnExecute = actNumistaUploadExecute
+      OnUpdate = actNumistaUploadUpdate
     end
     object actSettings: TAction
       Category = 'Settings'
@@ -532,11 +532,8 @@ object fmMain: TfmMain
       object miNumistaSep2: TMenuItem
         Caption = '-'
       end
-      object miNumistaUploadSelected: TMenuItem
-        Action = actNumistaUploadSelected
-      end
-      object miNumistaUploadAll: TMenuItem
-        Action = actNumistaUploadAll
+      object miNumistaUpload: TMenuItem
+        Action = actNumistaUpload
       end
     end
     object miSettings: TMenuItem

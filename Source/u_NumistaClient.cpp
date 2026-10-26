@@ -81,29 +81,44 @@ std::unique_ptr<TJSONValue> TNumistaClient::ParseJson(const String &AText)
 //---------------------------------------------------------------------------
 String TNumistaClient::Get(const String &APath, bool AWithToken)
 {
+	return Send(APath, AWithToken, String());
+}
+//---------------------------------------------------------------------------
+String TNumistaClient::Send(const String &APath, bool AWithToken, const String &ABody)
+{
 	const TAppConfig &config = AppConfig();
 	if (config.NumistaApiKey.IsEmpty())
 		throw ENumistaError(0, Tr(L"Numista.Error.NoKey"));
 	if (RequestBudget >= 0 && RequestsMade >= RequestBudget)
 		throw ENumistaError(BudgetExhausted, Tr(L"Numista.Error.Budget"));
 
+	const bool post = !ABody.IsEmpty();
 	TNetHeaders headers;
-	headers.Length = AWithToken ? 2 : 1;
-	headers[0] = TNameValuePair(L"Numista-API-Key", config.NumistaApiKey);
+	headers.Length = 1 + (AWithToken ? 1 : 0);
+	int h = 0;
+	headers[h++] = TNameValuePair(L"Numista-API-Key", config.NumistaApiKey);
 	if (AWithToken)
-		headers[1] = TNameValuePair(L"Authorization", L"Bearer " + config.NumistaToken);
+		headers[h++] = TNameValuePair(L"Authorization", L"Bearer " + config.NumistaToken);
 
 	std::unique_ptr<THTTPClient> http(THTTPClient::Create());
 	http->ConnectionTimeout = cConnectTimeoutMs;
 	http->ResponseTimeout   = cResponseTimeoutMs;
 	http->Accept            = L"application/json";
+	if (post)
+		http->ContentType = L"application/json";
 
 	CountRequest();	// запрос уходит — он учитывается в квоте, даже если вернётся ошибка
 	++RequestsMade;
 	_di_IHTTPResponse response;
 	try
 	{
-		response = http->Get(String(BaseUrl) + APath, nullptr, headers);
+		if (post)
+		{
+			std::unique_ptr<TStringStream> body(new TStringStream(ABody, TEncoding::UTF8, false));
+			response = http->Post(String(BaseUrl) + APath, body.get(), nullptr, headers);
+		}
+		else
+			response = http->Get(String(BaseUrl) + APath, nullptr, headers);
 	}
 	catch (Exception &e)
 	{
@@ -231,5 +246,24 @@ std::unique_ptr<TJSONValue> TNumistaClient::GetCached(const String &APath, bool 
 	if (AFromCache)
 		*AFromCache = false;
 	return json;
+}
+//---------------------------------------------------------------------------
+std::unique_ptr<TJSONValue> TNumistaClient::GetCollectedItems()
+{
+	const String body = Get(L"/users/" + IntToStr(AppConfig().NumistaUserId) + L"/collected_items", true);
+	std::unique_ptr<TJSONValue> json = ParseJson(body);
+	if (!dynamic_cast<TJSONArray *>(json->FindValue(L"items")))
+		throw ENumistaError(0, Tr(L"Numista.Error.Json"));
+	return json;
+}
+//---------------------------------------------------------------------------
+int TNumistaClient::AddCollectedItem(const String &AJson)
+{
+	const String body = Send(L"/users/" + IntToStr(AppConfig().NumistaUserId) + L"/collected_items", true, AJson);
+	std::unique_ptr<TJSONValue> json = ParseJson(body);
+	const int id = StrToIntDef(JsonString(json.get(), L"id"), 0);
+	if (id == 0)
+		throw ENumistaError(0, Tr(L"Numista.Error.Json"));
+	return id;
 }
 //---------------------------------------------------------------------------
