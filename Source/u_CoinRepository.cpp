@@ -372,7 +372,7 @@ namespace
 	// Связи монеты до импорта (задачи 13b, 14): Numista и фото. Значения — как в БД (NULL — Null()).
 	struct TOldPhoto
 	{
-		Variant Side, FileName, Source, AddedAt;
+		Variant Side, FileName, Source, AddedAt, Copyright;
 	};
 	struct TOldItem
 	{
@@ -404,6 +404,7 @@ namespace
 		photo.FileName = D->FieldByName(L"file_name")->Value;
 		photo.Source   = D->FieldByName(L"source")->Value;
 		photo.AddedAt  = D->FieldByName(L"added_at")->Value;
+		photo.Copyright = D->FieldByName(L"copyright")->Value;
 		return photo;
 	}
 	//-----------------------------------------------------------------------
@@ -459,7 +460,7 @@ namespace
 		}
 		q->Close();
 
-		q->SQL->Text = L"SELECT id_coin, id_item, side, file_name, source, added_at FROM coin_photos ORDER BY id";
+		q->SQL->Text = L"SELECT id_coin, id_item, side, file_name, source, added_at, copyright FROM coin_photos ORDER BY id";
 		for (q->Open(); !q->Eof; q->Next())
 		{
 			if (!q->FieldByName(L"id_coin")->IsNull)
@@ -485,6 +486,7 @@ namespace
 			SetVariant(APhotoInsert->ParamByName(L"file_name"), ftWideString, APhotos[i].FileName);
 			SetVariant(APhotoInsert->ParamByName(L"source"),    ftWideString, APhotos[i].Source);
 			SetVariant(APhotoInsert->ParamByName(L"added_at"),  ftWideString, APhotos[i].AddedAt);
+			SetVariant(APhotoInsert->ParamByName(L"copyright"), ftWideString, APhotos[i].Copyright);
 			APhotoInsert->ExecSQL();
 		}
 		return (int)APhotos.size();
@@ -502,7 +504,8 @@ namespace
 	void RestoreLinks(TDatabase *ADatabase, const std::map<String, TOldCoin> &AOldCoins,
 		const std::map<String, int> &ANewCoins, TImportKept &AKept)
 	{
-		const wchar_t *const photoValues = L" side, file_name, source, added_at) VALUES (:owner, :side, :file_name, :source, :added_at)";
+		const wchar_t *const photoValues = L" side, file_name, source, added_at, copyright)"
+			L" VALUES (:owner, :side, :file_name, :source, :added_at, :copyright)";
 		std::unique_ptr<TFDQuery> updateCoin = NewQuery(ADatabase,
 			L"UPDATE coins SET numista_type_id = :type_id, numista_issue_id = :issue_id,"
 			L"       numista_rarity = :rarity WHERE id = :id");
@@ -756,10 +759,12 @@ void TCoinRepository::SaveNumistaType(const TNumistaTypeInfo &AType)
 	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
 		L"INSERT OR REPLACE INTO numista_types (id, title, object_type, min_year, max_year, composition,"
 		L"       technique, weight, size, size2, thickness, shape, is_demonetized, demonetization_date,"
-		L"       rulers, series, commemorated_topic, mints, updated_at)"
+		L"       rulers, series, commemorated_topic, mints, updated_at,"
+		L"       obverse_picture, reverse_picture, obverse_copyright, reverse_copyright, pictures_known)"
 		L" VALUES (:id, :title, :object_type, :min_year, :max_year, :composition,"
 		L"       :technique, :weight, :size, :size2, :thickness, :shape, :is_demonetized, :demonetization_date,"
-		L"       :rulers, :series, :commemorated_topic, :mints, :updated_at)");
+		L"       :rulers, :series, :commemorated_topic, :mints, :updated_at,"
+		L"       :obverse_picture, :reverse_picture, :obverse_copyright, :reverse_copyright, :pictures_known)");
 	q->ParamByName(L"id")->AsInteger = AType.Id;
 	SetText       (q->ParamByName(L"title"),               AType.Title);
 	SetText       (q->ParamByName(L"object_type"),         AType.ObjectType);
@@ -784,6 +789,11 @@ void TCoinRepository::SaveNumistaType(const TNumistaTypeInfo &AType)
 	SetText       (q->ParamByName(L"commemorated_topic"),  AType.CommemoratedTopic);
 	SetText       (q->ParamByName(L"mints"),               AType.Mints);
 	q->ParamByName(L"updated_at")->AsWideString = DateToDb(Date());
+	SetText       (q->ParamByName(L"obverse_picture"),     AType.Picture[0]);
+	SetText       (q->ParamByName(L"reverse_picture"),     AType.Picture[1]);
+	SetText       (q->ParamByName(L"obverse_copyright"),   AType.PictureCopyright[0]);
+	SetText       (q->ParamByName(L"reverse_copyright"),   AType.PictureCopyright[1]);
+	q->ParamByName(L"pictures_known")->AsInteger = AType.PicturesKnown ? 1 : 0;
 	q->ExecSQL();
 }
 //---------------------------------------------------------------------------
@@ -814,6 +824,11 @@ bool TCoinRepository::LoadNumistaType(int ATypeId, TNumistaTypeInfo &AType)
 	AType.Series             = FieldText (D, L"series");
 	AType.CommemoratedTopic  = FieldText (D, L"commemorated_topic");
 	AType.Mints              = FieldText (D, L"mints");
+	AType.Picture[0]          = FieldText(D, L"obverse_picture");
+	AType.Picture[1]          = FieldText(D, L"reverse_picture");
+	AType.PictureCopyright[0] = FieldText(D, L"obverse_copyright");
+	AType.PictureCopyright[1] = FieldText(D, L"reverse_copyright");
+	AType.PicturesKnown       = FieldInt (D, L"pictures_known") != 0;
 	return true;
 }
 //---------------------------------------------------------------------------

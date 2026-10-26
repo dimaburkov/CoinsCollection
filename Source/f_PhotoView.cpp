@@ -24,6 +24,7 @@ __fastcall TfmPhotoView::TfmPhotoView(TComponent *AOwner)
 	  FFit(nullptr),
 	  FHint(nullptr),
 	  FView(nullptr),
+	  FCopyright(nullptr),
 	  FSide(psObverse),
 	  FZoom(0.0),
 	  FPanX(0.0),
@@ -72,6 +73,16 @@ __fastcall TfmPhotoView::TfmPhotoView(TComponent *AOwner)
 	FHint->Caption    = Tr(L"PhotoView.Hint");
 	FHint->Font->Color = clGrayText;
 
+	FCopyright = new TLabel(this);
+	FCopyright->Parent      = this;
+	FCopyright->Align       = alBottom;
+	FCopyright->Alignment   = taCenter;
+	FCopyright->AutoSize    = false;
+	FCopyright->Height      = 20;
+	FCopyright->Layout      = tlCenter;
+	FCopyright->ShowAccelChar = false;
+	FCopyright->Font->Color = clGrayText;
+
 	FView = new TPaintBox(this);
 	FView->Parent      = this;
 	FView->Align       = alClient;
@@ -84,12 +95,14 @@ __fastcall TfmPhotoView::TfmPhotoView(TComponent *AOwner)
 }
 //---------------------------------------------------------------------------
 void TfmPhotoView::Execute(TComponent *AOwner, const String &ATitle, const String &AObverseFile,
-	const String &AReverseFile, TPhotoSide ASide)
+	const String &AReverseFile, TPhotoSide ASide, const String &AObverseCopyright, const String &AReverseCopyright)
 {
 	std::unique_ptr<TfmPhotoView> form(new TfmPhotoView(AOwner));
 	form->Caption  = ATitle;
 	form->FFiles[psObverse] = AObverseFile;
 	form->FFiles[psReverse] = AReverseFile;
+	form->FCopyrights[psObverse] = AObverseCopyright;
+	form->FCopyrights[psReverse] = AReverseCopyright;
 	form->FObverse->Enabled = !AObverseFile.IsEmpty();
 	form->FReverse->Enabled = !AReverseFile.IsEmpty();
 	form->ShowSide(form->FFiles[ASide].IsEmpty() ? (TPhotoSide)(1 - ASide) : ASide);
@@ -102,6 +115,9 @@ void TfmPhotoView::ShowSide(TPhotoSide ASide)
 {
 	FSide = ASide;
 	(ASide == psObverse ? FObverse : FReverse)->Down = true;
+	FCopyright->Caption = FCopyrights[ASide].IsEmpty() ? String()
+		: Format(Tr(L"PhotoView.Copyright"), ARRAYOFCONST((FCopyrights[ASide])));
+	FCopyright->Visible = !FCopyrights[ASide].IsEmpty();
 	FBitmap.reset();
 	try
 	{

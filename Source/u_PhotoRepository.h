@@ -37,7 +37,9 @@ public:
 	// Полный путь показываемого фото: экземпляра, иначе типа; "" — нет.
 	// Строка есть, а файла на диске нет — считается «нет фото».
 	// AIsTypePhoto — показано фото типа.
-	String PhotoFile(int AItemId, int ACoinId, TPhotoSide ASide, bool *AIsTypePhoto = nullptr);
+	// ACopyright — автор показанного фото ("" — свой снимок).
+	String PhotoFile(int AItemId, int ACoinId, TPhotoSide ASide, bool *AIsTypePhoto = nullptr,
+		String *ACopyright = nullptr);
 
 	// Число фото в коллекции.
 	int PhotoCount();
@@ -51,10 +53,11 @@ public:
 private:
 	TDatabase *FDatabase;	// не владеет
 
-	void   SetPhoto(bool AItem, int AOwnerId, TPhotoSide ASide, TGraphic *AGraphic);
+	void   SetPhoto(bool AItem, int AOwnerId, TPhotoSide ASide, TGraphic *AGraphic,
+		const String &ASource = L"file", const String &ACopyright = String());
 	void   SetPhotoFromFile(bool AItem, int AOwnerId, TPhotoSide ASide, const String &ASourceFile);
 	void   RemovePhoto(bool AItem, int AOwnerId, TPhotoSide ASide);
-	String FileOf(bool AItem, int AOwnerId, TPhotoSide ASide);
+	String FileOf(bool AItem, int AOwnerId, TPhotoSide ASide, String *ACopyright = nullptr);
 	static void SaveScaledJpeg(TGraphic *AGraphic, const String &AFileName);
 };
 //---------------------------------------------------------------------------

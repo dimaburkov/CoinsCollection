@@ -96,7 +96,8 @@ void TPhotoRepository::SetPhotoFromFile(bool AItem, int AOwnerId, TPhotoSide ASi
 // Новый файл — уникальное имя (<item|coin>_<id>_<side>_<время>.jpg): после импорта Id
 // меняются, перенесённые фото сохраняют прежние имена — совпадений не будет.
 // Ошибка записи в БД — новый файл удаляется; после фиксации — удаляется старый.
-void TPhotoRepository::SetPhoto(bool AItem, int AOwnerId, TPhotoSide ASide, TGraphic *AGraphic)
+void TPhotoRepository::SetPhoto(bool AItem, int AOwnerId, TPhotoSide ASide, TGraphic *AGraphic,
+	const String &ASource, const String &ACopyright)
 {
 	if (!AGraphic || AGraphic->Empty || AGraphic->Width <= 0 || AGraphic->Height <= 0)
 		throw Exception(Tr(L"Photo.Error.Empty"));
@@ -121,12 +122,19 @@ void TPhotoRepository::SetPhoto(bool AItem, int AOwnerId, TPhotoSide ASide, TGra
 		q->ParamByName(L"side")->AsWideString = SideName(ASide);
 		q->ExecSQL();
 
-		q->SQL->Text = L"INSERT INTO coin_photos (" + owner + L", side, file_name, source, added_at)"
-		               L" VALUES (:owner, :side, :file_name, 'file', :added_at)";
+		q->SQL->Text = L"INSERT INTO coin_photos (" + owner + L", side, file_name, source, added_at, copyright)"
+		               L" VALUES (:owner, :side, :file_name, :source, :added_at, :copyright)";
 		q->ParamByName(L"owner")->AsInteger        = AOwnerId;
 		q->ParamByName(L"side")->AsWideString      = SideName(ASide);
 		q->ParamByName(L"file_name")->AsWideString = name;
+		q->ParamByName(L"source")->AsWideString    = ASource;
 		q->ParamByName(L"added_at")->AsWideString  = FormatDateTime(L"yyyy-mm-dd hh:nn:ss", Now());
+		TFDParam *copyright = q->ParamByName(L"copyright");
+		copyright->DataType = ftWideString;
+		if (ACopyright.Trim().IsEmpty())
+			copyright->Clear();
+		else
+			copyright->AsWideString = ACopyright.Trim();
 		q->ExecSQL();
 		tx.Commit();
 	}
@@ -154,34 +162,46 @@ void TPhotoRepository::RemovePhoto(bool AItem, int AOwnerId, TPhotoSide ASide)
 	DeleteFile(PhotosDir() + old);
 }
 //---------------------------------------------------------------------------
-String TPhotoRepository::FileOf(bool AItem, int AOwnerId, TPhotoSide ASide)
+String TPhotoRepository::FileOf(bool AItem, int AOwnerId, TPhotoSide ASide, String *ACopyright)
 {
 	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
-		L"SELECT file_name FROM coin_photos WHERE " + OwnerColumn(AItem) + L" = :owner AND side = :side");
+		L"SELECT file_name, copyright FROM coin_photos WHERE " + OwnerColumn(AItem) + L" = :owner AND side = :side");
 	q->ParamByName(L"owner")->AsInteger   = AOwnerId;
 	q->ParamByName(L"side")->AsWideString = SideName(ASide);
 	q->Open();
+	if (ACopyright)
+		*ACopyright = q->Eof ? String() : q->Fields->Fields[1]->AsString;
 	return q->Eof ? String() : q->Fields->Fields[0]->AsString;
 }
 //---------------------------------------------------------------------------
-String TPhotoRepository::PhotoFile(int AItemId, int ACoinId, TPhotoSide ASide, bool *AIsTypePhoto)
+String TPhotoRepository::PhotoFile(int AItemId, int ACoinId, TPhotoSide ASide, bool *AIsTypePhoto,
+	String *ACopyright)
 {
 	if (AIsTypePhoto)
 		*AIsTypePhoto = false;
+	if (ACopyright)
+		*ACopyright = L"";
 	const String dir = PhotosDir();
+	String copyright;
 	if (AItemId != 0)
 	{
-		const String name = FileOf(true, AItemId, ASide);
+		const String name = FileOf(true, AItemId, ASide, &copyright);
 		if (!name.IsEmpty() && FileExists(dir + name))
+		{
+			if (ACopyright)
+				*ACopyright = copyright;
 			return dir + name;
+		}
 	}
 	if (ACoinId != 0)
 	{
-		const String name = FileOf(false, ACoinId, ASide);
+		const String name = FileOf(false, ACoinId, ASide, &copyright);
 		if (!name.IsEmpty() && FileExists(dir + name))
 		{
 			if (AIsTypePhoto)
 				*AIsTypePhoto = true;
+			if (ACopyright)
+				*ACopyright = copyright;
 			return dir + name;
 		}
 	}
