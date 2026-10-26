@@ -232,6 +232,8 @@ private:	// User declarations
 	int                              FLanguageToken;
 	int                              FMouseDownRow;    // строка сетки последнего нажатия мыши (для двойного клика)
 	int                              FDetailsTypeId;   // N# монеты в панели подробностей (0 — нет)
+	String                           FDetailPhotos[2]; // фото в панели (полный путь; "" — нет), индекс — TPhotoSide
+	String                           FDetailPhotoTitle; // заголовок окна просмотра
 	std::set<int>                    FChecked;         // отмеченные экземпляры (coin_items.id), только в памяти
 
 	void BuildLanguageMenu();
@@ -281,6 +283,8 @@ private:	// User declarations
 	std::vector<TCoinRecord> CheckedRecords() const;
 	void UpdateNumistaMenuTitles();
 	void ShowTypeDetails(int ATypeId);
+	void ShowDetailPhotos(const TCoinRecord *ARecord);
+	void __fastcall DetailPhotoDblClick(TObject *Sender);
 	void UploadItems(const std::vector<TCoinRecord> &ACandidates);
 	void ReadRarity(const std::set<int> &ACoinIds, const String &ACaption);
 	String NumistaRequestsText(int ASent) const;
