@@ -4,7 +4,7 @@ object fmCoinEdit: TfmCoinEdit
   BorderStyle = bsDialog
   Caption = 'Coin'
   ClientHeight = 588
-  ClientWidth = 520
+  ClientWidth = 720
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -418,24 +418,184 @@ object fmCoinEdit: TfmCoinEdit
       TabOrder = 14
     end
   end
+  object gbPhotos: TGroupBox
+    Left = 520
+    Top = 26
+    Width = 192
+    Height = 520
+    Caption = 'Photo'
+    TabOrder = 2
+    object lblObverse: TLabel
+      Left = 12
+      Top = 18
+      Width = 168
+      Height = 13
+      AutoSize = False
+      Caption = 'Obverse'
+    end
+    object pnlObverse: TPanel
+      Left = 12
+      Top = 34
+      Width = 168
+      Height = 168
+      BevelOuter = bvLowered
+      Color = clWindow
+      ParentBackground = False
+      TabOrder = 0
+      object imgObverse: TImage
+        Left = 1
+        Top = 1
+        Width = 166
+        Height = 166
+        Align = alClient
+        Center = True
+        Proportional = True
+        Stretch = True
+      end
+    end
+    object lblObverseNote: TLabel
+      Left = 12
+      Top = 204
+      Width = 168
+      Height = 13
+      AutoSize = False
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clGrayText
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = []
+      ParentFont = False
+    end
+    object btnObverseLoad: TButton
+      Tag = 0
+      Left = 12
+      Top = 220
+      Width = 54
+      Height = 23
+      Caption = 'Load...'
+      TabOrder = 1
+      OnClick = PhotoLoadClick
+    end
+    object btnObversePaste: TButton
+      Tag = 0
+      Left = 69
+      Top = 220
+      Width = 54
+      Height = 23
+      Caption = 'Paste'
+      TabOrder = 2
+      OnClick = PhotoPasteClick
+    end
+    object btnObverseRemove: TButton
+      Tag = 0
+      Left = 126
+      Top = 220
+      Width = 54
+      Height = 23
+      Caption = 'Remove'
+      TabOrder = 3
+      OnClick = PhotoRemoveClick
+    end
+    object lblReverse: TLabel
+      Left = 12
+      Top = 250
+      Width = 168
+      Height = 13
+      AutoSize = False
+      Caption = 'Reverse'
+    end
+    object pnlReverse: TPanel
+      Left = 12
+      Top = 266
+      Width = 168
+      Height = 168
+      BevelOuter = bvLowered
+      Color = clWindow
+      ParentBackground = False
+      TabOrder = 4
+      object imgReverse: TImage
+        Left = 1
+        Top = 1
+        Width = 166
+        Height = 166
+        Align = alClient
+        Center = True
+        Proportional = True
+        Stretch = True
+      end
+    end
+    object lblReverseNote: TLabel
+      Left = 12
+      Top = 436
+      Width = 168
+      Height = 13
+      AutoSize = False
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clGrayText
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = []
+      ParentFont = False
+    end
+    object btnReverseLoad: TButton
+      Tag = 1
+      Left = 12
+      Top = 452
+      Width = 54
+      Height = 23
+      Caption = 'Load...'
+      TabOrder = 5
+      OnClick = PhotoLoadClick
+    end
+    object btnReversePaste: TButton
+      Tag = 1
+      Left = 69
+      Top = 452
+      Width = 54
+      Height = 23
+      Caption = 'Paste'
+      TabOrder = 6
+      OnClick = PhotoPasteClick
+    end
+    object btnReverseRemove: TButton
+      Tag = 1
+      Left = 126
+      Top = 452
+      Width = 54
+      Height = 23
+      Caption = 'Remove'
+      TabOrder = 7
+      OnClick = PhotoRemoveClick
+    end
+    object chkTypePhoto: TCheckBox
+      Left = 12
+      Top = 478
+      Width = 172
+      Height = 34
+      Caption = 'Save as coin type photo (for all items of this coin)'
+      TabOrder = 8
+      WordWrap = True
+      OnClick = chkTypePhotoClick
+    end
+  end
   object btnOK: TButton
-    Left = 356
+    Left = 556
     Top = 555
     Width = 75
     Height = 25
     Caption = 'OK'
     Default = True
-    TabOrder = 2
+    TabOrder = 3
     OnClick = btnOKClick
   end
   object btnCancel: TButton
-    Left = 437
+    Left = 637
     Top = 555
     Width = 75
     Height = 25
     Cancel = True
     Caption = 'Cancel'
     ModalResult = 2
-    TabOrder = 3
+    TabOrder = 4
   end
 end
