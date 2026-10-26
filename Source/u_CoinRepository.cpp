@@ -20,7 +20,8 @@ namespace
 		L"       i.my_value_uah, i.purchase_date, i.published_date, i.swap_info, i.color,"
 		L"       i.grading_company, i.grading_number, i.grade, i.label_text, i.comment,"
 		L"       c.numista_type_id, c.numista_issue_id, i.numista_item_id, c.numista_rarity,"
-		L"       ni.id AS issue_loaded, ni.mintage, ni.comment AS issue_comment"
+		L"       ni.id AS issue_loaded, ni.mintage, ni.comment AS issue_comment,"
+		L"       nt.id AS type_loaded, nt.composition"
 		L"  FROM coin_items i"
 		L"  JOIN coins c       ON c.id  = i.id_coin"
 		L"  JOIN periods p     ON p.id  = c.id_period"
@@ -28,6 +29,7 @@ namespace
 		L"  LEFT JOIN currencies cu ON cu.id = c.id_currency"
 		L"  LEFT JOIN conditions cd ON cd.id = i.id_condition"
 		L"  LEFT JOIN numista_issues ni ON ni.id = c.numista_issue_id"
+		L"  LEFT JOIN numista_types nt  ON nt.id = c.numista_type_id"
 		L" ORDER BY co.name, c.denomination, c.year, i.id";
 	//-----------------------------------------------------------------------
 	std::unique_ptr<TFDQuery> NewQuery(TDatabase *ADatabase, const String &ASql)
@@ -143,6 +145,8 @@ namespace
 		TField *mintage = D->FieldByName(L"mintage");
 		r.NumistaMintage      = mintage->IsNull ? -1 : mintage->AsLargeInt;
 		r.NumistaIssueComment = FieldText(D, L"issue_comment");
+		r.NumistaTypeLoaded   = !D->FieldByName(L"type_loaded")->IsNull;
+		r.NumistaComposition  = FieldText(D, L"composition");
 		return r;
 	}
 }
@@ -645,6 +649,73 @@ int TCoinRepository::SaveNumistaIssues(int ATypeId, const std::vector<TNumistaIs
 	}
 	tx.Commit();
 	return (int)AIssues.size();
+}
+//---------------------------------------------------------------------------
+// Характеристики типа (ответ getType): вставка или обновление по id.
+void TCoinRepository::SaveNumistaType(const TNumistaTypeInfo &AType)
+{
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
+		L"INSERT OR REPLACE INTO numista_types (id, title, object_type, min_year, max_year, composition,"
+		L"       technique, weight, size, size2, thickness, shape, is_demonetized, demonetization_date,"
+		L"       rulers, series, commemorated_topic, mints, updated_at)"
+		L" VALUES (:id, :title, :object_type, :min_year, :max_year, :composition,"
+		L"       :technique, :weight, :size, :size2, :thickness, :shape, :is_demonetized, :demonetization_date,"
+		L"       :rulers, :series, :commemorated_topic, :mints, :updated_at)");
+	q->ParamByName(L"id")->AsInteger = AType.Id;
+	SetText       (q->ParamByName(L"title"),               AType.Title);
+	SetText       (q->ParamByName(L"object_type"),         AType.ObjectType);
+	SetIntOrNull  (q->ParamByName(L"min_year"),            AType.MinYear);
+	SetIntOrNull  (q->ParamByName(L"max_year"),            AType.MaxYear);
+	SetText       (q->ParamByName(L"composition"),         AType.Composition);
+	SetText       (q->ParamByName(L"technique"),           AType.Technique);
+	SetFloatOrNull(q->ParamByName(L"weight"),              AType.Weight);
+	SetFloatOrNull(q->ParamByName(L"size"),                AType.Size);
+	SetFloatOrNull(q->ParamByName(L"size2"),               AType.Size2);
+	SetFloatOrNull(q->ParamByName(L"thickness"),           AType.Thickness);
+	SetText       (q->ParamByName(L"shape"),               AType.Shape);
+	TFDParam *demonetized = q->ParamByName(L"is_demonetized");
+	demonetized->DataType = ftInteger;
+	if (AType.Demonetized < 0)
+		demonetized->Clear();
+	else
+		demonetized->AsInteger = AType.Demonetized;
+	SetText       (q->ParamByName(L"demonetization_date"), AType.DemonetizationDate);
+	SetText       (q->ParamByName(L"rulers"),              AType.Rulers);
+	SetText       (q->ParamByName(L"series"),              AType.Series);
+	SetText       (q->ParamByName(L"commemorated_topic"),  AType.CommemoratedTopic);
+	SetText       (q->ParamByName(L"mints"),               AType.Mints);
+	q->ParamByName(L"updated_at")->AsWideString = DateToDb(Date());
+	q->ExecSQL();
+}
+//---------------------------------------------------------------------------
+bool TCoinRepository::LoadNumistaType(int ATypeId, TNumistaTypeInfo &AType)
+{
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, L"SELECT * FROM numista_types WHERE id = :id");
+	q->ParamByName(L"id")->AsInteger = ATypeId;
+	q->Open();
+	if (q->Eof)
+		return false;
+	TDataSet *D = q.get();
+	AType = TNumistaTypeInfo();
+	AType.Id                 = ATypeId;
+	AType.Title              = FieldText (D, L"title");
+	AType.ObjectType         = FieldText (D, L"object_type");
+	AType.MinYear            = FieldInt  (D, L"min_year");
+	AType.MaxYear            = FieldInt  (D, L"max_year");
+	AType.Composition        = FieldText (D, L"composition");
+	AType.Technique          = FieldText (D, L"technique");
+	AType.Weight             = FieldFloat(D, L"weight");
+	AType.Size               = FieldFloat(D, L"size");
+	AType.Size2              = FieldFloat(D, L"size2");
+	AType.Thickness          = FieldFloat(D, L"thickness");
+	AType.Shape              = FieldText (D, L"shape");
+	AType.Demonetized        = FieldInt  (D, L"is_demonetized", -1);
+	AType.DemonetizationDate = FieldText (D, L"demonetization_date");
+	AType.Rulers             = FieldText (D, L"rulers");
+	AType.Series             = FieldText (D, L"series");
+	AType.CommemoratedTopic  = FieldText (D, L"commemorated_topic");
+	AType.Mints              = FieldText (D, L"mints");
+	return true;
 }
 //---------------------------------------------------------------------------
 // Индекс редкости монеты (-1 — очистить; 0 — допустимое значение).
