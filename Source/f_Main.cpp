@@ -237,11 +237,12 @@ void __fastcall TfmMain::actImportExecute(TObject *Sender)
 	// 3. Копия БД перед заменой непустой коллекции, затем замена в одной транзакции.
 	Screen->Cursor = crHourGlass;
 	int saved = 0;
+	TNumistaKept kept;
 	try
 	{
 		if (current > 0)
 			FDatabase->Backup(L"before-import-" + FormatDateTime(L"yyyymmdd-hhnnss", Now()));
-		saved = FRepository->ReplaceAll(records);
+		saved = FRepository->ReplaceAll(records, &kept);
 		Screen->Cursor = oldCursor;
 	}
 	catch (Exception &e)
@@ -255,8 +256,12 @@ void __fastcall TfmMain::actImportExecute(TObject *Sender)
 	std::set<int> coins;
 	for (size_t i = 0; i < FItems.size(); ++i)
 		coins.insert(FItems[i].CoinId);
-	Application->MessageBox(Format(Tr(L"Import.Done"),
-		ARRAYOFCONST((saved, (int)coins.size(), (int)errors.size()))).c_str(), title.c_str(), MB_OK | MB_ICONINFORMATION);
+	String done = Format(Tr(L"Import.Done"), ARRAYOFCONST((saved, (int)coins.size(), (int)errors.size())));
+	// Связи Numista, перенесённые на новые монеты (задача 13b).
+	if (kept.Coins + kept.CoinsLost > 0)
+		done += nl + nl + Format(Tr(L"Import.Numista.Kept"), ARRAYOFCONST((kept.Coins, kept.Items))) + nl
+			+ Format(Tr(L"Import.Numista.Lost"), ARRAYOFCONST((kept.CoinsLost, kept.ItemsLost)));
+	Application->MessageBox(done.c_str(), title.c_str(), MB_OK | MB_ICONINFORMATION);
 }
 //---------------------------------------------------------------------------
 bool TfmMain::Confirm(const String &AText, const String &ACaption)
@@ -667,12 +672,10 @@ void __fastcall TfmMain::actNumistaUploadExecute(TObject *Sender)
 	const String caption = Tr(L"Main.Numista.UploadTitle");
 
 	std::vector<TCoinRecord> items;
-	std::vector<int> allIds;
 	int noType = 0, uploadedBefore = 0;
 	for (size_t i = 0; i < FAll.size(); ++i)
 	{
 		const TCoinRecord &r = FAll[i];
-		allIds.push_back(r.Id);
 		if (!FChecked.count(r.Id))
 			continue;
 		if (r.NumistaTypeId == 0)
@@ -715,7 +718,7 @@ void __fastcall TfmMain::actNumistaUploadExecute(TObject *Sender)
 	{
 		client.Authorize();
 		std::unique_ptr<TJSONValue> collection = client.GetCollectedItems();
-		uploader.ReadCollection(collection.get(), allIds);
+		uploader.ReadCollection(collection.get(), FAll);
 
 		for (size_t i = 0; i < items.size(); ++i)
 		{
@@ -793,8 +796,9 @@ void __fastcall TfmMain::actNumistaRarityExecute(TObject *Sender)
 {
 	const String caption = StripHotkey(actNumistaRarity->Caption);
 
-	// Экземпляр -> монета: по id предмета Numista и по нашему Id (internal_id).
-	std::map<int, int> coinByNumistaItem, coinByItem;
+	// Экземпляр -> монета: по id предмета Numista и по нашему Id (internal_id) —
+	// только того же типа Numista (после импорта Id могут указывать на другую монету).
+	std::map<int, int> coinByNumistaItem, coinByItem, typeByItem;
 	std::map<int, int> oldRarity;	// монета -> индекс сейчас
 	for (size_t i = 0; i < FAll.size(); ++i)
 	{
@@ -802,6 +806,7 @@ void __fastcall TfmMain::actNumistaRarityExecute(TObject *Sender)
 		if (r.NumistaItemId != 0)
 			coinByNumistaItem[r.NumistaItemId] = r.CoinId;
 		coinByItem[r.Id] = r.CoinId;
+		typeByItem[r.Id] = r.NumistaTypeId;
 		oldRarity[r.CoinId] = r.NumistaRarity;
 	}
 
@@ -832,7 +837,11 @@ void __fastcall TfmMain::actNumistaRarityExecute(TObject *Sender)
 			if (it != coinByNumistaItem.end())
 				coinId = it->second;
 			else if ((it = coinByItem.find(internalId)) != coinByItem.end())
-				coinId = it->second;
+			{
+				TJSONValue *typeValue = item->FindValue(L"type.id");
+				if (typeValue && StrToIntDef(typeValue->Value(), 0) == typeByItem[internalId])
+					coinId = it->second;
+			}
 			if (coinId == 0)
 				continue;
 			++matched;
