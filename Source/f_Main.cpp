@@ -37,7 +37,7 @@ namespace
 	const wchar_t *const cColumnKeys[] =
 	{
 		L"", L"Main.Column.Country", L"Main.Column.Period", L"Main.Column.Currency", L"Main.Column.Denomination",
-		L"Main.Column.Numista", L"Main.Column.Uploaded", L"Main.Column.Rarity",
+		L"Main.Column.Numista", L"Main.Column.Uploaded", L"Main.Column.Rarity", L"Main.Column.Mintage",
 		L"Main.Column.Year", L"Main.Column.Condition", L"Main.Column.Value"
 	};
 	//-----------------------------------------------------------------------
@@ -50,12 +50,12 @@ namespace
 	// Ширина колонок по умолчанию (порядок = TItemColumn).
 	// Auto-link checked: больше стольких монет — подтверждение.
 	const int cConfirmCheckCoins = 10;
-	const int cDefaultWidths[] = { 22, 130, 160, 120, 130, 70, 24, 70, 50, 65, 85 };
+	const int cDefaultWidths[] = { 22, 130, 160, 120, 130, 70, 24, 70, 85, 50, 65, 85 };
 	// Подписи строк панели подробностей (порядок = TDetailRowIndex).
 	const wchar_t *const cDetailKeys[] =
 	{
 		L"Main.Details.Period", L"Main.Details.Currency", L"Main.Details.Subject", L"Main.Details.Number",
-		L"Main.Details.Numista", L"Main.Details.NumistaItem", L"Main.Details.Rarity"
+		L"Main.Details.Numista", L"Main.Details.NumistaItem", L"Main.Details.IssueComment"
 	};
 	//-----------------------------------------------------------------------
 	template <typename T>
@@ -63,11 +63,30 @@ namespace
 	{
 		return A < B ? -1 : (B < A ? 1 : 0);
 	}
+	//-----------------------------------------------------------------------
+	// Тираж с разделителями тысяч; "" — неизвестен.
+	String MintageText(__int64 AMintage)
+	{
+		return AMintage < 0 ? String() : FormatFloat(L"#,##0", (double)AMintage);
+	}
+	//-----------------------------------------------------------------------
+	// Ключ сортировки тиража: выпуск не загружен (-2) < у Numista тиража нет (-1) < тираж.
+	__int64 MintageKey(const TCoinRecord &R)
+	{
+		return R.NumistaMintage >= 0 ? R.NumistaMintage : (R.NumistaIssueLoaded ? -1 : -2);
+	}
+	//-----------------------------------------------------------------------
+	// Выпуски типа — в numista_issues (задача 13c). Вызывается, когда выпуск уже
+	// определён: ответ getIssues в кэше, запроса нет.
+	void StoreIssues(TCoinRepository &ARepository, TNumistaMatcher &AMatcher, int ATypeId)
+	{
+		ARepository.SaveNumistaIssues(ATypeId, AMatcher.LoadIssues(ATypeId));
+	}
 }
 //---------------------------------------------------------------------------
 __fastcall TfmMain::TfmMain(TComponent* Owner)
 	: TForm(Owner),
-	  FSortColumn(icDenomination),
+	  FSortColumn(icYear),
 	  FSortAscending(true),
 	  FLanguageToken(0),
 	  FMouseDownRow(-1),
@@ -459,6 +478,8 @@ void __fastcall TfmMain::actNumistaFindExecute(TObject *Sender)
 					issueId = std::max(0, TfmNumistaIssue::Execute(this, CoinText(coin), typeId, coin.Year, issues, 0));
 			}
 			FRepository->SetCoinNumista(coin.CoinId, typeId, issueId);
+			if (issueId != 0)
+				StoreIssues(*FRepository, matcher, typeId);
 			String title;
 			for (size_t i = 0; i < types.size(); ++i)
 				if (types[i].Id == typeId)
@@ -519,6 +540,7 @@ void __fastcall TfmMain::actNumistaIssueExecute(TObject *Sender)
 		if (issueId < 0)
 			return;
 		FRepository->SetCoinNumista(coin.CoinId, coin.NumistaTypeId, issueId);
+		FRepository->SaveNumistaIssues(coin.NumistaTypeId, issues);
 	}
 	catch (Exception &e)
 	{
@@ -614,6 +636,8 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 						stopReason = e.Message;	// тип найден — сохраняем без выпуска и останавливаемся
 					}
 					FRepository->SetCoinNumista(coin.CoinId, types[0].Id, issueId);
+					if (issueId != 0)
+						StoreIssues(*FRepository, matcher, types[0].Id);
 					linkedCoins.insert(coin.CoinId);
 					++linked;
 					if (issueId != 0)
@@ -885,6 +909,82 @@ void __fastcall TfmMain::actNumistaRarityExecute(TObject *Sender)
 		MB_OK | icon);
 }
 //---------------------------------------------------------------------------
+// Update catalogue data (задача 13c): выпуски типов (getIssues, с кэшем) для монет,
+// у которых выбран выпуск, а его нет в numista_issues. Из кэша — без запросов.
+// Документация: https://en.numista.com/api/doc/index.php (Catalogue → getIssues).
+void __fastcall TfmMain::actNumistaCatalogExecute(TObject *Sender)
+{
+	const String caption = StripHotkey(actNumistaCatalog->Caption);
+
+	std::set<int> typeSet;
+	for (size_t i = 0; i < FAll.size(); ++i)
+		if (FAll[i].NumistaIssueId != 0 && !FAll[i].NumistaIssueLoaded)
+			typeSet.insert(FAll[i].NumistaTypeId);
+	if (typeSet.empty())
+	{
+		Application->MessageBox(Tr(L"Numista.Catalog.Nothing").c_str(), caption.c_str(), MB_OK | MB_ICONINFORMATION);
+		return;
+	}
+	const std::vector<int> types(typeSet.begin(), typeSet.end());
+
+	// Квота: запрос — только для типов без кэша.
+	int needed = 0;
+	for (size_t i = 0; i < types.size(); ++i)
+		if (!TNumistaClient::IsCached(TNumistaMatcher::IssuesPath(types[i])))
+			++needed;
+	const int left = AppConfig().NumistaMonthlyQuota - TNumistaClient::RequestsThisMonth();
+	if (needed > left)
+	{
+		Application->MessageBox(Format(Tr(L"Numista.Catalog.Quota"), ARRAYOFCONST(((int)types.size(), needed, left))).c_str(),
+			caption.c_str(), MB_OK | MB_ICONWARNING);
+		return;
+	}
+	if (needed > cConfirmCheckCoins && !Confirm(Format(Tr(L"Numista.Catalog.Confirm"), ARRAYOFCONST(((int)types.size(),
+		needed, TNumistaClient::RequestsThisMonth(), AppConfig().NumistaMonthlyQuota))), caption))
+		return;
+
+	TNumistaClient client;
+	TNumistaMatcher matcher(client);
+	int processed = 0, fromCache = 0, issues = 0;
+	String stopReason;
+	const TCursor saved = Screen->Cursor;
+	Screen->Cursor = crHourGlass;
+	try
+	{
+		for (size_t i = 0; i < types.size(); ++i)
+		{
+			StatusBar->Panels->Items[0]->Text = Format(Tr(L"Numista.Catalog.Progress"),
+				ARRAYOFCONST(((int)i + 1, (int)types.size())));
+			StatusBar->Update();
+			if (TNumistaClient::IsCached(TNumistaMatcher::IssuesPath(types[i])))
+				++fromCache;
+			issues += FRepository->SaveNumistaIssues(types[i], matcher.LoadIssues(types[i]));
+			++processed;
+		}
+	}
+	catch (Exception &e)
+	{
+		stopReason = e.Message;
+	}
+	Screen->Cursor = saved;
+
+	LoadItems();	// и строка состояния
+	std::set<int> withMintage, noMintage;	// монеты: тираж известен / выпуск загружен, тиража у Numista нет
+	for (size_t i = 0; i < FAll.size(); ++i)
+		if (FAll[i].NumistaMintage >= 0)
+			withMintage.insert(FAll[i].CoinId);
+		else if (FAll[i].NumistaIssueLoaded)
+			noMintage.insert(FAll[i].CoinId);
+	String report = Format(Tr(L"Numista.Catalog.Types"), ARRAYOFCONST((processed, (int)types.size(), fromCache))) + L"\r\n"
+		+ Format(Tr(L"Numista.Catalog.Issues"), ARRAYOFCONST((issues))) + L"\r\n"
+		+ Format(Tr(L"Numista.Catalog.Mintage"), ARRAYOFCONST(((int)withMintage.size()))) + L"\r\n"
+		+ Format(Tr(L"Numista.Catalog.NoMintage"), ARRAYOFCONST(((int)noMintage.size())));
+	if (!stopReason.IsEmpty())
+		report += L"\r\n\r\n" + Tr(L"Numista.Match.Stopped") + L" " + stopReason;
+	Application->MessageBox((report + L"\r\n\r\n" + NumistaRequestsText(client.RequestsMade)).c_str(),
+		caption.c_str(), MB_OK | (stopReason.IsEmpty() ? MB_ICONINFORMATION : MB_ICONWARNING));
+}
+//---------------------------------------------------------------------------
 void __fastcall TfmMain::NumistaLinkClick(TObject *Sender)
 {
 	if (FDetailsTypeId != 0)
@@ -1141,10 +1241,10 @@ void TfmMain::UpdateColumns()
 	for (size_t i = 0; i < FColumns.size(); ++i)
 		dgItems->ColWidths[(int)i] = FColWidths[FColumns[i]];
 
-	// Сортировка по скрытой колонке теряет смысл — вернуть порядок по номиналу.
+	// Сортировка по скрытой колонке теряет смысл — вернуть порядок по году.
 	if (std::find(FColumns.begin(), FColumns.end(), FSortColumn) == FColumns.end())
 	{
-		FSortColumn = icDenomination;
+		FSortColumn = icYear;
 		FSortAscending = true;
 	}
 }
@@ -1194,6 +1294,7 @@ int TfmMain::CompareItems(const TCoinRecord &A, const TCoinRecord &B, int AColum
 		case icNumista:      return CompareValues(A.NumistaTypeId, B.NumistaTypeId);
 		case icUploaded:     return CompareValues(A.NumistaItemId != 0, B.NumistaItemId != 0);
 		case icRarity:       return CompareValues(A.NumistaRarity, B.NumistaRarity);
+		case icMintage:      return CompareValues(MintageKey(A), MintageKey(B));
 		case icCountry:      return CompareStrings(A.Country, B.Country);
 		case icPeriod:       return CompareStrings(A.Period, B.Period);
 		case icCurrency:     return CompareStrings(A.Currency, B.Currency);
@@ -1221,9 +1322,9 @@ void TfmMain::SortItems()
 			int r = CompareItems(A, B, column);
 			if (!ascending)
 				r = -r;
-			// Равные — всегда в порядке номинал, год, Id.
-			if (r == 0) r = CompareItems(A, B, icDenomination);
+			// Равные — всегда в порядке год, номинал, Id.
 			if (r == 0) r = CompareItems(A, B, icYear);
+			if (r == 0) r = CompareItems(A, B, icDenomination);
 			if (r == 0) r = CompareValues(A.Id, B.Id);
 			return r < 0;
 		});
@@ -1236,6 +1337,8 @@ String TfmMain::CellText(const TCoinRecord &R, int AColumn) const
 		case icNumista:      return R.NumistaTypeId == 0 ? String() : IntToStr(R.NumistaTypeId);
 		case icUploaded:     return R.NumistaItemId == 0 ? String() : String(L"\u2713");
 		case icRarity:       return R.NumistaRarity < 0 ? String() : IntToStr(R.NumistaRarity);
+		case icMintage:      return R.NumistaMintage >= 0 || !R.NumistaIssueLoaded ? MintageText(R.NumistaMintage)
+			: Tr(L"Main.Mintage.Unknown");
 		case icCountry:      return R.Country;
 		case icPeriod:       return R.Period;
 		case icCurrency:     return R.Currency;
@@ -1334,7 +1437,8 @@ void __fastcall TfmMain::dgItemsDrawCell(TObject *Sender, int ACol, int ARow,
 	}
 
 	UINT flags = DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX;
-	if (ARow > 0 && (column == icYear || column == icValue || column == icNumista || column == icRarity))
+	if (ARow > 0 && (column == icYear || column == icValue || column == icNumista || column == icRarity
+		|| column == icMintage))
 		flags |= DT_RIGHT;
 	if (column == icUploaded)
 		flags = (flags & ~DT_END_ELLIPSIS) | DT_CENTER;
@@ -1549,7 +1653,7 @@ void TfmMain::ShowDetails(int AIndex)
 		FDetailsTypeId = r.NumistaTypeId;
 		FDetailRows[drNumistaItem].Value->Caption = r.NumistaItemId == 0 ? String(L"\u2014")
 			: L"#" + IntToStr(r.NumistaItemId);
-		FDetailRows[drRarity].Value->Caption = r.NumistaRarity < 0 ? String(L"\u2014") : IntToStr(r.NumistaRarity);
+		FDetailRows[drIssueComment].Value->Caption = value(r.NumistaIssueComment);
 	}
 	else
 	{

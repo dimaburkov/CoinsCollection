@@ -224,6 +224,11 @@ int TNumistaClient::LoadCatalogues(bool ARefresh)
 	return LoadList(L"catalogues", L"/catalogues", L"catalogues", ARefresh);
 }
 //---------------------------------------------------------------------------
+bool TNumistaClient::IsCached(const String &APath)
+{
+	return FileExists(CacheDir() + L"cache\\" + THashMD5::GetHashString(APath) + L".json");
+}
+//---------------------------------------------------------------------------
 std::unique_ptr<TJSONValue> TNumistaClient::GetCached(const String &APath, bool *AFromCache)
 {
 	const String dir  = CacheDir() + L"cache\\";

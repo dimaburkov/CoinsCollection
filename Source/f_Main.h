@@ -46,6 +46,7 @@ __published:	// IDE-managed Components
 	TAction *actUncheckAll;
 	TAction *actNumistaUpload;
 	TAction *actNumistaRarity;
+	TAction *actNumistaCatalog;
 	TAction *actSettings;
 	TAction *actAbout;
 	TMainMenu *MainMenu;
@@ -75,6 +76,7 @@ __published:	// IDE-managed Components
 	TMenuItem *miNumistaSep2;
 	TMenuItem *miNumistaUpload;
 	TMenuItem *miNumistaRarity;
+	TMenuItem *miNumistaCatalog;
 	TMenuItem *miSettings;
 	TMenuItem *miLanguage;
 	TMenuItem *miSettingsDialog;
@@ -113,6 +115,7 @@ __published:	// IDE-managed Components
 	TMenuItem *miPopNumistaIssue;
 	TMenuItem *miPopNumistaUpload;
 	TMenuItem *miPopNumistaRarity;
+	TMenuItem *miPopNumistaCatalog;
 	TMenuItem *miPopSep1;
 	TMenuItem *miPopCheckAll;
 	TMenuItem *miPopUncheckAll;
@@ -150,13 +153,15 @@ __published:	// IDE-managed Components
 	void __fastcall actNumistaUploadExecute(TObject *Sender);
 	void __fastcall actNumistaUploadUpdate(TObject *Sender);
 	void __fastcall actNumistaRarityExecute(TObject *Sender);
+	void __fastcall actNumistaCatalogExecute(TObject *Sender);
 	void __fastcall actCheckAllExecute(TObject *Sender);
 	void __fastcall actCheckAllUpdate(TObject *Sender);
 private:	// User declarations
 	// Колонки списка (логические; видимые и их порядок — FColumns).
 	// icCheck — флажок отметки, icNumista — N# (задача 12a), icUploaded — выгружен в коллекцию Numista (задача 13),
-	// icRarity — индекс редкости (задача 13a).
-	enum TItemColumn { icCheck, icCountry, icPeriod, icCurrency, icDenomination, icNumista, icUploaded, icRarity, icYear, icCondition, icValue, icCount };
+	// icRarity — индекс редкости (задача 13a), icMintage — тираж выпуска (задача 13c).
+	enum TItemColumn { icCheck, icCountry, icPeriod, icCurrency, icDenomination, icNumista, icUploaded, icRarity, icMintage,
+		icYear, icCondition, icValue, icCount };
 
 	// Строка панели подробностей: подпись и значение (создаются в коде, см. CreateDetailRows).
 	struct TDetailRow
@@ -165,7 +170,7 @@ private:	// User declarations
 		TLabel        *Caption;
 		TLabel        *Value;
 	};
-	enum TDetailRowIndex { drPeriod, drCurrency, drSubject, drNumber, drNumista, drNumistaItem, drRarity, drCount };
+	enum TDetailRowIndex { drPeriod, drCurrency, drSubject, drNumber, drNumista, drNumistaItem, drIssueComment, drCount };
 
 	// Узел дерева навигации: что он отбирает.
 	enum TNavKind { nkAll, nkContinent, nkNoContinent, nkExtinct, nkCountry };
