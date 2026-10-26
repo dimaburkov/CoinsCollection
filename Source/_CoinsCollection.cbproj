@@ -247,6 +247,10 @@
             <DependentOn>u_PhotoRepository.h</DependentOn>
             <BuildOrder>26</BuildOrder>
         </CppCompile>
+        <CppCompile Include="f_PhotoView.cpp">
+            <DependentOn>f_PhotoView.h</DependentOn>
+            <BuildOrder>27</BuildOrder>
+        </CppCompile>
         <CppCompile Include="u_NumistaUploader.cpp">
             <DependentOn>u_NumistaUploader.h</DependentOn>
             <BuildOrder>24</BuildOrder>

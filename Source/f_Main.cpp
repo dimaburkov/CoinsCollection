@@ -25,6 +25,7 @@
 #include "u_NumistaUploader.h"
 #include "u_NumistaComment.h"
 #include "u_PhotoRepository.h"
+#include "f_PhotoView.h"
 #include "versionConfig.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -1921,6 +1922,11 @@ void TfmMain::CreateDetailRows()
 	}
 	// N# — ссылка на страницу типа на Numista.
 	FDetailRows[drNumista].Value->OnClick = NumistaLinkClick;
+	// Двойной клик по фото — окно просмотра (задача 16).
+	imgObverse->Tag = psObverse;
+	imgReverse->Tag = psReverse;
+	imgObverse->OnDblClick = DetailPhotoDblClick;
+	imgReverse->OnDblClick = DetailPhotoDblClick;
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::dgItemsSelectCell(TObject *Sender, int ACol, int ARow, bool &CanSelect)
@@ -1963,6 +1969,8 @@ void TfmMain::ShowDetails(int AIndex)
 		lblDetailsTitle->Caption = L"";
 		FDetailsTypeId = 0;
 	}
+	ShowDetailPhotos(has ? &FItems[AIndex] : nullptr);
+
 	TLabel *link = FDetailRows[drNumista].Value;
 	link->Cursor      = FDetailsTypeId != 0 ? crHandPoint : crDefault;
 	link->Font->Color = FDetailsTypeId != 0 ? clHotLight : clWindowText;
@@ -1976,6 +1984,51 @@ void TfmMain::ShowDetails(int AIndex)
 		FDetailRows[i].Value->Visible   = visible;
 	}
 	LayoutDetails();
+}
+//---------------------------------------------------------------------------
+// Фото записи в рамках панели (задача 16): экземпляра, иначе типа — с пометкой в подписи.
+// Тот же файл повторно не читается; ошибка чтения — «Нет фото», без сообщений.
+void TfmMain::ShowDetailPhotos(const TCoinRecord *ARecord)
+{
+	FDetailPhotoTitle = ARecord ? CoinText(*ARecord) : String();
+	for (int s = 0; s < 2; ++s)
+	{
+		const TPhotoSide side = (TPhotoSide)s;
+		TImage *image = side == psObverse ? imgObverse : imgReverse;
+		TLabel *none  = side == psObverse ? lblObverseNone : lblReverseNone;
+		TLabel *label = side == psObverse ? lblObverse : lblReverse;
+
+		bool isType = false;
+		const String file = ARecord && FPhotos ? FPhotos->PhotoFile(ARecord->Id, ARecord->CoinId, side, &isType) : String();
+		if (file != FDetailPhotos[s])
+		{
+			FDetailPhotos[s] = file;
+			try
+			{
+				if (file.IsEmpty())
+					image->Picture->Assign(nullptr);
+				else
+					image->Picture->LoadFromFile(file);
+			}
+			catch (Exception &)
+			{
+				image->Picture->Assign(nullptr);
+				FDetailPhotos[s] = L"";
+			}
+		}
+		const bool shown = !FDetailPhotos[s].IsEmpty();
+		none->Visible  = !shown;
+		image->Cursor  = shown ? crHandPoint : crDefault;
+		label->Caption = Tr(side == psObverse ? L"Main.Details.Obverse" : L"Main.Details.Reverse")
+			+ (shown && isType ? L" (" + Tr(L"Main.Details.TypePhoto") + L")" : String());
+	}
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::DetailPhotoDblClick(TObject *Sender)
+{
+	const TPhotoSide side = (TPhotoSide)static_cast<TComponent *>(Sender)->Tag;
+	if (!FDetailPhotos[side].IsEmpty())
+		TfmPhotoView::Execute(this, FDetailPhotoTitle, FDetailPhotos[psObverse], FDetailPhotos[psReverse], side);
 }
 //---------------------------------------------------------------------------
 // Строки характеристик типа (задача 13d); ATypeId = 0 или тип не загружен — все пустые.
