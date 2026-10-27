@@ -77,7 +77,11 @@
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
         <BT_BuildType>Debug</BT_BuildType>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <VerInfo_MajorVer>0</VerInfo_MajorVer>
+        <VerInfo_MinorVer>2</VerInfo_MinorVer>
+        <VerInfo_Release>0</VerInfo_Release>
+        <VerInfo_Build>0</VerInfo_Build>
+        <VerInfo_Keys>CompanyName=;FileDescription=Coins Collection;FileVersion=0.2.0.0;InternalName=CoinsCollection;LegalCopyright=progua@ukr.net;LegalTrademarks=;OriginalFilename=CoinsCollection.exe;ProgramID=CoinsCollection;ProductName=Coins Collection;ProductVersion=0.2.0.0;Comments=</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
         <BCC_PCHName_Clang>CoinsCollection.h</BCC_PCHName_Clang>
@@ -120,6 +124,9 @@
         <TASM_Debugging>None</TASM_Debugging>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
+        <UsePackages>false</UsePackages>
+        <DynamicRTL>false</DynamicRTL>
+        <AllPackageLibs>rtl.lib;vcl.lib;dbrtl.lib;xmlrtl.lib;FireDACCommon.lib;FireDACCommonDriver.lib;FireDAC.lib;FireDACSqliteDriver.lib;vclFireDAC.lib;vclimg.lib</AllPackageLibs>
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
         <AppDPIAwarenessMode>PerMonitorV2</AppDPIAwarenessMode>
         <BCC_UseClassicCompiler>false</BCC_UseClassicCompiler>
@@ -128,7 +135,8 @@
     <PropertyGroup Condition="'$(Cfg_2_Win64)'!=''">
         <BCC_PCHName_Clang>CoinsCollection.h</BCC_PCHName_Clang>
     </PropertyGroup>
-    <ItemGroup Condition="'$(Platform)'=='Win32'">
+    <!-- Packages (.bpi) only for runtime-packages builds (Debug); Release links statically (task 23). -->
+    <ItemGroup Condition="'$(Platform)'=='Win32' And '$(UsePackages)'=='true'">
         <PackageImport Include="rtl.bpi"/>
         <PackageImport Include="vcl.bpi"/>
         <PackageImport Include="dbrtl.bpi"/>

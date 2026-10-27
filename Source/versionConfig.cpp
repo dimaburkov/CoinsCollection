@@ -9,6 +9,6 @@
 namespace AppInfo
 {
 	const String Name    = L"CoinsCollection";
-	const String Version = L"0.1.0.0";
+	const String Version = L"0.2.0.0";
 }
 //---------------------------------------------------------------------------

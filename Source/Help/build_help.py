@@ -55,6 +55,14 @@ T['index', 'uk'] = u"""
 # =====================================================================
 T['getting-started', 'en'] = u"""
 [[shot:01-main-window.png|The main window: countries on the left, the coin list, coin details and photos below.]]
+<h2>Installation and update</h2>
+<ol>
+<li>Run <code>CoinsCollection-Setup-&lt;version&gt;.exe</code>. Administrator rights are not needed.</li>
+<li>If Windows SmartScreen warns about an unknown publisher, press <b>More info → Run anyway</b>.</li>
+<li>The program is installed for the current user into <code>%LOCALAPPDATA%\Programs\CoinsCollection</code> (you can choose another folder, but not inside Program Files: the program keeps its data in its own folder).</li>
+</ol>
+<p><b>Update:</b> install the new version over the old one — your collection, photos and settings stay; the database is upgraded automatically (with a backup copy).<br>
+<b>Removal:</b> the program files are removed, your collection, photos and settings stay in the folder.</p>
 <h2>First steps</h2>
 <ol>
 <li>Export your collection from uCoin to an <code>.xlsx</code> file and import it: [[page:import|Import from uCoin]].</li>
@@ -76,6 +84,14 @@ T['getting-started', 'en'] = u"""
 """
 T['getting-started', 'uk'] = u"""
 [[shot:01-main-window.png|Головне вікно: країни ліворуч, список монет, подробиці про монету та фото внизу.]]
+<h2>Встановлення та оновлення</h2>
+<ol>
+<li>Запустіть <code>CoinsCollection-Setup-&lt;версія&gt;.exe</code>. Права адміністратора не потрібні.</li>
+<li>Якщо Windows SmartScreen попереджає про невідомого видавця, натисніть <b>Детальніше → Однаково запустити</b>.</li>
+<li>Програма встановлюється для поточного користувача в <code>%LOCALAPPDATA%\Programs\CoinsCollection</code> (можна вибрати іншу папку, але не в Program Files: програма зберігає дані у своїй папці).</li>
+</ol>
+<p><b>Оновлення:</b> встановіть нову версію поверх старої — колекція, фото та налаштування залишаються; база оновлюється автоматично (з резервною копією).<br>
+<b>Видалення:</b> файли програми видаляються, колекція, фото та налаштування залишаються в папці.</p>
 <h2>Перші кроки</h2>
 <ol>
 <li>Експортуйте колекцію з uCoin у файл <code>.xlsx</code> та імпортуйте його: [[page:import|Імпорт з uCoin]].</li>

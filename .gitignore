@@ -37,6 +37,10 @@ Exe/Lang/
 Exe/Numista/
 Exe/Photos/
 
+# Installer build output (Setup/build-setup.bat)
+Setup/Build/
+Setup/Output/
+
 # IDE files
 *.cbproj.local
 *.groupproj.local
@@ -51,3 +55,4 @@ Desktop.ini
 
 # Generated task docs (rebuild from Docs/Jobs/*.md via Docs/Jobs/build_docx.py)
 Docs/Jobs/*.docx
+Docs/Tech/*.docx
