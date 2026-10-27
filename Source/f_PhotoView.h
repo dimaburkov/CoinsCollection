@@ -21,8 +21,10 @@ public:
 	__fastcall TfmPhotoView(TComponent *AOwner);
 
 	// Показать фото (AObverseFile / AReverseFile — полные пути, "" — нет), начиная с ASide.
+	// ACopyright* — автор фото Numista ("" — свой снимок): строка под фото.
 	static void Execute(TComponent *AOwner, const String &ATitle, const String &AObverseFile,
-		const String &AReverseFile, TPhotoSide ASide);
+		const String &AReverseFile, TPhotoSide ASide, const String &AObverseCopyright = String(),
+		const String &AReverseCopyright = String());
 
 private:
 	TPanel       *FToolbar;
@@ -31,8 +33,10 @@ private:
 	TSpeedButton *FFit;
 	TLabel       *FHint;
 	TPaintBox    *FView;
+	TLabel       *FCopyright;
 
 	String                   FFiles[2];	// индекс — TPhotoSide
+	String                   FCopyrights[2];
 	TPhotoSide               FSide;
 	std::unique_ptr<TBitmap> FBitmap;	// текущее фото, декодировано один раз
 	double                   FZoom;		// 0 — по размеру окна

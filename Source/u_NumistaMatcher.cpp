@@ -383,6 +383,11 @@ TNumistaTypeInfo TNumistaMatcher::LoadType(int ATypeId, bool ARefresh)
 	t.Series             = JsonString(j, L"series");
 	t.CommemoratedTopic  = JsonString(j, L"commemorated_topic");
 	t.Mints              = JsonNames (j, L"mints");
+	t.Picture[0]          = JsonString(j, L"obverse.picture");
+	t.Picture[1]          = JsonString(j, L"reverse.picture");
+	t.PictureCopyright[0] = JsonString(j, L"obverse.picture_copyright");
+	t.PictureCopyright[1] = JsonString(j, L"reverse.picture_copyright");
+	t.PicturesKnown       = true;
 	return t;
 }
 //---------------------------------------------------------------------------

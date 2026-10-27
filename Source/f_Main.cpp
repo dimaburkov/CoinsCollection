@@ -1999,7 +1999,8 @@ void TfmMain::ShowDetailPhotos(const TCoinRecord *ARecord)
 		TLabel *label = side == psObverse ? lblObverse : lblReverse;
 
 		bool isType = false;
-		const String file = ARecord && FPhotos ? FPhotos->PhotoFile(ARecord->Id, ARecord->CoinId, side, &isType) : String();
+		const String file = ARecord && FPhotos ? FPhotos->PhotoFile(ARecord->Id, ARecord->CoinId, side, &isType,
+			&FDetailCopyrights[s]) : String();
 		if (file != FDetailPhotos[s])
 		{
 			FDetailPhotos[s] = file;
@@ -2028,7 +2029,8 @@ void __fastcall TfmMain::DetailPhotoDblClick(TObject *Sender)
 {
 	const TPhotoSide side = (TPhotoSide)static_cast<TComponent *>(Sender)->Tag;
 	if (!FDetailPhotos[side].IsEmpty())
-		TfmPhotoView::Execute(this, FDetailPhotoTitle, FDetailPhotos[psObverse], FDetailPhotos[psReverse], side);
+		TfmPhotoView::Execute(this, FDetailPhotoTitle, FDetailPhotos[psObverse], FDetailPhotos[psReverse], side,
+			FDetailCopyrights[psObverse], FDetailCopyrights[psReverse]);
 }
 //---------------------------------------------------------------------------
 // Строки характеристик типа (задача 13d); ATypeId = 0 или тип не загружен — все пустые.

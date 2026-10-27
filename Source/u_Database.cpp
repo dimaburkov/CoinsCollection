@@ -69,7 +69,8 @@ void TDatabase::EnsureSchema()
 		if (version < 5) { MigrateTo5(); version = 5; }
 		if (version < 6) { MigrateTo6(); version = 6; }
 		if (version < 7) { MigrateTo7(); version = 7; }
-		// if (version < 8) { MigrateTo8(); version = 8; }
+		if (version < 8) { MigrateTo8(); version = 8; }
+		// if (version < 9) { MigrateTo9(); version = 9; }
 
 		// PRAGMA не принимает параметры; version — целое из кода.
 		FConnection->ExecSQL(L"PRAGMA user_version = " + IntToStr(version));
@@ -271,6 +272,19 @@ void TDatabase::MigrateTo6()
 void TDatabase::MigrateTo7()
 {
 	FConnection->ExecSQL(L"ALTER TABLE periods ADD COLUMN numista_issuer TEXT");
+}
+//---------------------------------------------------------------------------
+// v8: фото типа из Numista (задача 17). У фото — автор (copyright, для фото Numista);
+// у типа — ссылки на изображения сторон из getType и признак, что они уже известны
+// (у типов, загруженных до v8, ссылок нет — нужно перечитать getType, из кэша бесплатно).
+void TDatabase::MigrateTo8()
+{
+	FConnection->ExecSQL(L"ALTER TABLE coin_photos ADD COLUMN copyright TEXT");
+	FConnection->ExecSQL(L"ALTER TABLE numista_types ADD COLUMN obverse_picture TEXT");
+	FConnection->ExecSQL(L"ALTER TABLE numista_types ADD COLUMN reverse_picture TEXT");
+	FConnection->ExecSQL(L"ALTER TABLE numista_types ADD COLUMN obverse_copyright TEXT");
+	FConnection->ExecSQL(L"ALTER TABLE numista_types ADD COLUMN reverse_copyright TEXT");
+	FConnection->ExecSQL(L"ALTER TABLE numista_types ADD COLUMN pictures_known INTEGER NOT NULL DEFAULT 0");
 }
 //---------------------------------------------------------------------------
 // Справочники с начальным составом (u_SeedData). «Extinct states» — не континент:

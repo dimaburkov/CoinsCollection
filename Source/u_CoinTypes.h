@@ -135,8 +135,13 @@ struct TNumistaTypeInfo
 	String Series;
 	String CommemoratedTopic;
 	String Mints;
+	// Изображения сторон (задача 17), индекс — TPhotoSide (0 — аверс, 1 — реверс); "" — нет.
+	// Только хранятся: сайт Numista не отдаёт файлы программам (403), загрузки нет.
+	String Picture[2];
+	String PictureCopyright[2];
+	bool   PicturesKnown;       // ссылки прочитаны из getType (false — тип загружен до v8)
 	TNumistaTypeInfo() : Id(0), MinYear(0), MaxYear(0), Weight(0.0), Size(0.0), Size2(0.0), Thickness(0.0),
-		Demonetized(-1) {}
+		Demonetized(-1), PicturesKnown(false) {}
 };
 
 //---------------------------------------------------------------------------

@@ -233,6 +233,7 @@ private:	// User declarations
 	int                              FMouseDownRow;    // строка сетки последнего нажатия мыши (для двойного клика)
 	int                              FDetailsTypeId;   // N# монеты в панели подробностей (0 — нет)
 	String                           FDetailPhotos[2]; // фото в панели (полный путь; "" — нет), индекс — TPhotoSide
+	String                           FDetailCopyrights[2]; // автор фото Numista ("" — свой снимок)
 	String                           FDetailPhotoTitle; // заголовок окна просмотра
 	std::set<int>                    FChecked;         // отмеченные экземпляры (coin_items.id), только в памяти
 
