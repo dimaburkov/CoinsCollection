@@ -175,6 +175,13 @@
 - Запустить `C:\Temp\cc-test\CoinsCollection.exe`: открывается, пустая коллекция, язык — как у мастера.
 - Удаление: `C:\Temp\cc-test\unins000.exe /VERYSILENT` — должны остаться только `Db\` и `CoinsCollection.ini`.
 
+**Публикация на GitHub** (репозиторий публичный, лицензия MIT; README — страница загрузки)
+
+- Текст релиза — `Setup/ReleaseNotes/<версия>.md` (en + uk, что нового, установка, SmartScreen, SHA-256).
+- SHA-256 инсталлятора: PowerShell `Get-FileHash Setup\Output\CoinsCollection-Setup-a.b.c.exe` — вписать в текст релиза (после финальной сборки: каждая сборка меняет сумму).
+- github.com → репозиторий → **Releases → Draft a new release**: тег `va.b.c` на коммите master, заголовок «Coins Collection a.b.c», описание — из `ReleaseNotes`, в *Assets* — инсталлятор из `Setup\Output\`. **Publish release**.
+- Ссылка для пользователей всегда одна: https://github.com/dimaburkov/CoinsCollection/releases/latest
+
 **Проверка на «чистом» компьютере** (без RAD Studio) — перед первой раздачей и после изменений сборки: установка, первый запуск, импорт uCoin, подключение Numista, установка поверх, удаление.
 
 **Что делает инсталлятор** (`Setup/CoinsCollection.iss`)
