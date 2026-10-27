@@ -12,6 +12,7 @@
 #include "f_CoinEdit.h"
 #include "u_CoinRepository.h"
 #include "u_NumistaMatcher.h"
+#include "u_Help.h"
 #include "u_Translator.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -24,6 +25,7 @@ __fastcall TfmCoinEdit::TfmCoinEdit(TComponent* Owner)
 	  FPhotos(nullptr)
 {
 	Translator().TranslateForm(this);
+	InstallHelpKey(this, L"coin-card");
 	// Автофраза поиска Numista — подсказкой в пустом поле, обновляется при правке её частей.
 	edDenomination->OnChange = QueryPartChange;
 	edYear->OnChange         = QueryPartChange;

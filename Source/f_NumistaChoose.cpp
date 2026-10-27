@@ -7,6 +7,7 @@
 #include <shellapi.h>
 #include "f_NumistaChoose.h"
 #include "u_Translator.h"
+#include "u_Help.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 #pragma resource "*.dfm"
@@ -26,6 +27,7 @@ __fastcall TfmNumistaChoose::TfmNumistaChoose(TComponent* Owner)
 	  FMatcher(nullptr)
 {
 	Translator().TranslateForm(this);
+	InstallHelpKey(this, L"numista-link");
 }
 //---------------------------------------------------------------------------
 int TfmNumistaChoose::Execute(TComponent *AOwner, const String &ACoinText, const std::vector<TNumistaType> &ATypes,

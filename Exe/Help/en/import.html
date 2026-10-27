@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Import from uCoin — Coins Collection — Help</title>
+<link rel="stylesheet" href="../help.css">
+</head>
+<body>
+<header>
+<span class="app">Coins Collection — Help</span>
+<nav><a href="index.html">Contents</a><a href="../uk/import.html">Українською</a></nav>
+</header>
+<main>
+<h1>Import from uCoin</h1>
+<figure class="shot"><img src="../images/08-ucoin-export.png" alt="uCoin: exporting the collection to an .xlsx file." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Screenshot: images/08-ucoin-export.png</div><figcaption>uCoin: exporting the collection to an .xlsx file.</figcaption></figure>
+<h2>Export from uCoin</h2>
+<p>On the uCoin website open your collection and export it to Excel (<code>.xlsx</code>). Save the file on your computer.</p>
+<h2>Import</h2>
+<ol>
+<li><span class="ui">File → Import from uCoin (.xlsx)</span> (or the <span class="ui">Import</span> button) and choose the file.</li>
+<li>The program shows how many rows were read and which rows have errors (skipped). Confirm the import.</li>
+<li>The current collection is <b>replaced</b> by the file. A backup copy of the database is made first: <code>Db\…before-import-&lt;date&gt;.bak</code>.</li>
+</ol>
+<h2>What is kept on a repeated import</h2>
+<p>You can import a newer uCoin export at any time. For coins that are in the new file, the program keeps:</p>
+<ul>
+<li>Numista links (#Numista, issue, rarity index, Numista search phrase) and the ✓ of uploaded items;</li>
+<li>photos of coins and items.</li>
+</ul>
+<p>The result shows how many links and photos were kept and lost. Photos of coins that are no longer in the file are moved to <code>Photos\_before-import-&lt;date&gt;\</code>.</p>
+<div class="note">Countries are matched by name. If you rename a country in <a href="references.html">Reference lists</a>, the old uCoin name will appear again after the next import.</div>
+</main>
+<footer>Coins Collection</footer>
+</body>
+</html>

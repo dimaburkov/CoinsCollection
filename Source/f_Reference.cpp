@@ -7,6 +7,7 @@
 #include "f_Reference.h"
 #include "u_LookupRepository.h"
 #include "u_Translator.h"
+#include "u_Help.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 #pragma resource "*.dfm"
@@ -25,6 +26,7 @@ __fastcall TfmReference::TfmReference(TComponent* Owner)
 	  FCountryId(0)
 {
 	Translator().TranslateForm(this);
+	InstallHelpKey(this, L"references");
 }
 //---------------------------------------------------------------------------
 bool TfmReference::Execute(TComponent *AOwner, TLookupRepository &ALookups, int ATab)

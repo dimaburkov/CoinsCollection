@@ -533,10 +533,14 @@ object fmMain: TfmMain
       Caption = '&Settings...'
       Enabled = False
     end
+    object actHelpContents: TAction
+      Category = 'Help'
+      Caption = '&Contents'
+      OnExecute = actHelpContentsExecute
+    end
     object actAbout: TAction
       Category = 'Help'
       Caption = '&About'
-      ShortCut = 112
       OnExecute = actAboutExecute
     end
   end
@@ -654,6 +658,12 @@ object fmMain: TfmMain
     end
     object miHelp: TMenuItem
       Caption = '&Help'
+      object miHelpContents: TMenuItem
+        Action = actHelpContents
+      end
+      object miHelpSep1: TMenuItem
+        Caption = '-'
+      end
       object miAbout: TMenuItem
         Action = actAbout
       end

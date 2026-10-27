@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Numista: зв'язок монет — Колекція монет — Довідка</title>
+<link rel="stylesheet" href="../help.css">
+</head>
+<body>
+<header>
+<span class="app">Колекція монет — Довідка</span>
+<nav><a href="index.html">Зміст</a><a href="../en/numista-link.html">In English</a></nav>
+</header>
+<main>
+<h1>Numista: зв'язок монет</h1>
+<figure class="shot"><img src="../images/02-context-menu.png" alt="Меню правого клацання: ця монета (вгорі) і позначені монети (внизу)." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Скриншот: images/02-context-menu.png</div><figcaption>Меню правого клацання: ця монета (вгорі) і позначені монети (внизу).</figcaption></figure>
+<p>Зв'язок знаходить тип Numista (#Numista) і випуск монети. Потім програма завантажує тираж, характеристики типу та фото.</p>
+<h2>Одна монета — Пов'язати вручну</h2>
+<p>Праве клацання по монеті → <span class="ui">Link manually/Пов'язати вручну</span> (або меню <span class="ui">Numista</span>).</p>
+<ol>
+<li>Програма шукає за номером у каталозі (KM#, Y#, C#), потім за номером і роком, потім за фразою пошуку.</li>
+<li>Якщо результат один і точний — монету пов'язано одразу. Інакше відкривається список типів.</li>
+<li>Виберіть випуск (рік, двір), якщо його не знайдено автоматично: <span class="ui">Choose issue/Вибрати випуск</span>.</li>
+</ol>
+<figure class="shot"><img src="../images/06-choose-type.png" alt="Вибір типу Numista: фразу пошуку можна змінити й шукати знову." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Скриншот: images/06-choose-type.png</div><figcaption>Вибір типу Numista: фразу пошуку можна змінити й шукати знову.</figcaption></figure>
+<h2>Фраза пошуку</h2>
+<p>Якщо потрібного типу немає у списку, змініть <span class="ui">Search phrase/Фраза пошуку</span> і натисніть <span class="ui">Search/Пошук</span> (або Enter),
+наприклад <code>Ort koronny - Sigismund III Vasa 1623</code>. Фраза, з якою ви пов'язали монету, зберігається в картці
+(<span class="ui">Numista search/Пошук Numista</span>) і використовується наступного разу.</p>
+<h2>Історичні держави</h2>
+<p>Деякі монети на Numista записані за іншим емітентом, ніж країна uCoin (наприклад Poland 1766 →
+<i>Polish–Lithuanian Commonwealth</i>). Такі результати завжди потребують вашого підтвердження. Коли ви вибираєте такий, емітента запам'ятовується
+для періоду монети, і наступні монети цього періоду знаходяться одразу.</p>
+<h2>Багато монет — Автозв'язок</h2>
+<p>Позначте монети (<a href="checks.html">Позначки монет</a>) → <span class="ui">Auto-link/Автозв'язок</span>. Пов'язуються лише однозначні результати;
+решта рахується в підсумку — пов'яжіть їх вручну.
+Позначка <span class="ui">Also load type details and photos/Також завантажити характеристики й фото</span> додає 1 запит на монету.</p>
+<figure class="shot"><img src="../images/07-progress.png" alt="Хід масової операції. Зупинити — після поточної монети." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Скриншот: images/07-progress.png</div><figcaption>Хід масової операції. Зупинити — після поточної монети.</figcaption></figure>
+</main>
+<footer>Coins Collection</footer>
+</body>
+</html>

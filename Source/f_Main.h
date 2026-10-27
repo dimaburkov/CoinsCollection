@@ -52,6 +52,9 @@ __published:	// IDE-managed Components
 	TAction *actNumistaUpload;
 	TAction *actNumistaRarity;
 	TAction *actNumistaCatalog;
+	TAction *actHelpContents;
+	TMenuItem *miHelpContents;
+	TMenuItem *miHelpSep1;
 	TAction *actNumistaUploadOne;
 	TAction *actNumistaRarityOne;
 	TAction *actNumistaRefreshOne;
@@ -179,6 +182,7 @@ __published:	// IDE-managed Components
 	void __fastcall dgItemsContextPopup(TObject *Sender, const TPoint &MousePos, bool &Handled);
 	void __fastcall actNumistaRarityExecute(TObject *Sender);
 	void __fastcall actNumistaCatalogExecute(TObject *Sender);
+	void __fastcall actHelpContentsExecute(TObject *Sender);
 	void __fastcall actCheckAllExecute(TObject *Sender);
 	void __fastcall actCheckAllUpdate(TObject *Sender);
 	void __fastcall actUncheckEverywhereExecute(TObject *Sender);

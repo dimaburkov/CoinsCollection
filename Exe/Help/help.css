@@ -1,0 +1,77 @@
+/* CoinsCollection help (task 18). Shared by Help\en and Help\uk. */
+:root {
+	--text: #1f2328;
+	--muted: #59636e;
+	--line: #d1d9e0;
+	--accent: #0b5cad;
+	--note-bg: #eef5fc;
+	--bg: #ffffff;
+	--code-bg: #f3f4f6;
+}
+@media (prefers-color-scheme: dark) {
+	:root {
+		--text: #e6e6e6;
+		--muted: #a0a7b0;
+		--line: #3a4048;
+		--accent: #6cb0f5;
+		--note-bg: #1b2a3a;
+		--bg: #16191d;
+		--code-bg: #23272e;
+	}
+}
+* { box-sizing: border-box; }
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--text);
+	font: 15px/1.55 "Segoe UI", Tahoma, sans-serif;
+}
+header {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 20px;
+	align-items: baseline;
+	padding: 12px 24px;
+	border-bottom: 1px solid var(--line);
+}
+header .app { font-weight: 600; }
+header nav { display: flex; gap: 16px; margin-left: auto; }
+main { max-width: 900px; padding: 8px 24px 40px; }
+h1 { font-size: 26px; margin: 18px 0 8px; }
+h2 { font-size: 19px; margin: 28px 0 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+h3 { font-size: 16px; margin: 20px 0 6px; }
+a { color: var(--accent); }
+.ui { font-weight: 600; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: 13.5px; }
+.note {
+	background: var(--note-bg);
+	border-left: 4px solid var(--accent);
+	padding: 8px 14px;
+	margin: 14px 0;
+	border-radius: 0 6px 6px 0;
+}
+table { border-collapse: collapse; margin: 10px 0; width: 100%; }
+th, td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: var(--code-bg); }
+ol, ul { padding-left: 24px; }
+li { margin: 3px 0; }
+
+/* Screenshot: the image, or a frame with the file name while the PNG is missing. */
+figure.shot { margin: 16px 0 20px; }
+figure.shot img { max-width: 100%; border: 1px solid var(--line); border-radius: 4px; display: block; }
+figure.shot .missing-frame {
+	display: none;
+	border: 2px dashed var(--line);
+	border-radius: 6px;
+	padding: 36px 16px;
+	text-align: center;
+	color: var(--muted);
+	font-family: Consolas, monospace;
+}
+figure.shot.missing img { display: none; }
+figure.shot.missing .missing-frame { display: block; }
+figure.shot figcaption { color: var(--muted); font-size: 13.5px; margin-top: 6px; }
+
+.toc { columns: 2 280px; padding-left: 20px; }
+.toc li { break-inside: avoid; }
+footer { color: var(--muted); font-size: 13px; padding: 16px 24px; border-top: 1px solid var(--line); }

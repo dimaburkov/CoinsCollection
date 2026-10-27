@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Numista: linking coins — Coins Collection — Help</title>
+<link rel="stylesheet" href="../help.css">
+</head>
+<body>
+<header>
+<span class="app">Coins Collection — Help</span>
+<nav><a href="index.html">Contents</a><a href="../uk/numista-link.html">Українською</a></nav>
+</header>
+<main>
+<h1>Numista: linking coins</h1>
+<figure class="shot"><img src="../images/02-context-menu.png" alt="Right-click menu of a coin: this coin (top) and checked coins (bottom)." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Screenshot: images/02-context-menu.png</div><figcaption>Right-click menu of a coin: this coin (top) and checked coins (bottom).</figcaption></figure>
+<p>Linking finds the Numista type (#Numista) and issue of a coin. Then the program loads the mintage, the type details and the photos.</p>
+<h2>One coin — Link manually</h2>
+<p>Right-click a coin → <span class="ui">Link manually</span> (or the <span class="ui">Numista</span> menu).</p>
+<ol>
+<li>The program searches by the catalogue number (KM#, Y#, C#), then by number and year, then by the search phrase.</li>
+<li>If there is one exact result, the coin is linked at once. Otherwise the type list opens.</li>
+<li>Choose the issue (year, mint) if it is not found automatically: <span class="ui">Choose issue</span>.</li>
+</ol>
+<figure class="shot"><img src="../images/06-choose-type.png" alt="Choose Numista type: the search phrase can be changed and searched again." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Screenshot: images/06-choose-type.png</div><figcaption>Choose Numista type: the search phrase can be changed and searched again.</figcaption></figure>
+<h2>Search phrase</h2>
+<p>If the right type is not in the list, edit <span class="ui">Search phrase</span> and press <span class="ui">Search</span> (or Enter),
+for example <code>Ort koronny - Sigismund III Vasa 1623</code>. The phrase you link with is saved in the coin card
+(<span class="ui">Numista search</span>) and used next time.</p>
+<h2>Historical states</h2>
+<p>Some coins are listed on Numista under another issuer than the uCoin country (for example Poland 1766 →
+<i>Polish–Lithuanian Commonwealth</i>). Such results always need your confirmation. When you choose one, the issuer is remembered
+for the coin's period, and the next coins of that period are found at once.</p>
+<h2>Many coins — Auto-link</h2>
+<p>Check coins (<a href="checks.html">Checking coins</a>) → <span class="ui">Auto-link</span>. Only unambiguous results are linked;
+the others are counted in the result — link them manually.
+The check box <span class="ui">Also load type details and photos</span> adds 1 request per coin.</p>
+<figure class="shot"><img src="../images/07-progress.png" alt="Progress of a mass operation. Stop — stops after the current coin." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Screenshot: images/07-progress.png</div><figcaption>Progress of a mass operation. Stop — stops after the current coin.</figcaption></figure>
+</main>
+<footer>Coins Collection</footer>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Початок роботи — Колекція монет — Довідка</title>
+<link rel="stylesheet" href="../help.css">
+</head>
+<body>
+<header>
+<span class="app">Колекція монет — Довідка</span>
+<nav><a href="index.html">Зміст</a><a href="../en/getting-started.html">In English</a></nav>
+</header>
+<main>
+<h1>Початок роботи</h1>
+<figure class="shot"><img src="../images/01-main-window.png" alt="Головне вікно: країни ліворуч, список монет, подробиці про монету та фото внизу." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Скриншот: images/01-main-window.png</div><figcaption>Головне вікно: країни ліворуч, список монет, подробиці про монету та фото внизу.</figcaption></figure>
+<h2>Перші кроки</h2>
+<ol>
+<li>Експортуйте колекцію з uCoin у файл <code>.xlsx</code> та імпортуйте його: <a href="import.html">Імпорт з uCoin</a>.</li>
+<li>Зареєструйтеся на Numista, отримайте власний ключ API та введіть його в <span class="ui">Numista → Connect / Settings/Numista → Підключення / налаштування</span>: <a href="numista-connect.html">Numista: підключення</a>.</li>
+<li>Пов'яжіть монети з каталогом Numista: <a href="numista-link.html">Numista: зв'язок монет</a>.</li>
+<li>Вивантажте їх у свою колекцію на Numista: <a href="numista-upload.html">Numista: вивантаження</a>.</li>
+</ol>
+<h2>Мова</h2>
+<p><span class="ui">Settings → Language/Налаштування → Мова</span> — English або Українська. Без налаштування — англійська.</p>
+<h2>Де зберігаються дані</h2>
+<table>
+<tr><th>Папка / файл поруч із програмою</th><th>Що всередині</th></tr>
+<tr><td><code>Db\</code></td><td>База колекції та її автоматичні резервні копії (<code>*.bak</code>): перед кожним оновленням бази й перед кожним імпортом.</td></tr>
+<tr><td><code>Photos\</code></td><td>Фото монет (JPEG). У базі — лише імена файлів.</td></tr>
+<tr><td><code>Numista\</code></td><td>Збережені відповіді Numista: тип монети, знайдений один раз, більше не запитується.</td></tr>
+<tr><td><code>CoinsCollection.ini</code></td><td>Налаштування: мова, ваш ключ API Numista, лічильник запитів за місяць.</td></tr>
+</table>
+<div class="note">Щоб перенести колекцію на інший комп'ютер, скопіюйте всю папку програми.</div>
+</main>
+<footer>Coins Collection</footer>
+</body>
+</html>

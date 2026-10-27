@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Імпорт з uCoin — Колекція монет — Довідка</title>
+<link rel="stylesheet" href="../help.css">
+</head>
+<body>
+<header>
+<span class="app">Колекція монет — Довідка</span>
+<nav><a href="index.html">Зміст</a><a href="../en/import.html">In English</a></nav>
+</header>
+<main>
+<h1>Імпорт з uCoin</h1>
+<figure class="shot"><img src="../images/08-ucoin-export.png" alt="uCoin: експорт колекції у файл .xlsx." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Скриншот: images/08-ucoin-export.png</div><figcaption>uCoin: експорт колекції у файл .xlsx.</figcaption></figure>
+<h2>Експорт з uCoin</h2>
+<p>На сайті uCoin відкрийте свою колекцію та експортуйте її в Excel (<code>.xlsx</code>). Збережіть файл на комп'ютері.</p>
+<h2>Імпорт</h2>
+<ol>
+<li><span class="ui">File → Import from uCoin (.xlsx)/Файл → Імпорт з uCoin (.xlsx)</span> (або кнопка <span class="ui">Import/Імпорт</span>) і виберіть файл.</li>
+<li>Програма показує, скільки рядків прочитано і в яких рядках помилки (вони пропускаються). Підтвердьте імпорт.</li>
+<li>Поточна колекція <b>замінюється</b> файлом. Перед цим робиться копія бази: <code>Db\…before-import-&lt;дата&gt;.bak</code>.</li>
+</ol>
+<h2>Що зберігається при повторному імпорті</h2>
+<p>Новіший експорт uCoin можна імпортувати будь-коли. Для монет, які є в новому файлі, програма зберігає:</p>
+<ul>
+<li>зв'язки з Numista (#Numista, випуск, індекс рідкісності, фразу пошуку Numista) і ✓ вивантажених примірників;</li>
+<li>фото монет і примірників.</li>
+</ul>
+<p>У підсумку видно, скільки зв'язків і фото збережено та втрачено. Фото монет, яких більше немає у файлі, переносяться до <code>Photos\_before-import-&lt;дата&gt;\</code>.</p>
+<div class="note">Країни зіставляються за назвою. Якщо перейменувати країну в <a href="references.html">Довідниках</a>, стара назва з uCoin з'явиться знову після наступного імпорту.</div>
+</main>
+<footer>Coins Collection</footer>
+</body>
+</html>

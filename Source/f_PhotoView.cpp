@@ -6,6 +6,7 @@
 #include <Vcl.Imaging.jpeg.hpp>
 #include "f_PhotoView.h"
 #include "u_Translator.h"
+#include "u_Help.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 //---------------------------------------------------------------------------
@@ -92,6 +93,7 @@ __fastcall TfmPhotoView::TfmPhotoView(TComponent *AOwner)
 	FView->OnMouseUp   = ViewMouseUp;
 
 	DoubleBuffered = true;	// без мерцания при масштабе и сдвиге
+	InstallHelpKey(this, L"photos");
 }
 //---------------------------------------------------------------------------
 void TfmPhotoView::Execute(TComponent *AOwner, const String &ATitle, const String &AObverseFile,

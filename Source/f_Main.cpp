@@ -27,6 +27,7 @@
 #include "u_PhotoRepository.h"
 #include "f_PhotoView.h"
 #include "f_Progress.h"
+#include "u_Help.h"
 #include "versionConfig.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -1327,6 +1328,12 @@ void __fastcall TfmMain::actNumistaRefreshOneExecute(TObject *Sender)
 		caption.c_str(), MB_OK | icon);
 }
 //---------------------------------------------------------------------------
+// Help → Contents: оглавление помощи на текущем языке (задача 18).
+void __fastcall TfmMain::actHelpContentsExecute(TObject *Sender)
+{
+	ShowHelp(L"index");
+}
+//---------------------------------------------------------------------------
 void __fastcall TfmMain::NumistaLinkClick(TObject *Sender)
 {
 	if (FDetailsTypeId != 0)
@@ -2023,6 +2030,8 @@ void TfmMain::CreateDetailRows()
 	}
 	// N# — ссылка на страницу типа на Numista.
 	FDetailRows[drNumista].Value->OnClick = NumistaLinkClick;
+	// F1 — помощь о главном окне (задача 18).
+	InstallHelpKey(this, L"main-window");
 	// Двойной клик по фото — окно просмотра (задача 16).
 	imgObverse->Tag = psObverse;
 	imgReverse->Tag = psReverse;
