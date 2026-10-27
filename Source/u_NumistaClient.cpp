@@ -9,6 +9,7 @@
 #include "u_NumistaClient.h"
 #include "u_AppConfig.h"
 #include "u_Translator.h"
+#include "versionConfig.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 //---------------------------------------------------------------------------
@@ -103,6 +104,7 @@ String TNumistaClient::Send(const String &APath, bool AWithToken, const String &
 	std::unique_ptr<THTTPClient> http(THTTPClient::Create());
 	http->ConnectionTimeout = cConnectTimeoutMs;
 	http->ResponseTimeout   = cResponseTimeoutMs;
+	http->UserAgent         = UserAgent();
 	http->Accept            = L"application/json";
 	if (post)
 		http->ContentType = L"application/json";
@@ -251,6 +253,11 @@ std::unique_ptr<TJSONValue> TNumistaClient::GetCached(const String &APath, bool 
 	if (AFromCache)
 		*AFromCache = false;
 	return json;
+}
+//---------------------------------------------------------------------------
+String TNumistaClient::UserAgent()
+{
+	return AppInfo::Name + L"/" + AppInfo::Version + L" (uCoin to Numista migration tool)";
 }
 //---------------------------------------------------------------------------
 std::unique_ptr<TJSONValue> TNumistaClient::GetCollectedItems()
