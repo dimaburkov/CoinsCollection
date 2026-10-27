@@ -26,7 +26,8 @@ struct TNumistaType
 	int    MinYear;         // 0 — нет данных
 	int    MaxYear;
 	bool   OtherIssuer;     // эмитент вне ветки страны / периода (задача 15a) — только с подтверждением
-	TNumistaType() : Id(0), MinYear(0), MaxYear(0), OtherIssuer(false) {}
+	bool   ByAutoQuery;     // найден по автофразе (задача 15b) — только с подтверждением
+	TNumistaType() : Id(0), MinYear(0), MaxYear(0), OtherIssuer(false), ByAutoQuery(false) {}
 };
 //---------------------------------------------------------------------------
 class TNumistaMatcher
@@ -54,8 +55,14 @@ public:
 	// но с date = год монеты (задача 15a): из ветки эмитента страны / периода — как есть,
 	// таких нет — все с OtherIssuer. Без номера — issuer + q=номинал + year.
 	// Затем отбор по году монеты (годы типа min_year–max_year), если под год подходит хотя бы один тип.
+	// Своя фраза монеты (NumistaQuery, задача 15b) — поиск только по ней. AAutoQuery — ничего не
+	// найдено обычным путём — ещё поиск по автофразе (результаты — с ByAutoQuery).
 	std::vector<TNumistaType> Search(const TCoinRecord &ACoin, const String &AIssuer,
-		const String &ACountryIssuer = String());
+		const String &ACountryIssuer = String(), bool AAutoQuery = false);
+	// Поиск по фразе (searchTypes q=…, без эмитента; с кэшем).
+	std::vector<TNumistaType> SearchPhrase(const String &AQuery);
+	// Автофраза поиска: номинал, период, год («1 ort Sigismund III 1623»).
+	static String AutoQuery(const TCoinRecord &ACoin);
 	// Эмитенты в одной ветке иерархии Numista (общий корень).
 	bool SameBranch(const String &AIssuer1, const String &AIssuer2) const;
 

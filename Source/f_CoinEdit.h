@@ -61,6 +61,8 @@ __published:	// IDE-managed Components
 	TEdit *edDiameter;
 	TEdit *edCatalogNumber;
 	TEdit *edSubject;
+	TLabel *lblNumistaQuery;
+	TEdit *edNumistaQuery;
 	TGroupBox *gbItem;
 	TLabel *lblCondition;
 	TLabel *lblQuantity;
@@ -109,6 +111,7 @@ __published:	// IDE-managed Components
 	TButton *btnReverseRemove;
 	TCheckBox *chkTypePhoto;
 	void __fastcall cbCountryChange(TObject *Sender);
+	void __fastcall QueryPartChange(TObject *Sender);
 	void __fastcall btnOKClick(TObject *Sender);
 	void __fastcall PhotoLoadClick(TObject *Sender);
 	void __fastcall PhotoPasteClick(TObject *Sender);

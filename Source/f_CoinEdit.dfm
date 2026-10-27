@@ -3,7 +3,7 @@ object fmCoinEdit: TfmCoinEdit
   Top = 0
   BorderStyle = bsDialog
   Caption = 'Coin'
-  ClientHeight = 588
+  ClientHeight = 615
   ClientWidth = 720
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -34,7 +34,7 @@ object fmCoinEdit: TfmCoinEdit
     Left = 8
     Top = 26
     Width = 504
-    Height = 220
+    Height = 247
     Caption = 'Coin'
     TabOrder = 0
     object lblCountry: TLabel
@@ -181,10 +181,25 @@ object fmCoinEdit: TfmCoinEdit
       Height = 21
       TabOrder = 8
     end
+    object lblNumistaQuery: TLabel
+      Left = 12
+      Top = 216
+      Width = 100
+      Height = 13
+      Caption = 'Numista search:'
+      FocusControl = edNumistaQuery
+    end
+    object edNumistaQuery: TEdit
+      Left = 120
+      Top = 213
+      Width = 372
+      Height = 21
+      TabOrder = 9
+    end
   end
   object gbItem: TGroupBox
     Left = 8
-    Top = 254
+    Top = 281
     Width = 504
     Height = 292
     Caption = 'My item'
@@ -422,7 +437,7 @@ object fmCoinEdit: TfmCoinEdit
     Left = 520
     Top = 26
     Width = 192
-    Height = 520
+    Height = 547
     Caption = 'Photo'
     TabOrder = 2
     object lblObverse: TLabel
@@ -580,7 +595,7 @@ object fmCoinEdit: TfmCoinEdit
   end
   object btnOK: TButton
     Left = 556
-    Top = 555
+    Top = 582
     Width = 75
     Height = 25
     Caption = 'OK'
@@ -590,7 +605,7 @@ object fmCoinEdit: TfmCoinEdit
   end
   object btnCancel: TButton
     Left = 637
-    Top = 555
+    Top = 582
     Width = 75
     Height = 25
     Cancel = True

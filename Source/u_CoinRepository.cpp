@@ -21,7 +21,7 @@ namespace
 		L"       cd.code AS condition, i.quantity, i.need_to_replace, i.catalog_value_uah,"
 		L"       i.my_value_uah, i.purchase_date, i.published_date, i.swap_info, i.color,"
 		L"       i.grading_company, i.grading_number, i.grade, i.label_text, i.comment,"
-		L"       c.numista_type_id, c.numista_issue_id, i.numista_item_id, c.numista_rarity,"
+		L"       c.numista_type_id, c.numista_issue_id, i.numista_item_id, c.numista_rarity, c.numista_query,"
 		L"       ni.id AS issue_loaded, ni.mintage, ni.comment AS issue_comment,"
 		L"       nt.id AS type_loaded, nt.composition"
 		L"  FROM coin_items i"
@@ -143,6 +143,7 @@ namespace
 		r.NumistaIssueId  = FieldInt  (D, L"numista_issue_id");
 		r.NumistaItemId   = FieldInt  (D, L"numista_item_id");
 		r.NumistaRarity   = FieldInt  (D, L"numista_rarity", -1);
+		r.NumistaQuery    = FieldText (D, L"numista_query");
 		r.NumistaIssueLoaded  = !D->FieldByName(L"issue_loaded")->IsNull;
 		TField *mintage = D->FieldByName(L"mintage");
 		r.NumistaMintage      = mintage->IsNull ? -1 : mintage->AsLargeInt;
@@ -237,13 +238,14 @@ namespace
 {
 	const wchar_t *const cInsertCoin =
 		L"INSERT INTO coins (id_period, id_currency, denomination, year, variety, subject,"
-		L"                   diameter_mm, catalog_number)"
+		L"                   diameter_mm, catalog_number, numista_query)"
 		L" VALUES (:id_period, :id_currency, :denomination, :year, :variety, :subject,"
-		L"         :diameter_mm, :catalog_number)";
+		L"         :diameter_mm, :catalog_number, :numista_query)";
 	const wchar_t *const cUpdateCoin =
 		L"UPDATE coins SET id_period = :id_period, id_currency = :id_currency,"
 		L"       denomination = :denomination, year = :year, variety = :variety,"
-		L"       subject = :subject, diameter_mm = :diameter_mm, catalog_number = :catalog_number"
+		L"       subject = :subject, diameter_mm = :diameter_mm, catalog_number = :catalog_number,"
+		L"       numista_query = :numista_query"
 		L" WHERE id = :id";
 	const wchar_t *const cInsertItem =
 		L"INSERT INTO coin_items (id_coin, id_condition, quantity, need_to_replace,"
@@ -272,6 +274,7 @@ namespace
 		SetText       (Q->ParamByName(L"subject"),        R.Subject);
 		SetFloatOrNull(Q->ParamByName(L"diameter_mm"),    R.DiameterMm);
 		SetText       (Q->ParamByName(L"catalog_number"), R.CatalogNumber);
+		SetText       (Q->ParamByName(L"numista_query"),  R.NumistaQuery);
 	}
 	//-----------------------------------------------------------------------
 	void BindItem(TFDQuery *Q, int ACoinId, int AConditionId, const TCoinRecord &R)
@@ -382,10 +385,10 @@ namespace
 	};
 	struct TOldCoin
 	{
-		Variant TypeId, IssueId, Rarity;
+		Variant TypeId, IssueId, Rarity, Query;
 		std::vector<TOldPhoto> Photos;	// фото типа
 		std::vector<TOldItem>  Items;	// выгруженные и / или с фото
-		bool HasNumista() const { return !TypeId.IsNull() || !Rarity.IsNull(); }
+		bool HasNumista() const { return !TypeId.IsNull() || !Rarity.IsNull() || !Query.IsNull(); }
 	};
 	//-----------------------------------------------------------------------
 	void SetVariant(TFDParam *AParam, TFieldType AType, const Variant &AValue)
@@ -416,9 +419,9 @@ namespace
 		std::map<int, String> keys;	// id монеты -> ключ
 		std::unique_ptr<TFDQuery> q = NewQuery(ADatabase,
 			L"SELECT id, id_period, id_currency, denomination, year, variety, subject, catalog_number,"
-			L"       numista_type_id, numista_issue_id, numista_rarity"
+			L"       numista_type_id, numista_issue_id, numista_rarity, numista_query"
 			L"  FROM coins c"
-			L" WHERE numista_type_id IS NOT NULL OR numista_rarity IS NOT NULL"
+			L" WHERE numista_type_id IS NOT NULL OR numista_rarity IS NOT NULL OR numista_query IS NOT NULL"
 			L"    OR EXISTS (SELECT 1 FROM coin_items i WHERE i.id_coin = c.id AND i.numista_item_id IS NOT NULL)"
 			L"    OR EXISTS (SELECT 1 FROM coin_photos ph WHERE ph.id_coin = c.id)"
 			L"    OR EXISTS (SELECT 1 FROM coin_items i JOIN coin_photos ph ON ph.id_item = i.id WHERE i.id_coin = c.id)");
@@ -432,6 +435,7 @@ namespace
 			coin.TypeId  = q->FieldByName(L"numista_type_id")->Value;
 			coin.IssueId = q->FieldByName(L"numista_issue_id")->Value;
 			coin.Rarity  = q->FieldByName(L"numista_rarity")->Value;
+			coin.Query   = q->FieldByName(L"numista_query")->Value;
 			keys[q->FieldByName(L"id")->AsInteger] = key;
 		}
 		q->Close();
@@ -508,7 +512,7 @@ namespace
 			L" VALUES (:owner, :side, :file_name, :source, :added_at, :copyright)";
 		std::unique_ptr<TFDQuery> updateCoin = NewQuery(ADatabase,
 			L"UPDATE coins SET numista_type_id = :type_id, numista_issue_id = :issue_id,"
-			L"       numista_rarity = :rarity WHERE id = :id");
+			L"       numista_rarity = :rarity, numista_query = :query WHERE id = :id");
 		std::unique_ptr<TFDQuery> findItem = NewQuery(ADatabase,
 			L"SELECT id FROM coin_items"
 			L" WHERE id_coin = :id_coin AND numista_item_id IS NULL"
@@ -546,6 +550,7 @@ namespace
 				SetVariant(updateCoin->ParamByName(L"type_id"),  ftInteger, coin.TypeId);
 				SetVariant(updateCoin->ParamByName(L"issue_id"), ftInteger, coin.IssueId);
 				SetVariant(updateCoin->ParamByName(L"rarity"),   ftInteger, coin.Rarity);
+				SetVariant(updateCoin->ParamByName(L"query"),    ftWideString, coin.Query);
 				updateCoin->ParamByName(L"id")->AsInteger = coinId;
 				updateCoin->ExecSQL();
 				++AKept.Coins;
@@ -830,6 +835,15 @@ bool TCoinRepository::LoadNumistaType(int ATypeId, TNumistaTypeInfo &AType)
 	AType.PictureCopyright[1] = FieldText(D, L"reverse_copyright");
 	AType.PicturesKnown       = FieldInt (D, L"pictures_known") != 0;
 	return true;
+}
+//---------------------------------------------------------------------------
+// Своя фраза поиска Numista ("" — автофраза).
+void TCoinRepository::SetCoinQuery(int ACoinId, const String &AQuery)
+{
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, L"UPDATE coins SET numista_query = :query WHERE id = :id");
+	SetText(q->ParamByName(L"query"), AQuery);
+	q->ParamByName(L"id")->AsInteger = ACoinId;
+	q->ExecSQL();
 }
 //---------------------------------------------------------------------------
 // Индекс редкости монеты (-1 — очистить; 0 — допустимое значение).

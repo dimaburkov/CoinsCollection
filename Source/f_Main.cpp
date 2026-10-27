@@ -496,27 +496,34 @@ void __fastcall TfmMain::actNumistaFindExecute(TObject *Sender)
 			countryIssuer = NumistaIssuers()[AnsiUpperCase(coin.Country)];
 			periodIssuer = FRepository->Lookups().PeriodIssuers()[
 				TLookupRepository::PeriodKey(coin.Country, coin.Period)];
-			types = matcher.Search(coin, periodIssuer.IsEmpty() ? countryIssuer : periodIssuer, countryIssuer);
+			types = matcher.Search(coin, periodIssuer.IsEmpty() ? countryIssuer : periodIssuer, countryIssuer, true);
 		}
 		__finally
 		{
 			Screen->Cursor = saved;
 		}
 
-		// Другой эмитент (историческое государство) — всегда через окно выбора (задача 15a).
+		// Другой эмитент (задача 15a) или автофраза (15b) — всегда через окно выбора; ничего не
+		// найдено — тоже окно: фразу поиска можно исправить и искать снова. Изменённая фраза
+		// сохраняется у монеты при Link.
 		int typeId = 0;
-		if (types.size() == 1 && !types[0].OtherIssuer)
+		const String autoQuery = TNumistaMatcher::AutoQuery(coin);
+		const String startQuery = coin.NumistaQuery.IsEmpty() ? autoQuery : coin.NumistaQuery;
+		String query = startQuery;
+		if (types.size() == 1 && !types[0].OtherIssuer && !types[0].ByAutoQuery)
 			typeId = types[0].Id;
-		else if (types.size() > 1)
+		else
 			typeId = TfmNumistaChoose::Execute(this,
-				Format(Tr(L"NumistaChoose.Found"), ARRAYOFCONST(((int)types.size(), CoinText(coin)))), types);
+				Format(Tr(L"NumistaChoose.Found"), ARRAYOFCONST(((int)types.size(), CoinText(coin)))), types,
+				matcher, query);
+		if (typeId != 0 && query != startQuery)
+			FRepository->SetCoinQuery(coin.CoinId, query == autoQuery ? String() : query);
+		// Выбран из нового поиска в окне — его результаты (из кэша) для названия и эмитента в итоге.
+		if (typeId != 0 && std::none_of(types.begin(), types.end(),
+			[typeId](const TNumistaType &t) { return t.Id == typeId; }))
+			types = matcher.SearchPhrase(query);
 
-		if (types.empty())
-		{
-			message = Format(Tr(L"Numista.Find.NotFound"), ARRAYOFCONST((CoinText(coin))));
-			icon = MB_ICONWARNING;
-		}
-		else if (typeId == 0)
+		if (typeId == 0)
 			message = Tr(L"Numista.Find.Cancelled");
 		else
 		{
@@ -644,7 +651,7 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 		String number;
 		if (r.NumistaTypeId != 0)
 			linkedBefore.insert(r.CoinId);
-		else if (!matcher.ParseCatalogNumber(r.CatalogNumber, catalogueId, number))
+		else if (!matcher.ParseCatalogNumber(r.CatalogNumber, catalogueId, number) && r.NumistaQuery.IsEmpty())
 			noNumber.insert(r.CoinId);
 		else if (seen.insert(r.CoinId).second)
 			coins.push_back(r);
@@ -665,6 +672,7 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 		TNumistaClient::RequestsThisMonth(), AppConfig().NumistaMonthlyQuota))), caption))
 		return;
 	client.RequestBudget = count * 3;	// не больше 3 запросов на монету: поиск, повтор без issuer, выпуски
+	                                	// (своя фраза — 1 поиск; автофраза в автосвязи не используется)
 
 	int linked = 0, withIssue = 0, ambiguous = 0, notFound = 0, otherIssuer = 0, processed = 0;
 	std::set<int> linkedCoins;

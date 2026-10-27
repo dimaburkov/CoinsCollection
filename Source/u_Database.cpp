@@ -70,7 +70,8 @@ void TDatabase::EnsureSchema()
 		if (version < 6) { MigrateTo6(); version = 6; }
 		if (version < 7) { MigrateTo7(); version = 7; }
 		if (version < 8) { MigrateTo8(); version = 8; }
-		// if (version < 9) { MigrateTo9(); version = 9; }
+		if (version < 9) { MigrateTo9(); version = 9; }
+		// if (version < 10) { MigrateTo10(); version = 10; }
 
 		// PRAGMA не принимает параметры; version — целое из кода.
 		FConnection->ExecSQL(L"PRAGMA user_version = " + IntToStr(version));
@@ -285,6 +286,13 @@ void TDatabase::MigrateTo8()
 	FConnection->ExecSQL(L"ALTER TABLE numista_types ADD COLUMN obverse_copyright TEXT");
 	FConnection->ExecSQL(L"ALTER TABLE numista_types ADD COLUMN reverse_copyright TEXT");
 	FConnection->ExecSQL(L"ALTER TABLE numista_types ADD COLUMN pictures_known INTEGER NOT NULL DEFAULT 0");
+}
+//---------------------------------------------------------------------------
+// v9: своя фраза поиска Numista у монеты (задача 15b); NULL — автофраза
+// (номинал, период, год — TNumistaMatcher::AutoQuery).
+void TDatabase::MigrateTo9()
+{
+	FConnection->ExecSQL(L"ALTER TABLE coins ADD COLUMN numista_query TEXT");
 }
 //---------------------------------------------------------------------------
 // Справочники с начальным составом (u_SeedData). «Extinct states» — не континент:

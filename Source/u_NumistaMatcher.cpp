@@ -243,10 +243,37 @@ bool TNumistaMatcher::SameBranch(const String &AIssuer1, const String &AIssuer2)
 	return !AIssuer1.IsEmpty() && !AIssuer2.IsEmpty() && RootOf(AIssuer1) == RootOf(AIssuer2);
 }
 //---------------------------------------------------------------------------
-std::vector<TNumistaType> TNumistaMatcher::Search(const TCoinRecord &ACoin, const String &AIssuer,
-	const String &ACountryIssuer)
+String TNumistaMatcher::AutoQuery(const TCoinRecord &ACoin)
 {
-	const std::vector<TNumistaType> all = SearchAll(ACoin, AIssuer, ACountryIssuer);
+	String result = ACoin.Denomination.Trim();
+	if (!ACoin.Period.Trim().IsEmpty())
+		result += L" " + ACoin.Period.Trim();
+	if (ACoin.Year != 0)
+		result += L" " + IntToStr(ACoin.Year);
+	return result;
+}
+//---------------------------------------------------------------------------
+std::vector<TNumistaType> TNumistaMatcher::SearchPhrase(const String &AQuery)
+{
+	if (AQuery.Trim().IsEmpty())
+		return std::vector<TNumistaType>();
+	return QueryTypes(L"/types?q=" + UrlParam(AQuery.Trim()) + L"&lang=en&count=" + IntToStr(cPageSize));
+}
+//---------------------------------------------------------------------------
+std::vector<TNumistaType> TNumistaMatcher::Search(const TCoinRecord &ACoin, const String &AIssuer,
+	const String &ACountryIssuer, bool AAutoQuery)
+{
+	// Своя фраза — как задал пользователь, без отбора по году.
+	if (!ACoin.NumistaQuery.Trim().IsEmpty())
+		return SearchPhrase(ACoin.NumistaQuery);
+
+	std::vector<TNumistaType> all = SearchAll(ACoin, AIssuer, ACountryIssuer);
+	if (all.empty() && AAutoQuery)
+	{
+		all = SearchPhrase(AutoQuery(ACoin));
+		for (TNumistaType &t : all)
+			t.ByAutoQuery = true;
+	}
 	if (ACoin.Year == 0)
 		return all;
 	std::vector<TNumistaType> result;

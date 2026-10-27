@@ -22,22 +22,77 @@ namespace
 }
 //---------------------------------------------------------------------------
 __fastcall TfmNumistaChoose::TfmNumistaChoose(TComponent* Owner)
-	: TForm(Owner)
+	: TForm(Owner),
+	  FMatcher(nullptr)
 {
 	Translator().TranslateForm(this);
 }
 //---------------------------------------------------------------------------
-int TfmNumistaChoose::Execute(TComponent *AOwner, const String &ACoinText, const std::vector<TNumistaType> &ATypes)
+int TfmNumistaChoose::Execute(TComponent *AOwner, const String &ACoinText, const std::vector<TNumistaType> &ATypes,
+	TNumistaMatcher &AMatcher, String &AQuery)
 {
 	std::unique_ptr<TfmNumistaChoose> form(new TfmNumistaChoose(AOwner));
-	form->FTypes = ATypes;
+	form->FMatcher = &AMatcher;
 	form->lblCoin->Caption = ACoinText;
-	form->dgTypes->RowCount = std::max<int>(2, (int)ATypes.size() + 1);
+	form->edQuery->Text = AQuery;
+	form->ShowTypes(ATypes);
 	form->FormResize(nullptr);
-	if (form->ShowModal() != mrOk)
+	if (ATypes.empty())
+		form->ActiveControl = form->edQuery;	// ничего не найдено — сразу править фразу
+	const bool ok = form->ShowModal() == mrOk;
+	AQuery = form->edQuery->Text.Trim();
+	if (!ok)
 		return 0;
 	const int index = form->Selected();
 	return index >= 0 ? form->FTypes[index].Id : 0;
+}
+//---------------------------------------------------------------------------
+void TfmNumistaChoose::ShowTypes(const std::vector<TNumistaType> &ATypes)
+{
+	FTypes = ATypes;
+	dgTypes->RowCount = std::max<int>(2, (int)FTypes.size() + 1);
+	dgTypes->Row = 1;
+	btnLink->Enabled = !FTypes.empty();
+	dgTypes->Invalidate();
+}
+//---------------------------------------------------------------------------
+// Новый поиск по фразе (searchTypes q=…; 1 запрос, ответ кэшируется). Ошибка — сообщение,
+// список прежний.
+void __fastcall TfmNumistaChoose::btnSearchClick(TObject *Sender)
+{
+	if (!FMatcher || edQuery->Text.Trim().IsEmpty())
+		return;
+	const TCursor saved = Screen->Cursor;
+	Screen->Cursor = crHourGlass;
+	try
+	{
+		std::vector<TNumistaType> types = FMatcher->SearchPhrase(edQuery->Text);
+		Screen->Cursor = saved;
+		ShowTypes(types);
+		if (!types.empty())
+			ActiveControl = dgTypes;
+	}
+	catch (Exception &e)
+	{
+		Screen->Cursor = saved;
+		Application->MessageBox(e.Message.c_str(), Caption.c_str(), MB_OK | MB_ICONERROR);
+	}
+}
+//---------------------------------------------------------------------------
+// В поле фразы Enter — поиск, а не Link (Default-кнопка).
+void __fastcall TfmNumistaChoose::edQueryEnter(TObject *Sender)
+{
+	btnSearch->Default = true;
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmNumistaChoose::edQueryExit(TObject *Sender)
+{
+	btnLink->Default = true;
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmNumistaChoose::dgTypesSelectCell(TObject *Sender, int ACol, int ARow, bool &CanSelect)
+{
+	CanSelect = ARow - 1 < (int)FTypes.size();
 }
 //---------------------------------------------------------------------------
 int TfmNumistaChoose::Selected() const
@@ -60,6 +115,8 @@ void __fastcall TfmNumistaChoose::dgTypesDrawCell(TObject *Sender, int ACol, int
 	String text;
 	if (ARow == 0)
 		text = Tr(cColumnKeys[ACol]);
+	else if (FTypes.empty() && ARow == 1 && ACol == ccTitle)
+		text = Tr(L"NumistaChoose.Nothing");
 	else if (ARow - 1 < (int)FTypes.size())
 	{
 		const TNumistaType &t = FTypes[ARow - 1];
