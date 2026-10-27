@@ -24,6 +24,7 @@
 #include "u_CoinRepository.h"
 #include "u_PhotoRepository.h"
 struct TPhotoEdits;
+class TNumistaClient;
 //---------------------------------------------------------------------------
 class TfmMain : public TForm
 {
@@ -285,6 +286,8 @@ private:	// User declarations
 	void UpdateNumistaMenuTitles();
 	void ShowTypeDetails(int ATypeId);
 	void ShowDetailPhotos(const TCoinRecord *ARecord);
+	int  DownloadTypePhotos(TNumistaClient &AClient, const TNumistaTypeInfo &AType, int ACoinId,
+		bool AReplaceNumista, int &AFailed);
 	void __fastcall DetailPhotoDblClick(TObject *Sender);
 	void UploadItems(const std::vector<TCoinRecord> &ACandidates);
 	void ReadRarity(const std::set<int> &ACoinIds, const String &ACaption);

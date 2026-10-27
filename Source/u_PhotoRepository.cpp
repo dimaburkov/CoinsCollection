@@ -68,6 +68,22 @@ void TPhotoRepository::SetCoinPhoto(int ACoinId, TPhotoSide ASide, TGraphic *AGr
 	SetPhoto(false, ACoinId, ASide, AGraphic);
 }
 //---------------------------------------------------------------------------
+void TPhotoRepository::SetCoinPhoto(int ACoinId, TPhotoSide ASide, TGraphic *AGraphic, const String &ASource,
+	const String &ACopyright)
+{
+	SetPhoto(false, ACoinId, ASide, AGraphic, ASource, ACopyright);
+}
+//---------------------------------------------------------------------------
+String TPhotoRepository::CoinPhotoSource(int ACoinId, TPhotoSide ASide)
+{
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
+		L"SELECT source FROM coin_photos WHERE id_coin = :owner AND side = :side");
+	q->ParamByName(L"owner")->AsInteger   = ACoinId;
+	q->ParamByName(L"side")->AsWideString = SideName(ASide);
+	q->Open();
+	return q->Eof ? String() : q->Fields->Fields[0]->AsString;
+}
+//---------------------------------------------------------------------------
 void TPhotoRepository::RemoveItemPhoto(int AItemId, TPhotoSide ASide)
 {
 	RemovePhoto(true, AItemId, ASide);

@@ -29,6 +29,11 @@ public:
 	// То же из картинки в памяти (вставка из буфера обмена — задача 15).
 	void SetItemPhoto(int AItemId, TPhotoSide ASide, TGraphic *AGraphic);
 	void SetCoinPhoto(int ACoinId, TPhotoSide ASide, TGraphic *AGraphic);
+	// Фото типа с источником (задача 17b): ASource — "numista", ACopyright — автор фото.
+	void SetCoinPhoto(int ACoinId, TPhotoSide ASide, TGraphic *AGraphic, const String &ASource,
+		const String &ACopyright);
+	// Источник фото типа ("file" / "numista"); "" — фото нет.
+	String CoinPhotoSource(int ACoinId, TPhotoSide ASide);
 
 	// Удалить фото (строку и файл); фото нет — ничего не делает.
 	void RemoveItemPhoto(int AItemId, TPhotoSide ASide);

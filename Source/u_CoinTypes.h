@@ -74,6 +74,9 @@ struct TCoinRecord
 	// Тип из numista_types (задача 13d)
 	bool      NumistaTypeLoaded;   // характеристики типа загружены
 	String    NumistaComposition;  // металл ("Silver (.925)", "Aluminium" ...)
+	// Фото типа из Numista (задача 17b): у Numista есть изображение стороны, а у монеты
+	// фото этой стороны нет, или ссылки на изображения ещё не известны
+	bool      NumistaPhotoPending;
 
 	TCoinRecord()
 		: Id(0),
@@ -90,7 +93,8 @@ struct TCoinRecord
 		  NumistaRarity(-1),
 		  NumistaIssueLoaded(false),
 		  NumistaMintage(-1),
-		  NumistaTypeLoaded(false)
+		  NumistaTypeLoaded(false),
+		  NumistaPhotoPending(false)
 	{
 	}
 };
@@ -136,8 +140,7 @@ struct TNumistaTypeInfo
 	String Series;
 	String CommemoratedTopic;
 	String Mints;
-	// Изображения сторон (задача 17), индекс — TPhotoSide (0 — аверс, 1 — реверс); "" — нет.
-	// Только хранятся: сайт Numista не отдаёт файлы программам (403), загрузки нет.
+	// Изображения сторон (задачи 17, 17b), индекс — TPhotoSide (0 — аверс, 1 — реверс); "" — нет.
 	String Picture[2];
 	String PictureCopyright[2];
 	bool   PicturesKnown;       // ссылки прочитаны из getType (false — тип загружен до v8)

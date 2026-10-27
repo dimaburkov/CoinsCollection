@@ -65,6 +65,12 @@ public:
 	// Возвращает id добавленного предмета.
 	int AddCollectedItem(const String &AJson);
 
+	// Изображение каталога Numista (https://...numista.com/...; obverse / reverse.picture из
+	// getType) — файл сайта, не запрос к API: квоту не тратит. Подпись — UserAgent()
+	// (Numista внёс "CoinsCollection/" в белый список, 28.10.2026). Другой адрес или
+	// не изображение — ENumistaError. Возвращает изображение (владеет вызывающий).
+	TGraphic *DownloadImage(const String &AUrl);
+
 	// Подпись программы в запросах (User-Agent): "CoinsCollection/<версия> (uCoin to Numista
 	// migration tool)". Numista вносит её в белый список (переписка 27.10.2026): по ней
 	// отличает запросы программы, в том числе к изображениям каталога.

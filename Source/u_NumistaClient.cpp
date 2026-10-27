@@ -255,6 +255,50 @@ std::unique_ptr<TJSONValue> TNumistaClient::GetCached(const String &APath, bool 
 	return json;
 }
 //---------------------------------------------------------------------------
+TGraphic *TNumistaClient::DownloadImage(const String &AUrl)
+{
+	// Только сайт Numista по https: ссылка пришла из ответа API, но в чужой адрес не ходим.
+	const String prefix = L"https://";
+	String host = SameText(AUrl.SubString(1, prefix.Length()), prefix) ? AUrl.SubString(prefix.Length() + 1, AUrl.Length()) : String();
+	if (host.Pos(L"/") > 0)
+		host = host.SubString(1, host.Pos(L"/") - 1);
+	host = host.LowerCase();
+	const String domain = L".numista.com";
+	if (!(host == L"numista.com" || (host.Length() > domain.Length()
+		&& host.SubString(host.Length() - domain.Length() + 1, domain.Length()) == domain)))
+		throw ENumistaError(0, Tr(L"Numista.Error.ImageUrl") + L" " + AUrl);
+
+	std::unique_ptr<THTTPClient> http(THTTPClient::Create());
+	http->ConnectionTimeout = cConnectTimeoutMs;
+	http->ResponseTimeout   = cResponseTimeoutMs;
+	http->UserAgent         = UserAgent();
+	std::unique_ptr<TMemoryStream> data(new TMemoryStream());
+	_di_IHTTPResponse response;
+	try
+	{
+		response = http->Get(AUrl, data.get());
+	}
+	catch (Exception &e)
+	{
+		throw ENumistaError(0, Tr(L"Numista.Error.Network") + L" " + e.Message);
+	}
+	if (response->StatusCode < 200 || response->StatusCode >= 300)
+		throw ENumistaError(response->StatusCode, Format(Tr(L"Numista.Error.Image"),
+			ARRAYOFCONST((response->StatusCode, AUrl))));
+
+	data->Position = 0;
+	std::unique_ptr<TWICImage> image(new TWICImage());
+	try
+	{
+		image->LoadFromStream(data.get());
+	}
+	catch (Exception &)
+	{
+		throw ENumistaError(0, Tr(L"Numista.Error.ImageUrl") + L" " + AUrl);
+	}
+	return image.release();
+}
+//---------------------------------------------------------------------------
 String TNumistaClient::UserAgent()
 {
 	return AppInfo::Name + L"/" + AppInfo::Version + L" (uCoin to Numista migration tool)";
