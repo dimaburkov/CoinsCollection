@@ -32,6 +32,7 @@ public:
 	String    NumistaRequestsMonth;  // 'yyyy-mm', к которому относится счётчик
 	int       NumistaRequestsCount;  // запросов к API за этот месяц
 	int       NumistaMonthlyQuota;   // квота ключа в месяц (по умолчанию 2000)
+	bool      NumistaAutoLinkDetails; // автосвязь сразу загружает характеристики и фото типа (задача 17c)
 
 	// Каталог exe с завершающим "\".
 	static String ExeDir();

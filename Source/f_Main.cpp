@@ -673,16 +673,37 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 		return;
 	}
 
-	// Монеты выбраны флажками — лимит не спрашивается. Много отмеченных (например, флажок
-	// в заголовке на узле All) — подтверждение с оценкой: обычно 2 запроса на монету.
+	// Подтверждение с оценкой запросов (обычно 2 на монету) и флажком «характеристики и фото
+	// сразу» (+1 запрос getType на монету; задача 17c). Флажок запоминается в ini.
 	const int count = (int)coins.size();
-	if (count > cConfirmCheckCoins && !Confirm(Format(Tr(L"Numista.Check.Confirm"), ARRAYOFCONST((count, count * 2,
-		TNumistaClient::RequestsThisMonth(), AppConfig().NumistaMonthlyQuota))), caption))
-		return;
-	client.RequestBudget = count * 3;	// не больше 3 запросов на монету: поиск, повтор без issuer, выпуски
-	                                	// (своя фраза — 1 поиск; автофраза в автосвязи не используется)
+	bool details = AppConfig().NumistaAutoLinkDetails;
+	{
+		std::unique_ptr<TTaskDialog> dialog(new TTaskDialog(nullptr));
+		dialog->Caption = caption;
+		dialog->Title   = caption;
+		dialog->MainIcon = tdiInformation;
+		dialog->CommonButtons = TTaskDialogCommonButtons() << tcbOk << tcbCancel;
+		dialog->DefaultButton = tcbOk;
+		dialog->Text = Format(Tr(L"Numista.Check.Confirm"), ARRAYOFCONST((count, count * 2,
+			TNumistaClient::RequestsThisMonth(), AppConfig().NumistaMonthlyQuota)));
+		dialog->VerificationText = Format(Tr(L"Numista.Check.Details"), ARRAYOFCONST((count)));
+		if (details)
+			dialog->Flags = dialog->Flags << tfVerificationFlagChecked;
+		if (!dialog->Execute(Handle) || dialog->ModalResult != mrOk)
+			return;
+		details = dialog->Flags.Contains(tfVerificationFlagChecked);
+		if (details != AppConfig().NumistaAutoLinkDetails)
+		{
+			AppConfig().NumistaAutoLinkDetails = details;
+			AppConfig().Save();
+		}
+	}
+	// Не больше 3 запросов на монету: поиск, повтор без issuer, выпуски (своя фраза — 1 поиск;
+	// автофраза в автосвязи не используется); с характеристиками — ещё getType.
+	client.RequestBudget = count * (details ? 4 : 3);
 
 	int linked = 0, withIssue = 0, ambiguous = 0, notFound = 0, otherIssuer = 0, processed = 0;
+	int typesLoaded = 0, typesFailed = 0, photos = 0, photosFailed = 0;
 	std::set<int> linkedCoins;
 	String stopReason;
 	const TCursor saved = Screen->Cursor;
@@ -724,6 +745,22 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 					++linked;
 					if (issueId != 0)
 						++withIssue;
+					// Характеристики и фото типа сразу (getType из кэша или 1 запрос; фото квоту
+					// не тратят). Ошибка — счётчик в итоге, связь сохранена.
+					if (details && stopReason.IsEmpty())
+					{
+						try
+						{
+							const TNumistaTypeInfo info = matcher.LoadType(types[0].Id);
+							FRepository->SaveNumistaType(info);
+							++typesLoaded;
+							photos += DownloadTypePhotos(client, info, coin.CoinId, false, photosFailed);
+						}
+						catch (Exception &)
+						{
+							++typesFailed;
+						}
+					}
 				}
 				else if (types.size() > 1)
 					++ambiguous;
@@ -754,6 +791,15 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 		+ Format(Tr(L"Numista.Match.OtherIssuer"), ARRAYOFCONST((otherIssuer))) + L"\r\n"
 		+ Format(Tr(L"Numista.Match.NotProcessed"), ARRAYOFCONST(((int)coins.size() - processed))) + L"\r\n"
 		+ skipped;
+	if (details)
+	{
+		report += L"\r\n\r\n" + Format(Tr(L"Numista.Match.Details"), ARRAYOFCONST((typesLoaded)))
+			+ L"\r\n" + Format(Tr(L"Numista.Photos.Loaded"), ARRAYOFCONST((photos)));
+		if (typesFailed > 0)
+			report += L"\r\n" + Format(Tr(L"Numista.Match.DetailsFailed"), ARRAYOFCONST((typesFailed)));
+		if (photosFailed > 0)
+			report += L"\r\n" + Format(Tr(L"Numista.Photos.Failed"), ARRAYOFCONST((photosFailed)));
+	}
 	if (!stopReason.IsEmpty())
 		report += L"\r\n\r\n" + Tr(L"Numista.Match.Stopped") + L" " + stopReason;
 	Application->MessageBox((report + L"\r\n\r\n" + NumistaRequestsText(client.RequestsMade)).c_str(),
