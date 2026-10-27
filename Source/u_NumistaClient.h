@@ -65,6 +65,11 @@ public:
 	// Возвращает id добавленного предмета.
 	int AddCollectedItem(const String &AJson);
 
+	// Подпись программы в запросах (User-Agent): "CoinsCollection/<версия> (uCoin to Numista
+	// migration tool)". Numista вносит её в белый список (переписка 27.10.2026): по ней
+	// отличает запросы программы, в том числе к изображениям каталога.
+	static String UserAgent();
+
 	// Запросов к API за текущий месяц (по счётчику программы).
 	static int RequestsThisMonth();
 
