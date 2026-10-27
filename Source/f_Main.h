@@ -16,6 +16,7 @@
 #include <Vcl.ToolWin.hpp>
 #include <Vcl.Grids.hpp>
 #include <Vcl.ExtCtrls.hpp>
+#include <System.JSON.hpp>
 #include <map>
 #include <memory>
 #include <set>
@@ -25,6 +26,7 @@
 #include "u_PhotoRepository.h"
 struct TPhotoEdits;
 class TNumistaClient;
+class TNumistaMatcher;
 //---------------------------------------------------------------------------
 class TfmMain : public TForm
 {
@@ -53,6 +55,8 @@ __published:	// IDE-managed Components
 	TAction *actNumistaRarity;
 	TAction *actNumistaCatalog;
 	TAction *actHelpContents;
+	TAction *actNumistaImport;
+	TMenuItem *miNumistaImport;
 	TMenuItem *miHelpContents;
 	TMenuItem *miHelpSep1;
 	TAction *actNumistaUploadOne;
@@ -183,6 +187,7 @@ __published:	// IDE-managed Components
 	void __fastcall actNumistaRarityExecute(TObject *Sender);
 	void __fastcall actNumistaCatalogExecute(TObject *Sender);
 	void __fastcall actHelpContentsExecute(TObject *Sender);
+	void __fastcall actNumistaImportExecute(TObject *Sender);
 	void __fastcall actCheckAllExecute(TObject *Sender);
 	void __fastcall actCheckAllUpdate(TObject *Sender);
 	void __fastcall actUncheckEverywhereExecute(TObject *Sender);
@@ -292,6 +297,13 @@ private:	// User declarations
 	void ShowDetailPhotos(const TCoinRecord *ARecord);
 	int  DownloadTypePhotos(TNumistaClient &AClient, const TNumistaTypeInfo &AType, int ACoinId,
 		bool AReplaceNumista, int &AFailed);
+	// Импорт из своей коллекции Numista (задача 20).
+	String ImportCountry(const TNumistaTypeInfo &AType, TNumistaMatcher &AMatcher, bool &ACreated);
+	int  FindExistingItem(TJSONValue *AItem, const TNumistaTypeInfo &AType, TNumistaMatcher &AMatcher);
+	void LinkExistingItem(TNumistaClient &AClient, TNumistaMatcher &AMatcher, TJSONValue *AItem,
+		const TNumistaTypeInfo &AType, int AItemId, int &APhotos, int &APhotosFailed);
+	void ImportNumistaItem(TNumistaClient &AClient, TNumistaMatcher &AMatcher, TJSONValue *AItem,
+		const TNumistaTypeInfo &AType, int &ACountries, int &APhotos, int &APhotosFailed);
 	void __fastcall DetailPhotoDblClick(TObject *Sender);
 	void UploadItems(const std::vector<TCoinRecord> &ACandidates);
 	void ReadRarity(const std::set<int> &ACoinIds, const String &ACaption);

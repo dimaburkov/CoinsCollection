@@ -71,7 +71,8 @@ void TDatabase::EnsureSchema()
 		if (version < 7) { MigrateTo7(); version = 7; }
 		if (version < 8) { MigrateTo8(); version = 8; }
 		if (version < 9) { MigrateTo9(); version = 9; }
-		// if (version < 10) { MigrateTo10(); version = 10; }
+		if (version < 10) { MigrateTo10(); version = 10; }
+		// if (version < 11) { MigrateTo11(); version = 11; }
 
 		// PRAGMA не принимает параметры; version — целое из кода.
 		FConnection->ExecSQL(L"PRAGMA user_version = " + IntToStr(version));
@@ -293,6 +294,15 @@ void TDatabase::MigrateTo8()
 void TDatabase::MigrateTo9()
 {
 	FConnection->ExecSQL(L"ALTER TABLE coins ADD COLUMN numista_query TEXT");
+}
+//---------------------------------------------------------------------------
+// v10 (задача 20): диапазон лет монеты (coins.year — первый год, year_to — последний,
+// NULL — один год) и происхождение экземпляра (coin_items.origin: NULL — uCoin / вручную,
+// 'numista' — импорт из своей коллекции Numista; такие не удаляются импортом uCoin).
+void TDatabase::MigrateTo10()
+{
+	FConnection->ExecSQL(L"ALTER TABLE coins ADD COLUMN year_to INTEGER");
+	FConnection->ExecSQL(L"ALTER TABLE coin_items ADD COLUMN origin TEXT");
 }
 //---------------------------------------------------------------------------
 // Справочники с начальным составом (u_SeedData). «Extinct states» — не континент:

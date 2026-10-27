@@ -147,39 +147,54 @@ object fmCoinEdit: TfmCoinEdit
     object edYear: TEdit
       Left = 390
       Top = 105
-      Width = 102
+      Width = 44
       Height = 21
-      MaxLength = 4
-      NumbersOnly = True
+      MaxLength = 5
       TabOrder = 4
+    end
+    object lblYearTo: TLabel
+      Left = 438
+      Top = 108
+      Width = 6
+      Height = 13
+      Caption = '-'
+      FocusControl = edYearTo
+    end
+    object edYearTo: TEdit
+      Left = 448
+      Top = 105
+      Width = 44
+      Height = 21
+      MaxLength = 5
+      TabOrder = 5
     end
     object edVariety: TEdit
       Left = 120
       Top = 132
       Width = 170
       Height = 21
-      TabOrder = 5
+      TabOrder = 6
     end
     object edDiameter: TEdit
       Left = 390
       Top = 132
       Width = 102
       Height = 21
-      TabOrder = 6
+      TabOrder = 7
     end
     object edCatalogNumber: TEdit
       Left = 120
       Top = 159
       Width = 170
       Height = 21
-      TabOrder = 7
+      TabOrder = 8
     end
     object edSubject: TEdit
       Left = 120
       Top = 186
       Width = 372
       Height = 21
-      TabOrder = 8
+      TabOrder = 9
     end
     object lblNumistaQuery: TLabel
       Left = 12
@@ -194,7 +209,7 @@ object fmCoinEdit: TfmCoinEdit
       Top = 213
       Width = 372
       Height = 21
-      TabOrder = 9
+      TabOrder = 10
     end
   end
   object gbItem: TGroupBox

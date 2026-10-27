@@ -17,10 +17,10 @@ namespace
 {
 	const wchar_t *const cSelectAll =
 		L"SELECT i.id, i.id_coin, co.name AS country, p.name AS period, cu.name AS currency,"
-		L"       c.denomination, c.year, c.variety, c.subject, c.diameter_mm, c.catalog_number,"
+		L"       c.denomination, c.year, c.year_to, c.variety, c.subject, c.diameter_mm, c.catalog_number,"
 		L"       cd.code AS condition, i.quantity, i.need_to_replace, i.catalog_value_uah,"
 		L"       i.my_value_uah, i.purchase_date, i.published_date, i.swap_info, i.color,"
-		L"       i.grading_company, i.grading_number, i.grade, i.label_text, i.comment,"
+		L"       i.grading_company, i.grading_number, i.grade, i.label_text, i.comment, i.origin,"
 		L"       c.numista_type_id, c.numista_issue_id, i.numista_item_id, c.numista_rarity, c.numista_query,"
 		L"       ni.id AS issue_loaded, ni.mintage, ni.comment AS issue_comment,"
 		L"       nt.id AS type_loaded, nt.composition,"
@@ -128,6 +128,8 @@ namespace
 		r.Currency        = FieldText (D, L"currency");
 		r.Denomination    = FieldText (D, L"denomination");
 		r.Year            = FieldInt  (D, L"year");
+		r.YearTo          = FieldInt  (D, L"year_to");
+		r.Origin          = FieldText (D, L"origin");
 		r.Variety         = FieldText (D, L"variety");
 		r.Subject         = FieldText (D, L"subject");
 		r.DiameterMm      = FieldFloat(D, L"diameter_mm");
@@ -227,7 +229,7 @@ int TCoinRepository::FindCoin(int APeriodId, int ACurrencyId, const TCoinRecord 
 	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
 		L"SELECT id FROM coins"
 		L" WHERE id_period = :id_period AND id_currency IS :id_currency"
-		L"   AND denomination = :denomination AND year IS :year"
+		L"   AND denomination = :denomination AND year IS :year AND year_to IS :year_to"
 		L"   AND variety IS :variety AND subject IS :subject"
 		L"   AND catalog_number IS :catalog_number"
 		L" ORDER BY id LIMIT 1");
@@ -235,6 +237,7 @@ int TCoinRepository::FindCoin(int APeriodId, int ACurrencyId, const TCoinRecord 
 	SetIntOrNull(q->ParamByName(L"id_currency"),  ACurrencyId);
 	SetText     (q->ParamByName(L"denomination"), ARecord.Denomination);
 	SetIntOrNull(q->ParamByName(L"year"),         ARecord.Year);
+	SetIntOrNull(q->ParamByName(L"year_to"),      ARecord.YearTo == ARecord.Year ? 0 : ARecord.YearTo);
 	SetText     (q->ParamByName(L"variety"),      ARecord.Variety);
 	SetText     (q->ParamByName(L"subject"),      ARecord.Subject);
 	SetText     (q->ParamByName(L"catalog_number"), ARecord.CatalogNumber);
@@ -245,23 +248,23 @@ int TCoinRepository::FindCoin(int APeriodId, int ACurrencyId, const TCoinRecord 
 namespace
 {
 	const wchar_t *const cInsertCoin =
-		L"INSERT INTO coins (id_period, id_currency, denomination, year, variety, subject,"
+		L"INSERT INTO coins (id_period, id_currency, denomination, year, year_to, variety, subject,"
 		L"                   diameter_mm, catalog_number, numista_query)"
-		L" VALUES (:id_period, :id_currency, :denomination, :year, :variety, :subject,"
+		L" VALUES (:id_period, :id_currency, :denomination, :year, :year_to, :variety, :subject,"
 		L"         :diameter_mm, :catalog_number, :numista_query)";
 	const wchar_t *const cUpdateCoin =
 		L"UPDATE coins SET id_period = :id_period, id_currency = :id_currency,"
-		L"       denomination = :denomination, year = :year, variety = :variety,"
+		L"       denomination = :denomination, year = :year, year_to = :year_to, variety = :variety,"
 		L"       subject = :subject, diameter_mm = :diameter_mm, catalog_number = :catalog_number,"
 		L"       numista_query = :numista_query"
 		L" WHERE id = :id";
 	const wchar_t *const cInsertItem =
 		L"INSERT INTO coin_items (id_coin, id_condition, quantity, need_to_replace,"
 		L"       catalog_value_uah, my_value_uah, purchase_date, published_date, swap_info,"
-		L"       color, grading_company, grading_number, grade, label_text, comment)"
+		L"       color, grading_company, grading_number, grade, label_text, comment, origin)"
 		L" VALUES (:id_coin, :id_condition, :quantity, :need_to_replace,"
 		L"       :catalog_value_uah, :my_value_uah, :purchase_date, :published_date, :swap_info,"
-		L"       :color, :grading_company, :grading_number, :grade, :label_text, :comment)";
+		L"       :color, :grading_company, :grading_number, :grade, :label_text, :comment, :origin)";
 	const wchar_t *const cUpdateItem =
 		L"UPDATE coin_items SET id_coin = :id_coin, id_condition = :id_condition,"
 		L"       quantity = :quantity, need_to_replace = :need_to_replace,"
@@ -269,7 +272,7 @@ namespace
 		L"       purchase_date = :purchase_date, published_date = :published_date,"
 		L"       swap_info = :swap_info, color = :color, grading_company = :grading_company,"
 		L"       grading_number = :grading_number, grade = :grade, label_text = :label_text,"
-		L"       comment = :comment"
+		L"       comment = :comment, origin = :origin"
 		L" WHERE id = :id";
 	//-----------------------------------------------------------------------
 	void BindCoin(TFDQuery *Q, int APeriodId, int ACurrencyId, const TCoinRecord &R)
@@ -278,6 +281,7 @@ namespace
 		SetIntOrNull  (Q->ParamByName(L"id_currency"),    ACurrencyId);
 		SetText       (Q->ParamByName(L"denomination"),   R.Denomination);
 		SetIntOrNull  (Q->ParamByName(L"year"),           R.Year);
+		SetIntOrNull  (Q->ParamByName(L"year_to"),        R.YearTo == R.Year ? 0 : R.YearTo);
 		SetText       (Q->ParamByName(L"variety"),        R.Variety);
 		SetText       (Q->ParamByName(L"subject"),        R.Subject);
 		SetFloatOrNull(Q->ParamByName(L"diameter_mm"),    R.DiameterMm);
@@ -302,6 +306,7 @@ namespace
 		SetText       (Q->ParamByName(L"grade"),             R.Grade);
 		SetText       (Q->ParamByName(L"label_text"),        R.LabelText);
 		SetText       (Q->ParamByName(L"comment"),           R.Comment);
+		SetText       (Q->ParamByName(L"origin"),            R.Origin);
 	}
 	//-----------------------------------------------------------------------
 	int LastInsertId(TDatabase *ADatabase)
@@ -421,24 +426,31 @@ namespace
 	//-----------------------------------------------------------------------
 	// Монеты с N#, индексом, выгруженными экземплярами или фото — по ключу монеты
 	// импорта (ReplaceAll): период, валюта, номинал, год, разновидность, сюжет, номер.
+	// Ключ монеты (как в ReplaceAll): период, валюта, номинал, годы, разновидность, сюжет, номер.
+	String CoinKey(TDataSet *D, const String &ASep)
+	{
+		return IntToStr(FieldInt(D, L"id_period")) + ASep + IntToStr(FieldInt(D, L"id_currency"))
+			+ ASep + FieldText(D, L"denomination") + ASep + IntToStr(FieldInt(D, L"year"))
+			+ ASep + IntToStr(FieldInt(D, L"year_to")) + ASep + FieldText(D, L"variety")
+			+ ASep + FieldText(D, L"subject") + ASep + FieldText(D, L"catalog_number");
+	}
+	//-----------------------------------------------------------------------
 	std::map<String, TOldCoin> ReadLinks(TDatabase *ADatabase, const String &ASep)
 	{
 		std::map<String, TOldCoin> result;
 		std::map<int, String> keys;	// id монеты -> ключ
 		std::unique_ptr<TFDQuery> q = NewQuery(ADatabase,
-			L"SELECT id, id_period, id_currency, denomination, year, variety, subject, catalog_number,"
+			L"SELECT id, id_period, id_currency, denomination, year, year_to, variety, subject, catalog_number,"
 			L"       numista_type_id, numista_issue_id, numista_rarity, numista_query"
 			L"  FROM coins c"
-			L" WHERE numista_type_id IS NOT NULL OR numista_rarity IS NOT NULL OR numista_query IS NOT NULL"
+			L" WHERE NOT EXISTS (SELECT 1 FROM coin_items k WHERE k.id_coin = c.id AND k.origin = 'numista')"
+			L"   AND (numista_type_id IS NOT NULL OR numista_rarity IS NOT NULL OR numista_query IS NOT NULL"
 			L"    OR EXISTS (SELECT 1 FROM coin_items i WHERE i.id_coin = c.id AND i.numista_item_id IS NOT NULL)"
 			L"    OR EXISTS (SELECT 1 FROM coin_photos ph WHERE ph.id_coin = c.id)"
-			L"    OR EXISTS (SELECT 1 FROM coin_items i JOIN coin_photos ph ON ph.id_item = i.id WHERE i.id_coin = c.id)");
+			L"    OR EXISTS (SELECT 1 FROM coin_items i JOIN coin_photos ph ON ph.id_item = i.id WHERE i.id_coin = c.id))");
 		for (q->Open(); !q->Eof; q->Next())
 		{
-			const String key = IntToStr(FieldInt(q.get(), L"id_period")) + ASep + IntToStr(FieldInt(q.get(), L"id_currency"))
-				+ ASep + FieldText(q.get(), L"denomination") + ASep + IntToStr(FieldInt(q.get(), L"year"))
-				+ ASep + FieldText(q.get(), L"variety") + ASep + FieldText(q.get(), L"subject")
-				+ ASep + FieldText(q.get(), L"catalog_number");
+			const String key = CoinKey(q.get(), ASep);
 			TOldCoin &coin = result[key];
 			coin.TypeId  = q->FieldByName(L"numista_type_id")->Value;
 			coin.IssueId = q->FieldByName(L"numista_issue_id")->Value;
@@ -452,8 +464,9 @@ namespace
 		q->SQL->Text = L"SELECT i.id, i.id_coin, i.numista_item_id, i.id_condition, i.quantity, i.my_value_uah,"
 		               L"       i.purchase_date, i.comment, i.swap_info"
 		               L"  FROM coin_items i"
-		               L" WHERE i.numista_item_id IS NOT NULL"
-		               L"    OR EXISTS (SELECT 1 FROM coin_photos ph WHERE ph.id_item = i.id)"
+		               L" WHERE i.origin IS NULL"
+		               L"   AND (i.numista_item_id IS NOT NULL"
+		               L"    OR EXISTS (SELECT 1 FROM coin_photos ph WHERE ph.id_item = i.id))"
 		               L" ORDER BY i.id";
 		for (q->Open(); !q->Eof; q->Next())
 		{
@@ -476,7 +489,12 @@ namespace
 		for (q->Open(); !q->Eof; q->Next())
 		{
 			if (!q->FieldByName(L"id_coin")->IsNull)
-				result[keys[q->FieldByName(L"id_coin")->AsInteger]].Photos.push_back(ReadPhoto(q.get()));
+			{
+				// Фото типа только тех монет, что импорт удаляет (монеты «из Numista» остаются).
+				std::map<int, String>::const_iterator key = keys.find(q->FieldByName(L"id_coin")->AsInteger);
+				if (key != keys.end())
+					result[key->second].Photos.push_back(ReadPhoto(q.get()));
+			}
 			else
 			{
 				std::map<int, std::pair<String, size_t> >::const_iterator pos =
@@ -627,10 +645,18 @@ int TCoinRepository::ReplaceAll(const std::vector<TCoinRecord> &ARecords, TImpor
 	const String sep = String(L'\x1F');	// разделитель частей ключа
 	std::map<String, TOldCoin> oldCoins = ReadLinks(FDatabase, sep);
 
-	FDatabase->Connection()->ExecSQL(L"DELETE FROM coin_items");
-	FDatabase->Connection()->ExecSQL(L"DELETE FROM coins");
+	// Экземпляры, импортированные из Numista (задача 20), и их монеты не удаляются.
+	FDatabase->Connection()->ExecSQL(L"DELETE FROM coin_items WHERE origin IS NULL");
+	FDatabase->Connection()->ExecSQL(L"DELETE FROM coins WHERE NOT EXISTS (SELECT 1 FROM coin_items i WHERE i.id_coin = coins.id)");
 
 	std::map<String, int> countries, periods, currencies, conditions, coins;
+	{
+		// Оставшиеся монеты: экземпляр из файла с тем же ключом пойдёт к ним, без дубля монеты.
+		std::unique_ptr<TFDQuery> kept = NewQuery(FDatabase,
+			L"SELECT id, id_period, id_currency, denomination, year, year_to, variety, subject, catalog_number FROM coins");
+		for (kept->Open(); !kept->Eof; kept->Next())
+			coins[CoinKey(kept.get(), sep)] = kept->FieldByName(L"id")->AsInteger;
+	}
 	const std::vector<TCondition> scale = FLookups.Conditions();
 	for (size_t i = 0; i < scale.size(); ++i)
 		conditions[scale[i].Code.UpperCase()] = scale[i].Id;
@@ -672,7 +698,8 @@ int TCoinRepository::ReplaceAll(const std::vector<TCoinRecord> &ARecords, TImpor
 		// Та же монета, что и в FindCoin: период, валюта, номинал, год, разновидность,
 		// сюжет, номер по каталогу.
 		const String coinKey = IntToStr(period->second) + sep + IntToStr(currency->second) + sep
-			+ r.Denomination.Trim() + sep + IntToStr(r.Year) + sep + r.Variety.Trim() + sep + r.Subject.Trim()
+			+ r.Denomination.Trim() + sep + IntToStr(r.Year) + sep + IntToStr(r.YearTo == r.Year ? 0 : r.YearTo)
+			+ sep + r.Variety.Trim() + sep + r.Subject.Trim()
 			+ sep + r.CatalogNumber.Trim();
 		std::map<String, int>::iterator coin = coins.find(coinKey);
 		if (coin == coins.end())
@@ -843,6 +870,12 @@ bool TCoinRepository::LoadNumistaType(int ATypeId, TNumistaTypeInfo &AType)
 	AType.PictureCopyright[1] = FieldText(D, L"reverse_copyright");
 	AType.PicturesKnown       = FieldInt (D, L"pictures_known") != 0;
 	return true;
+}
+//---------------------------------------------------------------------------
+// Экземпляры, импортированные из своей коллекции Numista (задача 20).
+int TCoinRepository::NumistaOriginCount()
+{
+	return FDatabase->Connection()->ExecSQLScalar(L"SELECT COUNT(*) FROM coin_items WHERE origin = 'numista'");
 }
 //---------------------------------------------------------------------------
 // Своя фраза поиска Numista ("" — автофраза).

@@ -28,6 +28,7 @@
 #include "f_PhotoView.h"
 #include "f_Progress.h"
 #include "u_Help.h"
+#include "f_NumistaImport.h"
 #include "versionConfig.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -272,6 +273,9 @@ void __fastcall TfmMain::actImportExecute(TObject *Sender)
 	const int photos = FPhotos->PhotoCount();
 	if (photos > 0)
 		text += nl + Format(Tr(L"Import.Confirm.Photos"), ARRAYOFCONST((photos)));
+	const int fromNumista = FRepository->NumistaOriginCount();
+	if (fromNumista > 0)
+		text += nl + Format(Tr(L"Import.Confirm.FromNumista"), ARRAYOFCONST((fromNumista)));
 	text += nl + nl + Tr(L"Import.Confirm.Question");
 	if (!Confirm(text, title))
 		return;
@@ -402,7 +406,7 @@ void __fastcall TfmMain::actDeleteExecute(TObject *Sender)
 	const TCoinRecord &r = FItems[index];
 	String what = r.Denomination;
 	if (r.Year != 0)
-		what += L", " + IntToStr(r.Year);
+		what += L", " + YearText(r.Year, r.YearTo);
 	if (!r.CatalogNumber.IsEmpty())
 		what += L", " + r.CatalogNumber;
 	if (!Confirm(Format(Tr(L"Main.Delete.Confirm"), ARRAYOFCONST((what))), StripHotkey(actDelete->Caption)))
@@ -459,7 +463,7 @@ String TfmMain::CoinText(const TCoinRecord &ARecord)
 {
 	String text = ARecord.Country + L", " + ARecord.Denomination;
 	if (ARecord.Year != 0)
-		text += L", " + IntToStr(ARecord.Year);
+		text += L", " + YearText(ARecord.Year, ARecord.YearTo);
 	if (!ARecord.Variety.IsEmpty())
 		text += L" " + ARecord.Variety;
 	if (!ARecord.CatalogNumber.IsEmpty())
@@ -1328,6 +1332,396 @@ void __fastcall TfmMain::actNumistaRefreshOneExecute(TObject *Sender)
 		caption.c_str(), MB_OK | icon);
 }
 //---------------------------------------------------------------------------
+namespace
+{
+	// Значение JSON по пути ("issue.year"); "" — нет или null.
+	String JsonText(TJSONValue *AJson, const String &APath)
+	{
+		TJSONValue *value = AJson ? AJson->FindValue(APath) : nullptr;
+		return value && !dynamic_cast<TJSONNull *>(value) ? value->Value() : String();
+	}
+	//-----------------------------------------------------------------------
+	int JsonNumber(TJSONValue *AJson, const String &APath)
+	{
+		return StrToIntDef(JsonText(AJson, APath), 0);
+	}
+	//-----------------------------------------------------------------------
+	// Годы предмета: выпуск (год как на монете / григорианский или min–max недатированного),
+	// иначе годы типа.
+	void ItemYears(TJSONValue *AItem, const TNumistaTypeInfo &AType, int &AYear, int &AYearTo)
+	{
+		AYear = JsonNumber(AItem, L"issue.gregorian_year");
+		if (AYear == 0)
+			AYear = JsonNumber(AItem, L"issue.year");
+		AYearTo = 0;
+		if (AYear == 0)
+		{
+			AYear   = JsonNumber(AItem, L"issue.min_year");
+			AYearTo = JsonNumber(AItem, L"issue.max_year");
+		}
+		if (AYear == 0)
+		{
+			AYear   = AType.MinYear;
+			AYearTo = AType.MaxYear;
+		}
+		if (AYearTo == AYear)
+			AYearTo = 0;
+	}
+}
+//---------------------------------------------------------------------------
+// Numista → Import from my Numista collection (задача 20): предметы своей коллекции Numista,
+// которых нет в программе (не связаны ни с одним экземпляром), — выбор в окне и импорт:
+// монета (страна по эмитенту, период — правитель, валюта, номинал, годы, номер каталога),
+// экземпляр (состояние, количество, дата, комментарий), связь, характеристики, фото.
+// Документация: https://en.numista.com/api/doc/index.php (getCollectedItems, getType, getIssues).
+void __fastcall TfmMain::actNumistaImportExecute(TObject *Sender)
+{
+	const String caption = StripHotkey(actNumistaImport->Caption);
+	TNumistaClient client;
+	TNumistaMatcher matcher(client);
+
+	// Ветки эмитентов (issuers.json) — для сопоставления стран; нет кэша — только точный код / название.
+	matcher.LoadReferences();
+
+	// 1. Коллекция и типы её новых предметов (getType — из кэша или по запросу на тип).
+	std::unique_ptr<TJSONValue> collection;
+	std::vector<TJSONValue *> candidates;
+	std::map<int, TNumistaTypeInfo> types;
+	try
+	{
+		std::unique_ptr<TProgress> progress(new TProgress(this, caption, 0, &client));
+		progress->SetText(Tr(L"Progress.ReadingCollection"));
+		client.Authorize();
+		collection = client.GetCollectedItems();
+
+		std::set<int> known;			// предметы, уже связанные с экземплярами
+		std::map<int, int> typeOf;		// наш Id -> тип (internal_id предметов, выгруженных программой)
+		for (size_t i = 0; i < FAll.size(); ++i)
+		{
+			if (FAll[i].NumistaItemId != 0)
+				known.insert(FAll[i].NumistaItemId);
+			typeOf[FAll[i].Id] = FAll[i].NumistaTypeId;
+		}
+		TJSONArray *items = dynamic_cast<TJSONArray *>(collection->FindValue(L"items"));
+		for (int i = 0; items && i < items->Count; ++i)
+		{
+			TJSONValue *item = items->Items[i];
+			const int internalId = StrToIntDef(JsonText(item, L"internal_id").Trim(), 0);
+			std::map<int, int>::const_iterator our = typeOf.find(internalId);
+			if (known.count(JsonNumber(item, L"id"))
+				|| (our != typeOf.end() && our->second == JsonNumber(item, L"type.id")))
+				continue;
+			candidates.push_back(item);
+			types[JsonNumber(item, L"type.id")];
+		}
+
+		progress.reset(new TProgress(this, caption, (int)types.size(), &client));
+		int step = 0;
+		for (std::map<int, TNumistaTypeInfo>::iterator t = types.begin(); t != types.end(); ++t, ++step)
+		{
+			if (!progress->Step(step, L"N# " + IntToStr(t->first)))
+				return;
+			t->second = matcher.LoadType(t->first);
+		}
+	}
+	catch (Exception &e)
+	{
+		Application->MessageBox((e.Message + L"\r\n\r\n" + NumistaRequestsText(client.RequestsMade)).c_str(),
+			caption.c_str(), MB_OK | MB_ICONERROR);
+		return;
+	}
+	if (candidates.empty())
+	{
+		Application->MessageBox((Tr(L"NumistaImport.Nothing") + L"\r\n\r\n" + NumistaRequestsText(client.RequestsMade)).c_str(),
+			caption.c_str(), MB_OK | MB_ICONINFORMATION);
+		return;
+	}
+
+	// 2. Выбор.
+	std::vector<TNumistaImportRow> rows;
+	std::vector<int> existing;	// по кандидату: Id экземпляра программы (0 — новая монета, -1 — неоднозначно)
+	for (size_t i = 0; i < candidates.size(); ++i)
+	{
+		TJSONValue *item = candidates[i];
+		const TNumistaTypeInfo &type = types[JsonNumber(item, L"type.id")];
+		existing.push_back(FindExistingItem(item, type, matcher));
+		int year = 0, yearTo = 0;
+		ItemYears(item, type, year, yearTo);
+		TNumistaImportRow row;
+		row.TypeId = type.Id;
+		row.Issuer = type.IssuerName;
+		row.Title  = JsonText(item, L"type.title");
+		row.Year   = YearText(year, yearTo);
+		row.Grade  = JsonText(item, L"grade").UpperCase();
+		if (existing.back() < 0)
+			row.InProgram = Tr(L"NumistaImport.Ambiguous");
+		else if (existing.back() > 0)
+			for (size_t k = 0; k < FAll.size(); ++k)
+				if (FAll[k].Id == existing.back())
+					row.InProgram = Tr(L"NumistaImport.LinkTo") + L" " + CoinText(FAll[k]);
+		rows.push_back(row);
+	}
+	std::vector<int> selected;
+	if (!TfmNumistaImport::Execute(this, rows, selected))
+		return;
+
+	// 3. Импорт.
+	int imported = 0, linked = 0, failed = 0, countries = 0, photos = 0, photosFailed = 0;
+	String stopReason, firstError;
+	std::unique_ptr<TProgress> progress(new TProgress(this, caption, (int)selected.size(), &client));
+	for (size_t i = 0; i < selected.size(); ++i)
+	{
+		TJSONValue *item = candidates[selected[i]];
+		if (!progress->Step((int)i, rows[selected[i]].Issuer + L" \u2014 " + rows[selected[i]].Title))
+		{
+			stopReason = Tr(L"Progress.Stopped");
+			break;
+		}
+		try
+		{
+			// Такая монета уже есть в программе — связать её экземпляр, а не создавать вторую.
+			const int existingItem = existing[selected[i]];
+			const TNumistaTypeInfo &type = types[JsonNumber(item, L"type.id")];
+			if (existingItem < 0)
+				throw Exception(Tr(L"NumistaImport.Ambiguous"));
+			if (existingItem > 0)
+			{
+				LinkExistingItem(client, matcher, item, type, existingItem, photos, photosFailed);
+				++linked;
+			}
+			else
+			{
+				ImportNumistaItem(client, matcher, item, type, countries, photos, photosFailed);
+				++imported;
+			}
+		}
+		catch (ENumistaError &e)
+		{
+			// Сеть, 401, 429 — дальше бессмысленно.
+			if (e.StatusCode != 400 && e.StatusCode != 404 && e.StatusCode != 422)
+			{
+				stopReason = e.Message;
+				break;
+			}
+			++failed;
+			if (firstError.IsEmpty())
+				firstError = rows[selected[i]].Title + L": " + e.Message;
+		}
+		catch (Exception &e)
+		{
+			++failed;
+			if (firstError.IsEmpty())
+				firstError = rows[selected[i]].Title + L": " + e.Message;
+		}
+	}
+	progress.reset();
+
+	LoadItems();
+	const String nl = L"\r\n";
+	String report = Format(Tr(L"NumistaImport.Done"), ARRAYOFCONST((imported, (int)selected.size()))) + nl
+		+ Format(Tr(L"NumistaImport.Linked"), ARRAYOFCONST((linked))) + nl
+		+ Format(Tr(L"NumistaImport.Countries"), ARRAYOFCONST((countries))) + nl
+		+ Format(Tr(L"Numista.Photos.Loaded"), ARRAYOFCONST((photos)));
+	if (photosFailed > 0)
+		report += nl + Format(Tr(L"Numista.Photos.Failed"), ARRAYOFCONST((photosFailed)));
+	if (failed > 0)
+		report += nl + Format(Tr(L"NumistaImport.Failed"), ARRAYOFCONST((failed))) + nl + firstError;
+	if (!stopReason.IsEmpty())
+		report += nl + nl + Tr(L"Numista.Match.Stopped") + L" " + stopReason;
+	Application->MessageBox((report + nl + nl + NumistaRequestsText(client.RequestsMade)).c_str(), caption.c_str(),
+		MB_OK | (stopReason.IsEmpty() && failed == 0 ? MB_ICONINFORMATION : MB_ICONWARNING));
+}
+//---------------------------------------------------------------------------
+// Страна для эмитента Numista: с таким кодом эмитента, иначе с таким названием, иначе новая
+// (название и код эмитента; континент не указан — узел No continent). ACreated — создана ли.
+String TfmMain::ImportCountry(const TNumistaTypeInfo &AType, TNumistaMatcher &AMatcher, bool &ACreated)
+{
+	ACreated = false;
+	const std::vector<TCountry> countries = FRepository->Lookups().Countries();
+	for (size_t i = 0; i < countries.size(); ++i)
+		if (!AType.IssuerCode.IsEmpty() && SameText(countries[i].NumistaIssuer, AType.IssuerCode))
+			return countries[i].Name;
+	for (size_t i = 0; i < countries.size(); ++i)
+		if (AnsiSameText(countries[i].Name, AType.IssuerName))
+			return countries[i].Name;
+	// Та же ветка эмитентов Numista (Germany (1871-1948) -> Germany): сначала существующие государства.
+	for (int pass = 0; pass < 2; ++pass)
+		for (size_t i = 0; i < countries.size(); ++i)
+			if ((pass == 1 || countries[i].IsExist) && AMatcher.SameBranch(countries[i].NumistaIssuer, AType.IssuerCode))
+				return countries[i].Name;
+	const int id = FRepository->Lookups().FindOrCreateCountry(AType.IssuerName);
+	FRepository->Lookups().SetCountryIssuer(id, AType.IssuerCode);
+	ACreated = true;
+	return AType.IssuerName;
+}
+//---------------------------------------------------------------------------
+// Экземпляр программы для предмета Numista (задача 20): ещё не выгружен и
+//  - его монета связана с тем же типом, или
+//  - не связана, но номер каталога совпадает с одной из ссылок типа (KM# 18), страна — в той же
+//    ветке эмитентов Numista (если коды известны);
+// и год монеты — в годах предмета. 0 — нет, -1 — несколько (неоднозначно).
+int TfmMain::FindExistingItem(TJSONValue *AItem, const TNumistaTypeInfo &AType, TNumistaMatcher &AMatcher)
+{
+	int year = 0, yearTo = 0;
+	ItemYears(AItem, AType, year, yearTo);
+	auto normalize = [](const String &AText) { return StringReplace(AText, L" ", L"", TReplaceFlags() << rfReplaceAll).UpperCase(); };
+	std::map<String, String> issuers = NumistaIssuers();
+
+	int found = 0, count = 0;
+	for (size_t i = 0; i < FAll.size(); ++i)
+	{
+		const TCoinRecord &r = FAll[i];
+		if (r.NumistaItemId != 0 || (r.NumistaTypeId != 0 && r.NumistaTypeId != AType.Id))
+			continue;
+		if (year != 0 && r.Year != 0 && (r.Year < year || r.Year > std::max(year, yearTo)))
+			continue;
+		bool match = r.NumistaTypeId == AType.Id;
+		if (!match && !r.CatalogNumber.IsEmpty())
+		{
+			const String number = normalize(r.CatalogNumber);
+			for (size_t k = 0; k < AType.References.size() && !match; ++k)
+				match = normalize(AType.References[k]) == number;
+			const String issuer = issuers[AnsiUpperCase(r.Country)];
+			if (match && !issuer.IsEmpty() && !AType.IssuerCode.IsEmpty() && !AMatcher.SameBranch(issuer, AType.IssuerCode))
+				match = false;
+		}
+		if (match)
+		{
+			found = r.Id;
+			++count;
+		}
+	}
+	return count == 0 ? 0 : (count == 1 ? found : -1);
+}
+//---------------------------------------------------------------------------
+// Связать экземпляр программы AItemId с предметом Numista: тип и выпуск (если монета не
+// связана), ✓, характеристики, тираж, индекс R, фото типа; свои фото предмета — если у
+// экземпляра своих нет. Поля экземпляра и происхождение не меняются.
+void TfmMain::LinkExistingItem(TNumistaClient &AClient, TNumistaMatcher &AMatcher, TJSONValue *AItem,
+	const TNumistaTypeInfo &AType, int AItemId, int &APhotos, int &APhotosFailed)
+{
+	const TCoinRecord *r = nullptr;
+	for (size_t i = 0; i < FAll.size(); ++i)
+		if (FAll[i].Id == AItemId)
+			r = &FAll[i];
+	if (!r)
+		throw Exception(L"Item not found: id = " + IntToStr(AItemId));
+	const TCoinRecord coin = *r;
+	const int typeId  = JsonNumber(AItem, L"type.id");
+	const int issueId = JsonNumber(AItem, L"issue.id");
+
+	if (coin.NumistaTypeId == 0 || (coin.NumistaIssueId == 0 && issueId != 0))
+		FRepository->SetCoinNumista(coin.CoinId, typeId, issueId);
+	FRepository->SetItemNumista(coin.Id, JsonNumber(AItem, L"id"));
+	FRepository->SaveNumistaType(AType);
+	if (issueId != 0)
+		FRepository->SaveNumistaIssues(typeId, AMatcher.LoadIssues(typeId));
+	const TNumistaComment comment = TNumistaComment::Parse(JsonText(AItem, L"private_comment"));
+	if (comment.Rarity >= 0)
+		FRepository->SetCoinRarity(coin.CoinId, comment.Rarity);
+
+	APhotos += DownloadTypePhotos(AClient, AType, coin.CoinId, false, APhotosFailed);
+	TJSONArray *pictures = dynamic_cast<TJSONArray *>(AItem->FindValue(L"pictures"));
+	for (int s = 0; pictures && s < 2 && s < pictures->Count; ++s)
+	{
+		const String url = JsonText(pictures->Items[s], L"url");
+		if (url.IsEmpty() || !FPhotos->PhotoFile(coin.Id, 0, (TPhotoSide)s).IsEmpty())
+			continue;
+		try
+		{
+			std::unique_ptr<TGraphic> image(AClient.DownloadImage(url));
+			FPhotos->SetItemPhoto(coin.Id, (TPhotoSide)s, image.get(), L"numista", String());
+			++APhotos;
+		}
+		catch (Exception &)
+		{
+			++APhotosFailed;
+		}
+	}
+}
+//---------------------------------------------------------------------------
+// Один предмет коллекции Numista -> монета и экземпляр программы (origin = numista).
+void TfmMain::ImportNumistaItem(TNumistaClient &AClient, TNumistaMatcher &AMatcher, TJSONValue *AItem,
+	const TNumistaTypeInfo &AType, int &ACountries, int &APhotos, int &APhotosFailed)
+{
+	const int typeId  = JsonNumber(AItem, L"type.id");
+	const int issueId = JsonNumber(AItem, L"issue.id");
+
+	TCoinRecord r;
+	bool created = false;
+	r.Country = ImportCountry(AType, AMatcher, created);
+	if (created)
+		++ACountries;
+	r.Period       = AType.Rulers.Pos(L";") > 0 ? AType.Rulers.SubString(1, AType.Rulers.Pos(L";") - 1).Trim() : AType.Rulers;
+	r.Currency     = AType.CurrencyName;
+	r.Denomination = !AType.ValueText.Trim().IsEmpty() ? AType.ValueText.Trim() : JsonText(AItem, L"type.title");
+	ItemYears(AItem, AType, r.Year, r.YearTo);
+	r.CatalogNumber = AType.Reference;
+	r.DiameterMm    = AType.Size;
+
+	// Экземпляр: состояние (шкала Numista g … unc есть и у нас), количество, дата покупки.
+	const String grade = JsonText(AItem, L"grade").UpperCase();
+	const std::vector<TCondition> scale = FRepository->Lookups().Conditions();
+	for (size_t i = 0; i < scale.size(); ++i)
+		if (SameText(scale[i].Code, grade))
+			r.Condition = scale[i].Code;
+	r.Quantity = std::max(1, JsonNumber(AItem, L"quantity"));
+	const String acquired = JsonText(AItem, L"acquisition_date");
+	TDateTime date;
+	if (acquired.Length() >= 10 && TryEncodeDate(StrToIntDef(acquired.SubString(1, 4), 0),
+		StrToIntDef(acquired.SubString(6, 2), 0), StrToIntDef(acquired.SubString(9, 2), 0), date))
+		r.PurchaseDate = date;
+
+	// Комментарий: атрибуты S / C / R (задача 13a); обычный текст без атрибутов — целиком.
+	const String privateComment = JsonText(AItem, L"private_comment").Trim();
+	const TNumistaComment comment = TNumistaComment::Parse(privateComment);
+	r.SwapInfo = comment.Swap;
+	r.Comment  = comment.Text;
+	if (comment.Swap.IsEmpty() && comment.Text.IsEmpty() && comment.Rarity < 0)
+		r.Comment = privateComment;
+	// Цена: в гривнах — My value, иначе — в комментарий.
+	const String price = JsonText(AItem, L"price.value"), currency = JsonText(AItem, L"price.currency");
+	if (!price.IsEmpty())
+	{
+		if (SameText(currency, L"UAH"))
+			r.MyValueUah = StrToFloatDef(price, 0.0, TFormatSettings::Invariant());
+		else
+			r.Comment += String(r.Comment.IsEmpty() ? L"" : L"\r\n") + Format(Tr(L"NumistaImport.Price"),
+				ARRAYOFCONST((price, currency)));
+	}
+	r.Origin = L"numista";
+
+	FRepository->Save(r);
+	FRepository->SetCoinNumista(r.CoinId, typeId, issueId);
+	FRepository->SetItemNumista(r.Id, JsonNumber(AItem, L"id"));
+	FRepository->SaveNumistaType(AType);
+	if (comment.Rarity >= 0)
+		FRepository->SetCoinRarity(r.CoinId, comment.Rarity);
+	if (issueId != 0)
+		FRepository->SaveNumistaIssues(typeId, AMatcher.LoadIssues(typeId));
+
+	// Фото: типа (как в задаче 17b) и свои фото предмета на Numista — фото экземпляра
+	// (первое — аверс, второе — реверс).
+	APhotos += DownloadTypePhotos(AClient, AType, r.CoinId, false, APhotosFailed);
+	TJSONArray *pictures = dynamic_cast<TJSONArray *>(AItem->FindValue(L"pictures"));
+	for (int s = 0; pictures && s < 2 && s < pictures->Count; ++s)
+	{
+		const String url = JsonText(pictures->Items[s], L"url");
+		if (url.IsEmpty())
+			continue;
+		try
+		{
+			std::unique_ptr<TGraphic> image(AClient.DownloadImage(url));
+			FPhotos->SetItemPhoto(r.Id, (TPhotoSide)s, image.get(), L"numista", String());
+			++APhotos;
+		}
+		catch (Exception &)
+		{
+			++APhotosFailed;
+		}
+	}
+}
+//---------------------------------------------------------------------------
 // Help → Contents: оглавление помощи на текущем языке (задача 18).
 void __fastcall TfmMain::actHelpContentsExecute(TObject *Sender)
 {
@@ -1385,7 +1779,7 @@ void TfmMain::LoadItems()
 	{
 		const TCoinRecord &r = FAll[i];
 		FSearchTexts.push_back(AnsiUpperCase(r.Country + sep + r.Period + sep + r.Currency + sep
-			+ r.Denomination + sep + (r.Year == 0 ? String() : IntToStr(r.Year)) + sep + r.Subject + sep
+			+ r.Denomination + sep + YearText(r.Year, r.YearTo) + sep + r.Subject + sep
 			+ r.Variety + sep + r.CatalogNumber + sep + r.Comment));
 	}
 
@@ -1654,7 +2048,7 @@ int TfmMain::CompareItems(const TCoinRecord &A, const TCoinRecord &B, int AColum
 		case icPeriod:       return CompareStrings(A.Period, B.Period);
 		case icCurrency:     return CompareStrings(A.Currency, B.Currency);
 		case icDenomination: return CompareStrings(A.Denomination, B.Denomination);
-		case icYear:         return CompareValues(A.Year, B.Year);
+		case icYear:         return A.Year != B.Year ? CompareValues(A.Year, B.Year) : CompareValues(A.YearTo, B.YearTo);
 		case icValue:        return CompareValues(A.CatalogValueUah, B.CatalogValueUah);
 		case icCondition:
 		{
@@ -1699,7 +2093,7 @@ String TfmMain::CellText(const TCoinRecord &R, int AColumn) const
 		case icPeriod:       return R.Period;
 		case icCurrency:     return R.Currency;
 		case icDenomination: return R.Denomination;
-		case icYear:         return R.Year == 0 ? String() : IntToStr(R.Year);
+		case icYear:         return YearText(R.Year, R.YearTo);
 		case icCondition:    return R.Condition;
 		case icValue:        return R.CatalogValueUah == 0.0 ? String() : FormatFloat(L"#,##0.00", R.CatalogValueUah);
 	}
@@ -2060,7 +2454,7 @@ void TfmMain::ShowDetails(int AIndex)
 		const TCoinRecord &r = FItems[AIndex];
 		String title = r.Denomination;
 		if (r.Year != 0)
-			title += L", " + IntToStr(r.Year);
+			title += L", " + YearText(r.Year, r.YearTo);
 		lblDetailsTitle->Caption = title + L" \u2014 " + r.Country;
 		FDetailRows[drPeriod].Value->Caption   = value(r.Period);
 		FDetailRows[drCurrency].Value->Caption = value(r.Currency);
@@ -2188,8 +2582,7 @@ void TfmMain::ShowTypeDetails(int ATypeId)
 			ARRAYOFCONST((NumberText(t.Thickness))));
 	String years;
 	if (t.MinYear != 0)
-		years = t.MaxYear != 0 && t.MaxYear != t.MinYear ? IntToStr(t.MinYear) + L"–" + IntToStr(t.MaxYear)
-			: IntToStr(t.MinYear);
+		years = YearText(t.MinYear, t.MaxYear);
 	String demonetized;
 	if (t.Demonetized == 0)
 		demonetized = Tr(L"Main.Details.DemonetizedNo");

@@ -57,6 +57,8 @@ __published:	// IDE-managed Components
 	TComboBox *cbCurrency;
 	TEdit *edDenomination;
 	TEdit *edYear;
+	TLabel *lblYearTo;
+	TEdit *edYearTo;
 	TEdit *edVariety;
 	TEdit *edDiameter;
 	TEdit *edCatalogNumber;

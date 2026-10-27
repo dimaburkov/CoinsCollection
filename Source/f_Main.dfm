@@ -533,6 +533,11 @@ object fmMain: TfmMain
       Caption = '&Settings...'
       Enabled = False
     end
+    object actNumistaImport: TAction
+      Category = 'Numista'
+      Caption = '&Import from my Numista collection...'
+      OnExecute = actNumistaImportExecute
+    end
     object actHelpContents: TAction
       Category = 'Help'
       Caption = '&Contents'
@@ -604,6 +609,9 @@ object fmMain: TfmMain
       OnClick = miNumistaClick
       object miNumistaSettings: TMenuItem
         Action = actNumistaSettings
+      end
+      object miNumistaImport: TMenuItem
+        Action = actNumistaImport
       end
       object miNumistaSep1: TMenuItem
         Caption = '-'

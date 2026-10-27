@@ -115,6 +115,20 @@ T['import', 'en'] = u"""
 </ul>
 <p>The result shows how many links and photos were kept and lost. Photos of coins that are no longer in the file are moved to <code>Photos\\_before-import-&lt;date&gt;\\</code>.</p>
 <div class="note">Countries are matched by name. If you rename a country in [[page:references|Reference lists]], the old uCoin name will appear again after the next import.</div>
+<h2>Import from your Numista collection</h2>
+<p>Coins that you added on Numista yourself and that are not in uCoin (for example ancient coins) can be imported too:
+[[ui:Numista → Import from my Numista collection|Numista → Імпорт з моєї колекції Numista]].</p>
+<ol>
+<li>The window lists the items of your Numista collection that are not in the program yet.</li>
+<li>Filter by [[ui:Issuer|Емітент]] (for example Roman Empire), check the items and press [[ui:Import|Імпортувати]].</li>
+<li>For each item the program creates the coin (country by the Numista issuer, period by the ruler, currency, denomination,
+years, catalogue number) and your item (grade, quantity, purchase date, comment), links it with Numista (✓) and loads
+the type details and photos — the type photos and your own photos of the item on Numista.</li>
+</ol>
+<p>A new country (for example <i>Roman Empire</i>) appears under [[ui:No continent|Без континенту]]: set its continent and
+“extinct” in [[page:references|Reference lists]]. Years can be a range (<code>174–179</code>) and before Christ (<code>44 BC</code>).
+A price in another currency than UAH is added to the comment.</p>
+<div class="note">Coins imported from Numista are kept when you import a uCoin file again.</div>
 """
 T['import', 'uk'] = u"""
 [[shot:08-ucoin-export.png|uCoin: експорт колекції у файл .xlsx.]]
@@ -134,6 +148,20 @@ T['import', 'uk'] = u"""
 </ul>
 <p>У підсумку видно, скільки зв'язків і фото збережено та втрачено. Фото монет, яких більше немає у файлі, переносяться до <code>Photos\\_before-import-&lt;дата&gt;\\</code>.</p>
 <div class="note">Країни зіставляються за назвою. Якщо перейменувати країну в [[page:references|Довідниках]], стара назва з uCoin з'явиться знову після наступного імпорту.</div>
+<h2>Імпорт з вашої колекції Numista</h2>
+<p>Монети, які ви самі додали на Numista і яких немає в uCoin (наприклад античні), теж можна імпортувати:
+[[ui:Numista → Import from my Numista collection|Numista → Імпорт з моєї колекції Numista]].</p>
+<ol>
+<li>У вікні — предмети вашої колекції Numista, яких ще немає в програмі.</li>
+<li>Відберіть за [[ui:Issuer|Емітент]] (наприклад Roman Empire), позначте предмети й натисніть [[ui:Import|Імпортувати]].</li>
+<li>Для кожного предмета програма створює монету (країна — за емітентом Numista, період — за правителем, валюта, номінал,
+роки, номер у каталозі) і ваш примірник (стан, кількість, дата купівлі, коментар), пов'язує його з Numista (✓) і завантажує
+характеристики типу та фото — фото типу й ваші власні фото предмета на Numista.</li>
+</ol>
+<p>Нова країна (наприклад <i>Roman Empire</i>) з'являється в [[ui:No continent|Без континенту]]: вкажіть її континент і
+«зникла держава» в [[page:references|Довідниках]]. Роки можуть бути діапазоном (<code>174–179</code>) і до нашої ери (<code>44 до н. е.</code>).
+Ціна в іншій валюті, ніж гривня, додається до коментаря.</p>
+<div class="note">Монети, імпортовані з Numista, зберігаються при повторному імпорті файлу uCoin.</div>
 """
 
 # =====================================================================
@@ -232,7 +260,7 @@ T['coin-card', 'en'] = u"""
 <p>[[ui:Collection → Add / Edit / Delete|Колекція → Додати / Змінити / Видалити]], or double-click a row to edit it.</p>
 <h2>Coin and My item</h2>
 <ul>
-<li><b>Coin</b> — data of the coin type: country, period, currency, denomination, year, variety, diameter, catalogue number, subject.
+<li><b>Coin</b> — data of the coin type: country, period, currency, denomination, year (a range — the second field; before Christ — a negative year, <code>-44</code>), variety, diameter, catalogue number, subject.
 They are shared by all items of this coin; if there are several items, the card warns you.</li>
 <li>[[ui:Numista search|Пошук Numista]] — your own search phrase for Numista. Empty — an automatic phrase is used (shown in grey):
 denomination, period, year. See [[page:numista-link|Numista: linking coins]].</li>
@@ -248,7 +276,7 @@ T['coin-card', 'uk'] = u"""
 <p>[[ui:Collection → Add / Edit / Delete|Колекція → Додати / Змінити / Видалити]] або подвійне клацання по рядку — змінити.</p>
 <h2>Монета і Мій примірник</h2>
 <ul>
-<li><b>[[ui:Coin|Монета]]</b> — дані типу монети: країна, період, валюта, номінал, рік, різновид, діаметр, номер у каталозі, сюжет.
+<li><b>[[ui:Coin|Монета]]</b> — дані типу монети: країна, період, валюта, номінал, рік (діапазон — друге поле; до н. е. — від'ємний рік, <code>-44</code>), різновид, діаметр, номер у каталозі, сюжет.
 Вони спільні для всіх примірників цієї монети; якщо примірників кілька, картка попереджає.</li>
 <li>[[ui:Numista search|Пошук Numista]] — власна фраза пошуку на Numista. Порожньо — автоматична фраза (сірим):
 номінал, період, рік. Див. [[page:numista-link|Numista: зв'язок монет]].</li>
@@ -442,7 +470,7 @@ Only items linked with Numista (#Numista) are uploaded: condition, price, purcha
 </table>
 <h2>Rarity index</h2>
 <p>The Numista API does not provide the rarity index. Copy it from the type page on Numista into the private comment of your
-collection item, for example <code>R:9;S:…;C:…</code>, then use [[ui:Read rarity index|Прочитати індекс рідкісності]].
+collection item, for example <code>R:9;S:…;C:…</code> — or simply as a number at the beginning: <code>9</code> or <code>9;my comment</code> — then use [[ui:Read rarity index|Прочитати індекс рідкісності]].
 One request reads the whole collection, so check many coins and read them at once.</p>
 """
 T['numista-upload', 'uk'] = u"""
@@ -464,7 +492,7 @@ T['numista-upload', 'uk'] = u"""
 </table>
 <h2>Індекс рідкісності</h2>
 <p>Numista API не надає індекс рідкісності. Скопіюйте його зі сторінки типу на Numista у приватний коментар предмета
-вашої колекції, наприклад <code>R:9;S:…;C:…</code>, потім [[ui:Read rarity index|Прочитати індекс рідкісності]].
+вашої колекції, наприклад <code>R:9;S:…;C:…</code> — або просто числом на початку: <code>9</code> чи <code>9;мій коментар</code> — потім [[ui:Read rarity index|Прочитати індекс рідкісності]].
 Один запит читає всю колекцію, тож позначте багато монет і прочитайте їх разом.</p>
 """
 

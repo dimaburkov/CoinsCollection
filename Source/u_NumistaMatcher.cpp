@@ -415,6 +415,21 @@ TNumistaTypeInfo TNumistaMatcher::LoadType(int ATypeId, bool ARefresh)
 	t.PictureCopyright[0] = JsonString(j, L"obverse.picture_copyright");
 	t.PictureCopyright[1] = JsonString(j, L"reverse.picture_copyright");
 	t.PicturesKnown       = true;
+	t.IssuerCode          = JsonString(j, L"issuer.code");
+	t.IssuerName          = JsonString(j, L"issuer.name");
+	t.ValueText           = JsonString(j, L"value.text");
+	t.CurrencyName        = JsonString(j, L"value.currency.name");
+	// Ссылки каталогов: "KM# 18" (как у uCoin), первая — номер каталога новой монеты.
+	TJSONArray *refs = j ? dynamic_cast<TJSONArray *>(j->FindValue(L"references")) : nullptr;
+	for (int i = 0; refs && i < refs->Count; ++i)
+	{
+		const String code = JsonString(refs->Items[i], L"catalogue.code").Trim();
+		const String number = JsonString(refs->Items[i], L"number").Trim();
+		if (!code.IsEmpty() && !number.IsEmpty())
+			t.References.push_back(code + L"# " + number);
+	}
+	if (!t.References.empty())
+		t.Reference = t.References[0];
 	return t;
 }
 //---------------------------------------------------------------------------

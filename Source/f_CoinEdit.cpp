@@ -122,6 +122,7 @@ void TfmCoinEdit::LoadFrom(const TCoinRecord &R)
 	cbCurrency->Text      = R.Currency;
 	edDenomination->Text  = R.Denomination;
 	edYear->Text          = R.Year == 0 ? String() : IntToStr(R.Year);
+	edYearTo->Text        = R.YearTo == 0 || R.YearTo == R.Year ? String() : IntToStr(R.YearTo);
 	edVariety->Text       = R.Variety;
 	edDiameter->Text      = NumberText(R.DiameterMm);
 	edCatalogNumber->Text = R.CatalogNumber;
@@ -188,12 +189,20 @@ bool TfmCoinEdit::Validate()
 	if (edDenomination->Text.Trim().IsEmpty())
 		return Fail(edDenomination, Format(Tr(L"CoinEdit.Error.Required"), ARRAYOFCONST((FieldName(lblDenomination)))));
 
+	// Год: до н. э. — отрицательный (задача 20); «по» — последний год диапазона.
+	const int maxYear = CurrentYear() + 1;
+	int year = 0;
 	if (!edYear->Text.Trim().IsEmpty())
 	{
-		const int maxYear = CurrentYear() + 1;
-		const int year = StrToIntDef(edYear->Text.Trim(), 0);
-		if (year < 1 || year > maxYear)
+		year = StrToIntDef(edYear->Text.Trim(), 0);
+		if (year == 0 || year < -3000 || year > maxYear)
 			return Fail(edYear, Format(Tr(L"CoinEdit.Error.Year"), ARRAYOFCONST((maxYear))));
+	}
+	if (!edYearTo->Text.Trim().IsEmpty())
+	{
+		const int yearTo = StrToIntDef(edYearTo->Text.Trim(), 0);
+		if (year == 0 || yearTo == 0 || yearTo < year || yearTo > maxYear)
+			return Fail(edYearTo, Format(Tr(L"CoinEdit.Error.YearTo"), ARRAYOFCONST((maxYear))));
 	}
 
 	double value = 0.0;
@@ -224,6 +233,9 @@ void TfmCoinEdit::SaveTo(TCoinRecord &R) const
 	R.Currency      = cbCurrency->Text.Trim();
 	R.Denomination  = edDenomination->Text.Trim();
 	R.Year          = StrToIntDef(edYear->Text.Trim(), 0);
+	R.YearTo        = StrToIntDef(edYearTo->Text.Trim(), 0);
+	if (R.YearTo == R.Year)
+		R.YearTo = 0;
 	R.Variety       = edVariety->Text.Trim();
 	R.DiameterMm    = TryParseNumber(edDiameter->Text, value) ? value : 0.0;
 	R.CatalogNumber = edCatalogNumber->Text.Trim();
