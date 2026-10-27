@@ -15,6 +15,7 @@ object fmMain: TfmMain
   OldCreateOrder = False
   Position = poScreenCenter
   OnCreate = FormCreate
+  OnCloseQuery = FormCloseQuery
   OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
@@ -390,8 +391,13 @@ object fmMain: TfmMain
     end
     object actBackup: TAction
       Category = 'File'
-      Caption = '&Backup database...'
-      Enabled = False
+      Caption = '&Backup collection...'
+      OnExecute = actBackupExecute
+    end
+    object actRestore: TAction
+      Category = 'File'
+      Caption = '&Restore from backup...'
+      OnExecute = actRestoreExecute
     end
     object actExit: TAction
       Category = 'File'
@@ -559,6 +565,9 @@ object fmMain: TfmMain
       end
       object miBackup: TMenuItem
         Action = actBackup
+      end
+      object miRestore: TMenuItem
+        Action = actRestore
       end
       object miFileSep1: TMenuItem
         Caption = '-'

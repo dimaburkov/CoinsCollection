@@ -106,6 +106,19 @@ String TDatabase::Backup(const String &ASuffix)
 	return bakFile;
 }
 //---------------------------------------------------------------------------
+void TDatabase::CopyTo(const String &AFile)
+{
+	if (FConnection->InTransaction)
+		throw Exception(L"TDatabase::CopyTo: called inside a transaction");
+	const String dbFile = FConnection->Params->Values[L"Database"];
+	FConnection->Connected = false;
+	const bool copied = CopyFileW(dbFile.c_str(), AFile.c_str(), FALSE);
+	const DWORD error = copied ? 0 : GetLastError();
+	FConnection->Connected = true;
+	if (!copied)
+		throw Exception(Format(Tr(L"Db.Error.Backup"), ARRAYOFCONST((AFile, SysErrorMessage(error)))));
+}
+//---------------------------------------------------------------------------
 // Копия перед миграцией: <имя>.v<версия>.bak.
 void TDatabase::BackupBeforeMigration(int AVersion)
 {

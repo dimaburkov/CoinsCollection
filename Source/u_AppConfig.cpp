@@ -55,7 +55,9 @@ TAppConfig::TAppConfig()
 	  NumistaUserId(0),
 	  NumistaRequestsCount(0),
 	  NumistaMonthlyQuota(cDefaultQuota),
-	  NumistaAutoLinkDetails(true)
+	  NumistaAutoLinkDetails(true),
+	  BackupLast(0.0),
+	  BackupAsked(0.0)
 {
 }
 //---------------------------------------------------------------------------
@@ -107,6 +109,10 @@ void TAppConfig::Load()
 	NumistaRequestsCount = ini->ReadInteger(cNumistaSection, L"RequestsCount", 0);
 	NumistaMonthlyQuota  = ini->ReadInteger(cNumistaSection, L"MonthlyQuota", cDefaultQuota);
 	NumistaAutoLinkDetails = ini->ReadBool(cNumistaSection, L"AutoLinkDetails", true);
+
+	BackupFolder = ini->ReadString(L"Backup", L"Folder", L"").Trim();
+	BackupLast   = ParseDateTime(ini->ReadString(L"Backup", L"Last", L""));
+	BackupAsked  = ParseDateTime(ini->ReadString(L"Backup", L"Asked", L""));
 }
 //---------------------------------------------------------------------------
 void TAppConfig::Save()
@@ -124,6 +130,15 @@ void TAppConfig::Save()
 		ini->DeleteKey(cDatabaseSection, cPathKey);
 	else
 		ini->WriteString(cDatabaseSection, cPathKey, FDbPathInIni);
+
+	if (!BackupFolder.IsEmpty() || (double)BackupLast != 0.0 || (double)BackupAsked != 0.0)
+	{
+		ini->WriteString(L"Backup", L"Folder", BackupFolder);
+		ini->WriteString(L"Backup", L"Last",
+			(double)BackupLast == 0.0 ? String() : FormatDateTime(cDateTimeFormat, BackupLast));
+		ini->WriteString(L"Backup", L"Asked",
+			(double)BackupAsked == 0.0 ? String() : FormatDateTime(cDateTimeFormat, BackupAsked));
+	}
 
 	// Папка фото в интерфейсе не меняется: заданная вручную пишется как была.
 	if (!FPhotosPathInIni.IsEmpty())

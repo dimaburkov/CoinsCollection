@@ -23,9 +23,12 @@ Check the catalogue number in the coin card (KM#, Y#, C#). Coins with a uCoin nu
 <p>The file is open in an editor that locks it. Close the editor and repeat the command.</p>
 <h3>Photos from Numista were not loaded</h3>
 <p>Check the internet connection and run <span class="ui">Update catalogue data</span> for the checked coins again.</p>
-<h3>How to restore the collection from a backup copy</h3>
-<p>Close the program. In <code>Db\</code> rename the current database (for example add <code>.old</code>) and rename the needed
-<code>*.bak</code> copy to the database name (by default <code>coins.db</code>). Start the program.</p>
+<h3>Backup and restore</h3>
+<p><span class="ui">File → Backup collection</span> saves one <code>.zip</code> file with the database, all photos and the settings.
+Keep it on another disk or in the cloud. The program reminds you if there was no backup for 30 days.</p>
+<p><span class="ui">File → Restore from backup</span> replaces the collection and photos with the backup. The current data is kept
+(<code>Db\…before-restore-&lt;time&gt;.bak</code>, <code>Photos\_before-restore-&lt;time&gt;\</code>). Settings of this computer are not changed.</p>
+<p>Besides, the program makes automatic copies of the database (<code>Db\*.bak</code>) before every database upgrade and every import.</p>
 </main>
 <footer>Coins Collection</footer>
 </body>

@@ -29,6 +29,9 @@
 #include "f_Progress.h"
 #include "u_Help.h"
 #include "f_NumistaImport.h"
+#include "u_Backup.h"
+#include <System.IOUtils.hpp>
+#include <System.IniFiles.hpp>
 #include "versionConfig.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -139,6 +142,185 @@ void __fastcall TfmMain::FormCreate(TObject *Sender)
 	if (!selfTest.IsEmpty())
 		Application->MessageBox((L"TNumistaComment::SelfTest\r\n\r\n" + selfTest).c_str(), L"Debug", MB_OK | MB_ICONERROR);
 #endif
+}
+//---------------------------------------------------------------------------
+// Напоминание о резервной копии (задача 21): коллекция не пустая, копии не было больше
+// 30 дней — вопрос при закрытии, не чаще раза в день.
+void __fastcall TfmMain::FormCloseQuery(TObject *Sender, bool &CanClose)
+{
+	TAppConfig &config = AppConfig();
+	if (FAll.empty() || ((double)config.BackupLast != 0.0 && (double)Now() - (double)config.BackupLast < 30.0)
+		|| ((double)config.BackupAsked != 0.0 && (int)(double)config.BackupAsked == (int)(double)Date()))
+		return;
+	config.BackupAsked = Now();
+	try { config.Save(); } catch (Exception &) {}
+	const String text = (double)config.BackupLast == 0.0 ? Tr(L"Backup.Remind.Never")
+		: Format(Tr(L"Backup.Remind.Days"), ARRAYOFCONST(((int)((double)Now() - (double)config.BackupLast))));
+	if (Application->MessageBox(text.c_str(), StripHotkey(actBackup->Caption).c_str(),
+		MB_YESNO | MB_ICONQUESTION) == IDYES)
+		MakeBackup();
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::actBackupExecute(TObject *Sender)
+{
+	MakeBackup();
+}
+//---------------------------------------------------------------------------
+// File → Backup collection: zip с базой, фото, настройками (u_Backup).
+bool TfmMain::MakeBackup()
+{
+	const String caption = StripHotkey(actBackup->Caption);
+	std::unique_ptr<TSaveDialog> dialog(new TSaveDialog(nullptr));
+	dialog->Filter     = Tr(L"Backup.Filter");
+	dialog->DefaultExt = L"zip";
+	dialog->Options    = dialog->Options << ofOverwritePrompt;
+	dialog->InitialDir = AppConfig().BackupFolder.IsEmpty() || !TDirectory::Exists(AppConfig().BackupFolder)
+		? TPath::GetDocumentsPath() : AppConfig().BackupFolder;
+	dialog->FileName   = L"CoinsCollection-backup-" + FormatDateTime(L"yyyy-mm-dd-hhnn", Now()) + L".zip";
+	if (!dialog->Execute(Handle))
+		return false;
+
+	TBackupInfo info;
+	try
+	{
+		std::unique_ptr<TProgress> progress(new TProgress(this, caption, 0));
+		progress->SetText(Tr(L"Backup.Progress"));
+		TProgress *p = progress.get();
+		CreateBackup(*FDatabase, dialog->FileName, FRepository->ItemCount(), info,
+			[p](int ADone, int ATotal) { if (ADone % 50 == 0) p->SetText(Format(Tr(L"Backup.ProgressPhotos"), ARRAYOFCONST((ADone, ATotal)))); });
+	}
+	catch (Exception &e)
+	{
+		Application->MessageBox((Tr(L"Backup.Error") + L"\r\n\r\n" + e.Message).c_str(), caption.c_str(), MB_OK | MB_ICONERROR);
+		return false;
+	}
+	AppConfig().BackupLast   = Now();
+	AppConfig().BackupFolder = ExtractFileDir(dialog->FileName);
+	try { AppConfig().Save(); } catch (Exception &) {}
+
+	__int64 size = 0;
+	try { size = TFile::GetSize(dialog->FileName); } catch (Exception &) {}
+	const String done = Format(Tr(L"Backup.Done"), ARRAYOFCONST((dialog->FileName, FormatFloat(L"#,##0.0", size / 1048576.0))))
+		+ L"\r\n\r\n" + Format(Tr(L"Backup.DoneItems"), ARRAYOFCONST((info.Items, info.Photos)))
+		+ L"\r\n" + Tr(L"Backup.Keep");
+	Application->MessageBox(done.c_str(), caption.c_str(), MB_OK | MB_ICONINFORMATION);
+	return true;
+}
+//---------------------------------------------------------------------------
+// File → Restore from backup: база и фото из копии заменяют текущие; текущие сохраняются
+// (Db\<имя>.before-restore-<время>.bak, Photos\_before-restore-<время>\). Настройки из копии
+// не восстанавливаются, кроме ключа API Numista, если своего нет.
+void __fastcall TfmMain::actRestoreExecute(TObject *Sender)
+{
+	const String caption = StripHotkey(actRestore->Caption);
+	std::unique_ptr<TOpenDialog> dialog(new TOpenDialog(nullptr));
+	dialog->Filter  = Tr(L"Backup.Filter");
+	dialog->Options = dialog->Options << ofFileMustExist;
+	dialog->InitialDir = AppConfig().BackupFolder.IsEmpty() || !TDirectory::Exists(AppConfig().BackupFolder)
+		? TPath::GetDocumentsPath() : AppConfig().BackupFolder;
+	if (!dialog->Execute(Handle))
+		return;
+
+	TBackupInfo info;
+	bool valid = false;
+	try { valid = ReadBackupInfo(dialog->FileName, info); } catch (Exception &) {}
+	if (!valid)
+	{
+		Application->MessageBox(Tr(L"Restore.NotBackup").c_str(), caption.c_str(), MB_OK | MB_ICONWARNING);
+		return;
+	}
+	if (info.Schema > TDatabase::CurrentSchemaVersion)
+	{
+		Application->MessageBox(Tr(L"Restore.Newer").c_str(), caption.c_str(), MB_OK | MB_ICONWARNING);
+		return;
+	}
+	const String stamp = L"before-restore-" + FormatDateTime(L"yyyymmdd-hhnnss", Now());
+	const String confirm = Format(Tr(L"Restore.Confirm"), ARRAYOFCONST((info.Created.IsEmpty() ? String(L"?") : info.Created,
+		info.Items, info.Photos))) + L"\r\n\r\n"
+		+ Format(Tr(L"Restore.Kept"), ARRAYOFCONST((ExtractFileName(ChangeFileExt(AppConfig().DbPath, L"." + stamp + L".bak")),
+		L"_" + stamp))) + L"\r\n\r\n" + Tr(L"Import.Confirm.Question");
+	if (!Confirm(confirm, caption))
+		return;
+
+	const String dbPath = AppConfig().DbPath;
+	const String bakPath = ChangeFileExt(dbPath, L"." + stamp + L".bak");
+	String temp;
+	bool closed = false;
+	try
+	{
+		std::unique_ptr<TProgress> progress(new TProgress(this, caption, 0));
+		progress->SetText(Tr(L"Restore.Progress"));
+		temp = ExtractBackup(dialog->FileName);
+		const String dbInBackup = temp + L"Db\\" + info.DbName;
+		const int schema = SchemaVersionOfFile(dbInBackup);
+		if (schema < 0)
+			throw Exception(Tr(L"Restore.NotBackup"));
+		if (schema > TDatabase::CurrentSchemaVersion)
+			throw Exception(Tr(L"Restore.Newer"));
+
+		// База: текущая -> .bak, из копии — на её место.
+		FDatabase->Close();
+		closed = true;
+		if (FileExists(dbPath) && !RenameFile(dbPath, bakPath))
+			throw Exception(SysErrorMessage(GetLastError()) + L": " + dbPath);
+		if (!CopyFileW(dbInBackup.c_str(), dbPath.c_str(), FALSE))
+			throw Exception(SysErrorMessage(GetLastError()) + L": " + dbPath);
+
+		// Фото: текущие -> Photos\_before-restore-<время>\, из копии — в Photos\.
+		const String photosDir = TPhotoRepository::PhotosDir();
+		if (TDirectory::Exists(photosDir))
+		{
+			const DynamicArray<String> current = TDirectory::GetFiles(photosDir, L"*.jpg", TSearchOption::soTopDirectoryOnly);
+			std::vector<String> names;
+			for (int i = 0; i < current.Length; ++i)
+				names.push_back(ExtractFileName(current[i]));
+			TPhotoRepository::MoveFiles(names, L"_" + stamp);
+		}
+		const String photosInBackup = temp + L"Photos\\";
+		if (TDirectory::Exists(photosInBackup))
+		{
+			ForceDirectories(photosDir);
+			const DynamicArray<String> restored = TDirectory::GetFiles(photosInBackup, L"*.jpg", TSearchOption::soTopDirectoryOnly);
+			for (int i = 0; i < restored.Length; ++i)
+				CopyFileW(restored[i].c_str(), (photosDir + ExtractFileName(restored[i])).c_str(), FALSE);
+		}
+
+		FDatabase->Open(dbPath);
+		FDatabase->EnsureSchema();	// копия со старой схемой — обновляется (с автокопией)
+		closed = false;
+
+		// Ключ API Numista из копии — только если своего нет.
+		const String iniInBackup = temp + L"CoinsCollection.ini";
+		if (AppConfig().NumistaApiKey.IsEmpty() && FileExists(iniInBackup))
+		{
+			std::unique_ptr<TIniFile> ini(new TIniFile(iniInBackup));
+			AppConfig().NumistaApiKey = ini->ReadString(L"Numista", L"ApiKey", L"").Trim();
+			AppConfig().NumistaUserId = ini->ReadInteger(L"Numista", L"UserId", 0);
+			if (!AppConfig().NumistaApiKey.IsEmpty())
+				AppConfig().Save();
+		}
+	}
+	catch (Exception &e)
+	{
+		// База не открылась — вернуть прежнюю.
+		if (closed)
+		{
+			if (!FileExists(dbPath) && FileExists(bakPath))
+				RenameFile(bakPath, dbPath);
+			try { FDatabase->Open(dbPath); FDatabase->EnsureSchema(); } catch (Exception &) {}
+		}
+		DeleteBackupFolder(temp);
+		Application->MessageBox((Tr(L"Restore.Error") + L"\r\n\r\n" + e.Message).c_str(), caption.c_str(),
+			MB_OK | MB_ICONERROR);
+		LoadItems();
+		return;
+	}
+	DeleteBackupFolder(temp);
+
+	FChecked.clear();
+	LoadItems();
+	Application->MessageBox(Format(Tr(L"Restore.Done"), ARRAYOFCONST(((int)FAll.size(), info.Photos))).c_str(),
+		caption.c_str(), MB_OK | MB_ICONINFORMATION);
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::FormDestroy(TObject *Sender)
