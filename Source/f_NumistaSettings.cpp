@@ -8,6 +8,7 @@
 #include "u_AppConfig.h"
 #include "u_NumistaClient.h"
 #include "u_Translator.h"
+#include "u_Help.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 #pragma resource "*.dfm"
@@ -17,6 +18,7 @@ __fastcall TfmNumistaSettings::TfmNumistaSettings(TComponent* Owner)
 	: TForm(Owner)
 {
 	Translator().TranslateForm(this);
+	InstallHelpKey(this, L"numista-connect");
 }
 //---------------------------------------------------------------------------
 void TfmNumistaSettings::Execute(TComponent *AOwner)
@@ -121,8 +123,9 @@ void __fastcall TfmNumistaSettings::btnRefreshListsClick(TObject *Sender)
 	}
 }
 //---------------------------------------------------------------------------
+// Ссылка — страница получения ключа API (нужна пользователю; документация API — разработчику).
 void __fastcall TfmNumistaSettings::lblDocsClick(TObject *Sender)
 {
-	ShellExecuteW(Handle, L"open", L"https://en.numista.com/api/doc/index.php", nullptr, nullptr, SW_SHOWNORMAL);
+	ShellExecuteW(Handle, L"open", L"https://en.numista.com/api/api_key.php", nullptr, nullptr, SW_SHOWNORMAL);
 }
 //---------------------------------------------------------------------------

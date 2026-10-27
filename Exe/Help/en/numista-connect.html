@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Numista: connection and requests — Coins Collection — Help</title>
+<link rel="stylesheet" href="../help.css">
+</head>
+<body>
+<header>
+<span class="app">Coins Collection — Help</span>
+<nav><a href="index.html">Contents</a><a href="../uk/numista-connect.html">Українською</a></nav>
+</header>
+<main>
+<h1>Numista: connection and requests</h1>
+<figure class="shot"><img src="../images/05-numista-settings.png" alt="Numista → Connect / Settings." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Screenshot: images/05-numista-settings.png</div><figcaption>Numista → Connect / Settings.</figcaption></figure>
+<h2>Your API key</h2>
+<ol>
+<li>Register on <a href="https://en.numista.com/">numista.com</a>.</li>
+<li>Request your API key (signed in to Numista): <a href="https://en.numista.com/api/api_key.php">en.numista.com/api/api_key.php</a>.</li>
+<li>Enter the key in <span class="ui">Numista → Connect / Settings</span> and press
+<span class="ui">Check connection</span>.</li>
+</ol>
+<p>Each user uses their own key. The key is stored only in <code>CoinsCollection.ini</code> next to the program.</p>
+<h2>Requests and quota</h2>
+<p>The free Numista key allows <b>2000 requests per month</b>. Every result window shows how many requests the operation used
+and how many are used this month.</p>
+<ul>
+<li>Answers are cached in <code>Numista\</code>: the same type is never requested twice.</li>
+<li>Photos are files of the Numista website, not API requests — they do not use the quota.</li>
+<li>Typical costs: linking a coin — 3–5 requests; uploading checked items — 1 per item plus 2 per run; rarity index — 1 per run.</li>
+</ul>
+</main>
+<footer>Coins Collection</footer>
+</body>
+</html>

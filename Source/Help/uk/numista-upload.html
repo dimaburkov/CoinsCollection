@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Numista: вивантаження та індекс рідкісності — Колекція монет — Довідка</title>
+<link rel="stylesheet" href="../help.css">
+</head>
+<body>
+<header>
+<span class="app">Колекція монет — Довідка</span>
+<nav><a href="index.html">Зміст</a><a href="../en/numista-upload.html">In English</a></nav>
+</header>
+<main>
+<h1>Numista: вивантаження та індекс рідкісності</h1>
+<figure class="shot"><img src="../images/09-numista-comment.png" alt="Numista: приватний коментар предмета колекції з індексом рідкісності." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Скриншот: images/09-numista-comment.png</div><figcaption>Numista: приватний коментар предмета колекції з індексом рідкісності.</figcaption></figure>
+<h2>Вивантаження у вашу колекцію на Numista</h2>
+<p>Одна монета: праве клацання → <span class="ui">Upload to Numista/Вивантажити в Numista</span>. Багато: позначте примірники → <span class="ui">Upload/Вивантажити</span>.
+Вивантажуються лише примірники, пов'язані з Numista (#Numista): стан, ціна, дата купівлі та коментар. Фото не вивантажуються.</p>
+<ul>
+<li>Вивантажені примірники отримують ✓ і повторно не надсилаються.</li>
+<li>Примірник, який ви вже додали на сайті Numista, не дублюється: його пов'язано з тим предметом, і він отримує ✓.</li>
+</ul>
+<h2>Приватний коментар</h2>
+<p>Програма записує коментар як атрибути <code>Код:значення</code> через <code>;</code>:</p>
+<table>
+<tr><th>Код</th><th>Значення</th></tr>
+<tr><td><code>S</code></td><td>Обмін (uCoin)</td></tr>
+<tr><td><code>C</code></td><td>Ваш коментар (завжди останній)</td></tr>
+<tr><td><code>R</code></td><td>Індекс рідкісності 0–100 — додаєте самі на Numista</td></tr>
+</table>
+<h2>Індекс рідкісності</h2>
+<p>Numista API не надає індекс рідкісності. Скопіюйте його зі сторінки типу на Numista у приватний коментар предмета
+вашої колекції, наприклад <code>R:9;S:…;C:…</code>, потім <span class="ui">Read rarity index/Прочитати індекс рідкісності</span>.
+Один запит читає всю колекцію, тож позначте багато монет і прочитайте їх разом.</p>
+</main>
+<footer>Coins Collection</footer>
+</body>
+</html>

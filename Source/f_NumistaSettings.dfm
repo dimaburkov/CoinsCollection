@@ -55,7 +55,7 @@ object fmNumistaSettings: TfmNumistaSettings
     Width = 104
     Height = 13
     Cursor = crHandPoint
-    Caption = 'Numista API documentation'
+    Caption = 'Get your Numista API key'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clHotLight
     Font.Height = -11

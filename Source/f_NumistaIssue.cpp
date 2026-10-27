@@ -7,6 +7,7 @@
 #include <shellapi.h>
 #include "f_NumistaIssue.h"
 #include "u_Translator.h"
+#include "u_Help.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 #pragma resource "*.dfm"
@@ -28,6 +29,7 @@ __fastcall TfmNumistaIssue::TfmNumistaIssue(TComponent* Owner)
 	  FTypeId(0)
 {
 	Translator().TranslateForm(this);
+	InstallHelpKey(this, L"numista-link");
 	btnTypeOnly->ModalResult = cTypeOnly;
 }
 //---------------------------------------------------------------------------

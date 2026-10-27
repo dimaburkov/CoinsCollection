@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Main window — Coins Collection — Help</title>
+<link rel="stylesheet" href="../help.css">
+</head>
+<body>
+<header>
+<span class="app">Coins Collection — Help</span>
+<nav><a href="index.html">Contents</a><a href="../uk/main-window.html">Українською</a></nav>
+</header>
+<main>
+<h1>Main window</h1>
+<figure class="shot"><img src="../images/01-main-window.png" alt="The main window." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Screenshot: images/01-main-window.png</div><figcaption>The main window.</figcaption></figure>
+<h2>Navigation tree</h2>
+<p>On the left: <span class="ui">All</span>, continents with their countries, <span class="ui">No continent</span>,
+<span class="ui">Extinct states</span> and <span class="ui">Checked</span> (all checked coins from any country, see <a href="checks.html">Checking coins</a>).
+The number in brackets is the number of items.</p>
+<h2>Search</h2>
+<p>The search field on the toolbar filters the list by country, period, currency, denomination, year, subject, variety, catalogue number and comment.</p>
+<h2>Coin list</h2>
+<table>
+<tr><th>Column</th><th>Meaning</th></tr>
+<tr><td>☐</td><td>Check box for mass operations (<a href="checks.html">Checking coins</a>).</td></tr>
+<tr><td>Country, Period, Currency, Denomination</td><td>From uCoin. Country is hidden when one country is selected in the tree.</td></tr>
+<tr><td>#Numista</td><td>Numista type number (N#). Grey — the issue is not chosen yet.</td></tr>
+<tr><td>✓</td><td>The item is uploaded to your Numista collection.</td></tr>
+<tr><td>Rarity</td><td>Rarity index from your Numista collection comment (<a href="numista-upload.html">Numista: upload</a>).</td></tr>
+<tr><td>Mintage</td><td>Mintage of the issue. <code>n/a</code> — Numista has no mintage for it; empty — not loaded yet.</td></tr>
+<tr><td>Composition</td><td>Metal of the type from Numista.</td></tr>
+<tr><td>Year, Condition, Value</td><td>From uCoin.</td></tr>
+</table>
+<p>Click a column header to sort, click it again to reverse. By default the list is sorted by year, then by denomination.</p>
+<h2>Coin details</h2>
+<p>Under the list: obverse and reverse photos (double-click — <a href="photos.html">photo viewer</a>) and the coin data in two columns.
+The #Numista value is a link to the type page on Numista. The right column shows the type details loaded from Numista
+(weight, size, shape, ruler, series, years, mints, demonetization).</p>
+<h2>Status bar</h2>
+<p>Number of shown items, their quantity and value, and the number of checked items.</p>
+</main>
+<footer>Coins Collection</footer>
+</body>
+</html>

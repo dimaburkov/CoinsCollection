@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Numista: підключення та запити — Колекція монет — Довідка</title>
+<link rel="stylesheet" href="../help.css">
+</head>
+<body>
+<header>
+<span class="app">Колекція монет — Довідка</span>
+<nav><a href="index.html">Зміст</a><a href="../en/numista-connect.html">In English</a></nav>
+</header>
+<main>
+<h1>Numista: підключення та запити</h1>
+<figure class="shot"><img src="../images/05-numista-settings.png" alt="Numista → Підключення / налаштування." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Скриншот: images/05-numista-settings.png</div><figcaption>Numista → Підключення / налаштування.</figcaption></figure>
+<h2>Ваш ключ API</h2>
+<ol>
+<li>Зареєструйтеся на <a href="https://en.numista.com/">numista.com</a>.</li>
+<li>Запросіть свій ключ API (увійшовши на Numista): <a href="https://en.numista.com/api/api_key.php">en.numista.com/api/api_key.php</a>.</li>
+<li>Введіть ключ у <span class="ui">Numista → Connect / Settings/Numista → Підключення / налаштування</span> і натисніть
+<span class="ui">Check connection/Перевірити підключення</span>.</li>
+</ol>
+<p>Кожен користувач використовує власний ключ. Ключ зберігається лише в <code>CoinsCollection.ini</code> поруч із програмою.</p>
+<h2>Запити та квота</h2>
+<p>Безкоштовний ключ Numista дає <b>2000 запитів на місяць</b>. Кожне вікно з підсумком показує, скільки запитів використала операція
+і скільки використано цього місяця.</p>
+<ul>
+<li>Відповіді зберігаються в <code>Numista\</code>: той самий тип ніколи не запитується двічі.</li>
+<li>Фото — файли сайту Numista, а не запити API: квоту вони не витрачають.</li>
+<li>Звичайні витрати: зв'язок монети — 3–5 запитів; вивантаження позначених — 1 на примірник плюс 2 на запуск; індекс рідкісності — 1 на запуск.</li>
+</ul>
+</main>
+<footer>Coins Collection</footer>
+</body>
+</html>
