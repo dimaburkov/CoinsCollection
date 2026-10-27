@@ -26,6 +26,7 @@
 #include "u_NumistaComment.h"
 #include "u_PhotoRepository.h"
 #include "f_PhotoView.h"
+#include "f_Progress.h"
 #include "versionConfig.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -226,18 +227,22 @@ void __fastcall TfmMain::actImportExecute(TObject *Sender)
 	int dataRows = 0;
 	const TCursor oldCursor = Screen->Cursor;
 	Screen->Cursor = crHourGlass;
+	std::unique_ptr<TProgress> progress(new TProgress(this, title, 0));
 	try
 	{
+		progress->SetText(Tr(L"Progress.ReadingFile"));
 		TXlsxSource source;
 		source.Open(dialog->FileName);
 		TCoinImporter importer(FRepository->Lookups().Conditions());
 		records  = importer.Parse(source);
 		errors   = importer.Errors();
 		dataRows = importer.DataRowCount();
+		progress.reset();
 		Screen->Cursor = oldCursor;
 	}
 	catch (Exception &e)
 	{
+		progress.reset();
 		Screen->Cursor = oldCursor;
 		Application->MessageBox((Tr(L"Import.Error.Read") + nl + nl + e.Message).c_str(), title.c_str(), MB_OK | MB_ICONERROR);
 		return;
@@ -275,15 +280,19 @@ void __fastcall TfmMain::actImportExecute(TObject *Sender)
 	int saved = 0;
 	TImportKept kept;
 	const String stamp = L"before-import-" + FormatDateTime(L"yyyymmdd-hhnnss", Now());
+	progress.reset(new TProgress(this, title, 0));
 	try
 	{
+		progress->SetText(Tr(L"Progress.Saving"));
 		if (current > 0)
 			FDatabase->Backup(stamp);
 		saved = FRepository->ReplaceAll(records, &kept);
+		progress.reset();
 		Screen->Cursor = oldCursor;
 	}
 	catch (Exception &e)
 	{
+		progress.reset();
 		Screen->Cursor = oldCursor;
 		Application->MessageBox((Tr(L"Import.Error.Failed") + nl + nl + e.Message).c_str(), title.c_str(), MB_OK | MB_ICONERROR);
 		return;
@@ -706,8 +715,7 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 	int typesLoaded = 0, typesFailed = 0, photos = 0, photosFailed = 0;
 	std::set<int> linkedCoins;
 	String stopReason;
-	const TCursor saved = Screen->Cursor;
-	Screen->Cursor = crHourGlass;
+	std::unique_ptr<TProgress> progress(new TProgress(this, caption, count, &client));
 	try
 	{
 		matcher.EnsureCountryIssuers(FRepository->Lookups());
@@ -716,9 +724,11 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 		for (size_t i = 0; i < coins.size() && stopReason.IsEmpty(); ++i)
 		{
 			const TCoinRecord &coin = coins[i];
-			StatusBar->Panels->Items[0]->Text = Format(Tr(L"Numista.Match.Progress"),
-				ARRAYOFCONST(((int)i + 1, (int)coins.size())));
-			StatusBar->Update();
+			if (!progress->Step((int)i, CoinText(coin)))
+			{
+				stopReason = Tr(L"Progress.Stopped");
+				break;
+			}
 			try
 			{
 				const String countryIssuer = issuers[AnsiUpperCase(coin.Country)];
@@ -778,7 +788,7 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 	{
 		stopReason = e.Message;
 	}
-	Screen->Cursor = saved;
+	progress.reset();
 
 	// Со связанных монет флажок снимается (со всех её экземпляров).
 	for (size_t i = 0; i < FAll.size(); ++i)
@@ -956,10 +966,10 @@ void TfmMain::UploadItems(const std::vector<TCoinRecord> &ACandidates)
 	TNumistaUploader uploader;
 	int uploaded = 0, found = 0, foreign = 0, errors = 0, processed = 0;
 	String firstError, stopReason;
-	const TCursor saved = Screen->Cursor;
-	Screen->Cursor = crHourGlass;
+	std::unique_ptr<TProgress> progress(new TProgress(this, caption, count, &client));
 	try
 	{
+		progress->SetText(Tr(L"Progress.ReadingCollection"));
 		client.Authorize();
 		std::unique_ptr<TJSONValue> collection = client.GetCollectedItems();
 		uploader.ReadCollection(collection.get(), FAll);
@@ -967,9 +977,11 @@ void TfmMain::UploadItems(const std::vector<TCoinRecord> &ACandidates)
 		for (size_t i = 0; i < items.size(); ++i)
 		{
 			const TCoinRecord &item = items[i];
-			StatusBar->Panels->Items[0]->Text = Format(Tr(L"Numista.Upload.Progress"),
-				ARRAYOFCONST(((int)i + 1, count)));
-			StatusBar->Update();
+			if (!progress->Step((int)i, CoinText(item)))
+			{
+				stopReason = Tr(L"Progress.Stopped");
+				break;
+			}
 
 			// Добавлена на сайте — связать с найденным предметом (✓), не отправлять повторно.
 			int numistaId = uploader.UploadedItem(item.Id);
@@ -1005,7 +1017,7 @@ void TfmMain::UploadItems(const std::vector<TCoinRecord> &ACandidates)
 	{
 		stopReason = e.Message;
 	}
-	Screen->Cursor = saved;
+	progress.reset();
 
 	LoadItems();
 	String report = Format(Tr(L"Numista.Upload.Uploaded"), ARRAYOFCONST((uploaded))) + L"\r\n"
@@ -1063,10 +1075,10 @@ void TfmMain::ReadRarity(const std::set<int> &ACoinIds, const String &ACaption)
 	int total = 0, matched = 0, withRarity = 0, changed = 0, cleared = 0;
 	String message;
 	UINT icon = MB_ICONINFORMATION;
-	const TCursor saved = Screen->Cursor;
-	Screen->Cursor = crHourGlass;
+	std::unique_ptr<TProgress> progress(new TProgress(this, caption, 0, &client));
 	try
 	{
+		progress->SetText(Tr(L"Progress.ReadingCollection"));
 		client.Authorize();
 		std::unique_ptr<TJSONValue> json = client.GetCollectedItems();
 		TJSONArray *items = dynamic_cast<TJSONArray *>(json->FindValue(L"items"));
@@ -1127,7 +1139,7 @@ void TfmMain::ReadRarity(const std::set<int> &ACoinIds, const String &ACaption)
 		message = e.Message;
 		icon = MB_ICONERROR;
 	}
-	Screen->Cursor = saved;
+	progress.reset();
 
 	LoadItems();
 	Application->MessageBox((message + L"\r\n\r\n" + NumistaRequestsText(client.RequestsMade)).c_str(), caption.c_str(),
@@ -1144,10 +1156,13 @@ void __fastcall TfmMain::actNumistaCatalogExecute(TObject *Sender)
 
 	std::set<int> typeSet, issueTypes, detailTypes;
 	std::map<int, std::set<int> > photoCoins;	// тип -> монеты, ждущие фото типа из Numista (задача 17b)
+	std::map<int, String> typeNames;			// тип -> монета для окна хода
 	const std::vector<TCoinRecord> checked = CheckedRecords();
 	for (size_t i = 0; i < checked.size(); ++i)
 	{
 		const TCoinRecord &r = checked[i];
+		if (r.NumistaTypeId != 0 && !typeNames.count(r.NumistaTypeId))
+			typeNames[r.NumistaTypeId] = CoinText(r) + L" \u2014 N# " + IntToStr(r.NumistaTypeId);
 		if (r.NumistaIssueId != 0 && !r.NumistaIssueLoaded)
 			issueTypes.insert(r.NumistaTypeId);
 		if (r.NumistaTypeId != 0 && !r.NumistaTypeLoaded)
@@ -1191,16 +1206,17 @@ void __fastcall TfmMain::actNumistaCatalogExecute(TObject *Sender)
 	TNumistaMatcher matcher(client);
 	int processed = 0, fromCache = 0, issues = 0, details = 0, photos = 0, photosFailed = 0;
 	String stopReason;
-	const TCursor saved = Screen->Cursor;
-	Screen->Cursor = crHourGlass;
+	std::unique_ptr<TProgress> progress(new TProgress(this, caption, (int)types.size(), &client));
 	try
 	{
 		for (size_t i = 0; i < types.size(); ++i)
 		{
-			StatusBar->Panels->Items[0]->Text = Format(Tr(L"Numista.Catalog.Progress"),
-				ARRAYOFCONST(((int)i + 1, (int)types.size())));
-			StatusBar->Update();
 			const int type = types[i];
+			if (!progress->Step((int)i, typeNames[type]))
+			{
+				stopReason = Tr(L"Progress.Stopped");
+				break;
+			}
 			const bool needIssues = issueTypes.count(type) > 0, needType = detailTypes.count(type) > 0;
 			std::map<int, std::set<int> >::const_iterator pending = photoCoins.find(type);
 			const bool needPhotos = pending != photoCoins.end();
@@ -1227,7 +1243,7 @@ void __fastcall TfmMain::actNumistaCatalogExecute(TObject *Sender)
 	{
 		stopReason = e.Message;
 	}
-	Screen->Cursor = saved;
+	progress.reset();
 
 	LoadItems();	// и строка состояния
 	std::set<int> withMintage, noMintage;	// отмеченные монеты: тираж известен / выпуск загружен, тиража у Numista нет
