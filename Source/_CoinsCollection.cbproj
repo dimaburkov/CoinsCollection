@@ -251,6 +251,10 @@
             <DependentOn>f_PhotoView.h</DependentOn>
             <BuildOrder>27</BuildOrder>
         </CppCompile>
+        <CppCompile Include="f_Progress.cpp">
+            <DependentOn>f_Progress.h</DependentOn>
+            <BuildOrder>28</BuildOrder>
+        </CppCompile>
         <CppCompile Include="u_NumistaUploader.cpp">
             <DependentOn>u_NumistaUploader.h</DependentOn>
             <BuildOrder>24</BuildOrder>
