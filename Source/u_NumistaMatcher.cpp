@@ -243,14 +243,21 @@ bool TNumistaMatcher::SameBranch(const String &AIssuer1, const String &AIssuer2)
 	return !AIssuer1.IsEmpty() && !AIssuer2.IsEmpty() && RootOf(AIssuer1) == RootOf(AIssuer2);
 }
 //---------------------------------------------------------------------------
+// Названия типов Numista: «страна + номинал + год» или сюжет памятной монеты (задача 25).
+// Диапазон лет — первый год; год до н. э. — без года. Кавычки из экспорта uCoin — пробелом.
 String TNumistaMatcher::AutoQuery(const TCoinRecord &ACoin)
 {
-	String result = ACoin.Denomination.Trim();
-	if (!ACoin.Period.Trim().IsEmpty())
-		result += L" " + ACoin.Period.Trim();
-	if (ACoin.Year != 0)
-		result += L" " + IntToStr(ACoin.Year);
-	return result;
+	const String year = ACoin.Year > 0 ? IntToStr(ACoin.Year) : String();
+	const String subject = ACoin.Subject.Trim();
+	String result = ACoin.Country.Trim();
+	if (!subject.IsEmpty())
+		result += L" " + year + L" " + subject;
+	else
+		result += L" " + ACoin.Denomination.Trim() + L" " + year;
+	result = StringReplace(result, L"\"", L" ", TReplaceFlags() << rfReplaceAll);
+	while (result.Pos(L"  ") > 0)
+		result = StringReplace(result, L"  ", L" ", TReplaceFlags() << rfReplaceAll);
+	return result.Trim();
 }
 //---------------------------------------------------------------------------
 std::vector<TNumistaType> TNumistaMatcher::SearchPhrase(const String &AQuery)
@@ -258,6 +265,27 @@ std::vector<TNumistaType> TNumistaMatcher::SearchPhrase(const String &AQuery)
 	if (AQuery.Trim().IsEmpty())
 		return std::vector<TNumistaType>();
 	return QueryTypes(L"/types?q=" + UrlParam(AQuery.Trim()) + L"&lang=en&count=" + IntToStr(cPageSize));
+}
+//---------------------------------------------------------------------------
+std::vector<TNumistaType> TNumistaMatcher::SearchAutoQuery(const TCoinRecord &ACoin, const String &AIssuer,
+	const String &ACountryIssuer, int &AFound)
+{
+	const std::vector<TNumistaType> all = SearchPhrase(AutoQuery(ACoin));
+	AFound = (int)all.size();
+	std::vector<TNumistaType> result;
+	if (ACoin.Year == 0)
+		return result;	// год не проверить — только вручную
+	for (const TNumistaType &t : all)
+	{
+		const int maxYear = t.MaxYear != 0 ? t.MaxYear : t.MinYear;
+		if (t.MinYear == 0 || ACoin.Year < t.MinYear || ACoin.Year > maxYear)
+			continue;
+		if ((!AIssuer.IsEmpty() || !ACountryIssuer.IsEmpty())
+			&& !SameBranch(t.IssuerCode, AIssuer) && !SameBranch(t.IssuerCode, ACountryIssuer))
+			continue;
+		result.push_back(t);
+	}
+	return result;
 }
 //---------------------------------------------------------------------------
 std::vector<TNumistaType> TNumistaMatcher::Search(const TCoinRecord &ACoin, const String &AIssuer,

@@ -844,25 +844,34 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 	}
 
 	// Кандидаты — по одной записи на монету (экземпляры одной монеты — один тип).
-	// Уже связанные и без номера KM / Y / C — пропускаются без запросов.
+	// Уже связанные — пропускаются без запросов. С номером KM / Y / C — поиск по номеру;
+	// со своей фразой — по ней; UC# / без номера — по автофразе (задача 25).
 	std::vector<TCoinRecord> coins;
-	std::set<int> seen, linkedBefore, noNumber;
+	std::set<int> seen, linkedBefore, byPhrase, byAutoQuery;
 	for (size_t i = 0; i < FAll.size(); ++i)
 	{
 		const TCoinRecord &r = FAll[i];
 		if (!FChecked.count(r.Id))
 			continue;
+		if (r.NumistaTypeId != 0)
+		{
+			linkedBefore.insert(r.CoinId);
+			continue;
+		}
+		if (!seen.insert(r.CoinId).second)
+			continue;
+		coins.push_back(r);
 		int catalogueId = 0;
 		String number;
-		if (r.NumistaTypeId != 0)
-			linkedBefore.insert(r.CoinId);
-		else if (!matcher.ParseCatalogNumber(r.CatalogNumber, catalogueId, number) && r.NumistaQuery.IsEmpty())
-			noNumber.insert(r.CoinId);
-		else if (seen.insert(r.CoinId).second)
-			coins.push_back(r);
+		if (!r.NumistaQuery.IsEmpty())
+			byPhrase.insert(r.CoinId);
+		else if (!matcher.ParseCatalogNumber(r.CatalogNumber, catalogueId, number))
+		{
+			byPhrase.insert(r.CoinId);
+			byAutoQuery.insert(r.CoinId);
+		}
 	}
-	const String skipped = Format(Tr(L"Numista.Check.AlreadyLinked"), ARRAYOFCONST(((int)linkedBefore.size()))) + L"\r\n"
-		+ Format(Tr(L"Numista.Check.NoNumber"), ARRAYOFCONST(((int)noNumber.size())));
+	const String skipped = Format(Tr(L"Numista.Check.AlreadyLinked"), ARRAYOFCONST(((int)linkedBefore.size())));
 	if (coins.empty())
 	{
 		Application->MessageBox((Tr(L"Numista.Check.Nothing") + L"\r\n\r\n" + skipped).c_str(), caption.c_str(),
@@ -881,8 +890,12 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 		dialog->MainIcon = tdiInformation;
 		dialog->CommonButtons = TTaskDialogCommonButtons() << tcbOk << tcbCancel;
 		dialog->DefaultButton = tcbOk;
-		dialog->Text = Format(Tr(L"Numista.Check.Confirm"), ARRAYOFCONST((count, count * 2,
-			TNumistaClient::RequestsThisMonth(), AppConfig().NumistaMonthlyQuota)));
+		dialog->Text = Format(Tr(L"Numista.Check.Confirm"), ARRAYOFCONST((count + (int)linkedBefore.size()))) + L"\r\n"
+			+ Format(Tr(L"Numista.Check.ByNumber"), ARRAYOFCONST((count - (int)byPhrase.size()))) + L"\r\n"
+			+ Format(Tr(L"Numista.Check.ByPhrase"), ARRAYOFCONST(((int)byPhrase.size()))) + L"\r\n"
+			+ Format(Tr(L"Numista.Check.Linked"), ARRAYOFCONST(((int)linkedBefore.size()))) + L"\r\n\r\n"
+			+ Format(Tr(L"Numista.Check.Requests"), ARRAYOFCONST((count * 2,
+				TNumistaClient::RequestsThisMonth(), AppConfig().NumistaMonthlyQuota)));
 		dialog->VerificationText = Format(Tr(L"Numista.Check.Details"), ARRAYOFCONST((count)));
 		if (details)
 			dialog->Flags = dialog->Flags << tfVerificationFlagChecked;
@@ -895,11 +908,12 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 			AppConfig().Save();
 		}
 	}
-	// Не больше 3 запросов на монету: поиск, повтор без issuer, выпуски (своя фраза — 1 поиск;
-	// автофраза в автосвязи не используется); с характеристиками — ещё getType.
+	// Не больше 3 запросов на монету: поиск, повтор без issuer, выпуски (своя фраза и автофраза —
+	// 1 поиск); с характеристиками — ещё getType.
 	client.RequestBudget = count * (details ? 4 : 3);
 
 	int linked = 0, withIssue = 0, ambiguous = 0, notFound = 0, otherIssuer = 0, processed = 0;
+	int linkedByPhrase = 0, phraseCheck = 0;
 	int typesLoaded = 0, typesFailed = 0, photos = 0, photosFailed = 0;
 	std::set<int> linkedCoins;
 	String stopReason;
@@ -921,9 +935,20 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 			{
 				const String countryIssuer = issuers[AnsiUpperCase(coin.Country)];
 				const String periodIssuer = periodIssuers[TLookupRepository::PeriodKey(coin.Country, coin.Period)];
-				const std::vector<TNumistaType> types = matcher.Search(coin,
-					periodIssuer.IsEmpty() ? countryIssuer : periodIssuer, countryIssuer);
-				if (types.size() == 1 && types[0].OtherIssuer)
+				const String issuer = periodIssuer.IsEmpty() ? countryIssuer : periodIssuer;
+				const bool autoQuery = byAutoQuery.count(coin.CoinId) > 0;
+				int phraseFound = 0;
+				const std::vector<TNumistaType> types = autoQuery
+					? matcher.SearchAutoQuery(coin, issuer, countryIssuer, phraseFound)
+					: matcher.Search(coin, issuer, countryIssuer);
+				if (autoQuery && types.size() != 1)
+				{
+					if (phraseFound == 0)
+						++notFound;
+					else
+						++phraseCheck;	// нашлось, но не однозначно — только вручную
+				}
+				else if (types.size() == 1 && types[0].OtherIssuer)
 					++otherIssuer;	// другой эмитент — только вручную, с подтверждением
 				else if (types.size() == 1)
 				{
@@ -941,6 +966,8 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 						StoreIssues(*FRepository, matcher, types[0].Id);
 					linkedCoins.insert(coin.CoinId);
 					++linked;
+					if (byPhrase.count(coin.CoinId))
+						++linkedByPhrase;
 					if (issueId != 0)
 						++withIssue;
 					// Характеристики и фото типа сразу (getType из кэша или 1 запрос; фото квоту
@@ -984,7 +1011,9 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 			FChecked.erase(FAll[i].Id);
 	LoadItems();	// и строка состояния
 	String report = Format(Tr(L"Numista.Match.Linked"), ARRAYOFCONST((linked, withIssue))) + L"\r\n"
+		+ Format(Tr(L"Numista.Match.LinkedSplit"), ARRAYOFCONST((linked - linkedByPhrase, linkedByPhrase))) + L"\r\n"
 		+ Format(Tr(L"Numista.Match.Ambiguous"), ARRAYOFCONST((ambiguous))) + L"\r\n"
+		+ Format(Tr(L"Numista.Match.PhraseCheck"), ARRAYOFCONST((phraseCheck))) + L"\r\n"
 		+ Format(Tr(L"Numista.Match.NotFound"), ARRAYOFCONST((notFound))) + L"\r\n"
 		+ Format(Tr(L"Numista.Match.OtherIssuer"), ARRAYOFCONST((otherIssuer))) + L"\r\n"
 		+ Format(Tr(L"Numista.Match.NotProcessed"), ARRAYOFCONST(((int)coins.size() - processed))) + L"\r\n"

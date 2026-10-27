@@ -61,7 +61,15 @@ public:
 		const String &ACountryIssuer = String(), bool AAutoQuery = false);
 	// Поиск по фразе (searchTypes q=…, без эмитента; с кэшем).
 	std::vector<TNumistaType> SearchPhrase(const String &AQuery);
-	// Автофраза поиска: номинал, период, год («1 ort Sigismund III 1623»).
+	// Автосвязь монеты без номера KM / Y / C (UC#) по автофразе (задача 25, 1 запрос с кэшем):
+	// из найденных — типы, в годы которых входит год монеты и эмитент которых в ветке
+	// эмитента периода / страны (коды не известны — без этой проверки). Связывать можно,
+	// только если остался ровно один. AFound — сколько нашлось по фразе всего.
+	std::vector<TNumistaType> SearchAutoQuery(const TCoinRecord &ACoin, const String &AIssuer,
+		const String &ACountryIssuer, int &AFound);
+	// Автофраза поиска (задача 25): есть сюжет — страна, год, сюжет
+	// («Ukraine 2020 Remembrance Day of the Fallen Defenders of Ukraine»), иначе — страна,
+	// номинал, год («Ukraine 10 hryvnias 2020»).
 	static String AutoQuery(const TCoinRecord &ACoin);
 	// Эмитенты в одной ветке иерархии Numista (общий корень).
 	bool SameBranch(const String &AIssuer1, const String &AIssuer2) const;

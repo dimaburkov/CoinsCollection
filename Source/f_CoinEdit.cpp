@@ -30,6 +30,7 @@ __fastcall TfmCoinEdit::TfmCoinEdit(TComponent* Owner)
 	edDenomination->OnChange = QueryPartChange;
 	edYear->OnChange         = QueryPartChange;
 	cbPeriod->OnChange       = QueryPartChange;
+	edSubject->OnChange      = QueryPartChange;
 }
 //---------------------------------------------------------------------------
 bool TfmCoinEdit::Execute(TComponent *AOwner, TCoinRepository &ARepository, TPhotoRepository &APhotos,
@@ -107,6 +108,7 @@ void TfmCoinEdit::LoadPeriods()
 void __fastcall TfmCoinEdit::cbCountryChange(TObject *Sender)
 {
 	LoadPeriods();
+	QueryPartChange(nullptr);
 }
 //---------------------------------------------------------------------------
 String TfmCoinEdit::NumberText(double AValue)
@@ -451,13 +453,16 @@ void __fastcall TfmCoinEdit::WMDropFiles(TWMDropFiles &AMessage)
 }
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
-// Фраза поиска Numista (задача 15b): пустое поле — автофраза (номинал, период, год) серой подсказкой.
+// Фраза поиска Numista (задача 15b): пустое поле — автофраза (страна, номинал / сюжет, год;
+// задача 25) серой подсказкой.
 void __fastcall TfmCoinEdit::QueryPartChange(TObject *Sender)
 {
 	TCoinRecord r;
+	r.Country      = cbCountry->Text;
 	r.Denomination = edDenomination->Text;
 	r.Period       = cbPeriod->Text;
 	r.Year         = StrToIntDef(edYear->Text.Trim(), 0);
+	r.Subject      = edSubject->Text;
 	edNumistaQuery->TextHint = TNumistaMatcher::AutoQuery(r);
 }
 //---------------------------------------------------------------------------
