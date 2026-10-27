@@ -46,10 +46,6 @@ Catalogue data, mintages, type details and pictures: [**Numista**](https://en.nu
 
 Questions and suggestions: **progua@ukr.net** · or open an [issue](https://github.com/dimaburkov/CoinsCollection/issues).
 
-## For developers
-
-C++Builder (RAD Studio 13, VCL), SQLite (FireDAC). How to build, release and extend the program: [Docs/Tech/CoinsCollection-tech.md](Docs/Tech/CoinsCollection-tech.md) (in Russian). Task history: [Docs/Jobs/CoinsCollection-tasks.md](Docs/Jobs/CoinsCollection-tasks.md).
-
 Licensed under the [MIT License](LICENSE).
 
 ---
