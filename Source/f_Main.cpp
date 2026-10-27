@@ -30,6 +30,7 @@
 #include "u_Help.h"
 #include "f_NumistaImport.h"
 #include "u_Backup.h"
+#include "f_About.h"
 #include <System.IOUtils.hpp>
 #include <System.IniFiles.hpp>
 #include "versionConfig.h"
@@ -1928,10 +1929,8 @@ void __fastcall TfmMain::actRefreshExecute(TObject *Sender)
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::actAboutExecute(TObject *Sender)
 {
-	// Заголовок — подпись действия About на текущем языке (без "&").
-	const String text    = Format(Tr(L"Main.About"), ARRAYOFCONST((AppInfo::Name, AppInfo::Version)));
-	const String caption = StripHotkey(actAbout->Caption);
-	Application->MessageBox(text.c_str(), caption.c_str(), MB_OK | MB_ICONINFORMATION);
+	// Окно «О программе» (задача 22).
+	TfmAbout::Execute(this, AppConfig().DbPath, FDatabase->SchemaVersion());
 }
 //---------------------------------------------------------------------------
 // Перечитать коллекцию из БД; текущая запись сохраняется по Id.
