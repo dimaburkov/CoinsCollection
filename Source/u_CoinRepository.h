@@ -66,6 +66,8 @@ public:
 	void SetItemNumista(int AItemId, int ANumistaItemId);
 	// Индекс редкости монеты (-1 — не известен).
 	void SetCoinRarity(int ACoinId, int ARarity);
+	// Своя фраза поиска Numista ("" — автофраза; задача 15b).
+	void SetCoinQuery(int ACoinId, const String &AQuery);
 	// Выпуски типа Numista (getIssues) в numista_issues — вставка или обновление
 	// по id (задача 13c). Возвращает число выпусков.
 	int  SaveNumistaIssues(int ATypeId, const std::vector<TNumistaIssue> &AIssues);

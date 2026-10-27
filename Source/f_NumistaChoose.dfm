@@ -31,12 +31,52 @@ object fmNumistaChoose: TfmNumistaChoose
     Align = alTop
     ShowAccelChar = False
   end
+  object pnlQuery: TPanel
+    Left = 0
+    Top = 27
+    Width = 640
+    Height = 32
+    Align = alTop
+    BevelOuter = bvNone
+    TabOrder = 1
+    DesignSize = (
+      640
+      32)
+    object lblQuery: TLabel
+      Left = 8
+      Top = 8
+      Width = 80
+      Height = 13
+      Caption = 'Search &phrase:'
+      FocusControl = edQuery
+    end
+    object edQuery: TEdit
+      Left = 112
+      Top = 4
+      Width = 420
+      Height = 21
+      Anchors = [akLeft, akTop, akRight]
+      TabOrder = 0
+      OnEnter = edQueryEnter
+      OnExit = edQueryExit
+    end
+    object btnSearch: TButton
+      Left = 540
+      Top = 3
+      Width = 92
+      Height = 23
+      Anchors = [akTop, akRight]
+      Caption = '&Search'
+      TabOrder = 1
+      OnClick = btnSearchClick
+    end
+  end
   object dgTypes: TDrawGrid
     AlignWithMargins = True
     Left = 8
-    Top = 30
+    Top = 59
     Width = 624
-    Height = 263
+    Height = 234
     Margins.Left = 8
     Margins.Top = 0
     Margins.Right = 8
@@ -50,6 +90,7 @@ object fmNumistaChoose: TfmNumistaChoose
     TabOrder = 0
     OnDblClick = dgTypesDblClick
     OnDrawCell = dgTypesDrawCell
+    OnSelectCell = dgTypesSelectCell
   end
   object pnlButtons: TPanel
     Left = 0
@@ -58,7 +99,7 @@ object fmNumistaChoose: TfmNumistaChoose
     Height = 47
     Align = alBottom
     BevelOuter = bvNone
-    TabOrder = 1
+    TabOrder = 2
     DesignSize = (
       640
       47)

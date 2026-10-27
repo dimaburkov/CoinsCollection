@@ -11,6 +11,7 @@
 #include <Vcl.Imaging.jpeg.hpp>
 #include "f_CoinEdit.h"
 #include "u_CoinRepository.h"
+#include "u_NumistaMatcher.h"
 #include "u_Translator.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -23,6 +24,10 @@ __fastcall TfmCoinEdit::TfmCoinEdit(TComponent* Owner)
 	  FPhotos(nullptr)
 {
 	Translator().TranslateForm(this);
+	// Автофраза поиска Numista — подсказкой в пустом поле, обновляется при правке её частей.
+	edDenomination->OnChange = QueryPartChange;
+	edYear->OnChange         = QueryPartChange;
+	cbPeriod->OnChange       = QueryPartChange;
 }
 //---------------------------------------------------------------------------
 bool TfmCoinEdit::Execute(TComponent *AOwner, TCoinRepository &ARepository, TPhotoRepository &APhotos,
@@ -119,6 +124,8 @@ void TfmCoinEdit::LoadFrom(const TCoinRecord &R)
 	edDiameter->Text      = NumberText(R.DiameterMm);
 	edCatalogNumber->Text = R.CatalogNumber;
 	edSubject->Text       = R.Subject;
+	edNumistaQuery->Text  = R.NumistaQuery;
+	QueryPartChange(nullptr);
 
 	cbCondition->ItemIndex = 0;
 	for (size_t i = 0; i < FConditions.size(); ++i)
@@ -219,6 +226,7 @@ void TfmCoinEdit::SaveTo(TCoinRecord &R) const
 	R.DiameterMm    = TryParseNumber(edDiameter->Text, value) ? value : 0.0;
 	R.CatalogNumber = edCatalogNumber->Text.Trim();
 	R.Subject       = edSubject->Text.Trim();
+	R.NumistaQuery  = edNumistaQuery->Text.Trim();
 
 	const int condition = cbCondition->ItemIndex;
 	R.Condition       = condition > 0 && condition <= (int)FConditions.size() ? FConditions[condition - 1].Code : String();
@@ -426,5 +434,16 @@ void __fastcall TfmCoinEdit::WMDropFiles(TWMDropFiles &AMessage)
 		DragFinish(drop);
 	}
 	AMessage.Result = 0;
+}
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+// Фраза поиска Numista (задача 15b): пустое поле — автофраза (номинал, период, год) серой подсказкой.
+void __fastcall TfmCoinEdit::QueryPartChange(TObject *Sender)
+{
+	TCoinRecord r;
+	r.Denomination = edDenomination->Text;
+	r.Period       = cbPeriod->Text;
+	r.Year         = StrToIntDef(edYear->Text.Trim(), 0);
+	edNumistaQuery->TextHint = TNumistaMatcher::AutoQuery(r);
 }
 //---------------------------------------------------------------------------

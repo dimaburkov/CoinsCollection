@@ -66,6 +66,7 @@ struct TCoinRecord
 	int       NumistaIssueId;  // coins.numista_issue_id
 	int       NumistaItemId;   // coin_items.numista_item_id (предмет в коллекции Numista)
 	int       NumistaRarity;   // coins.numista_rarity, 0–100; -1 — не известен
+	String    NumistaQuery;    // coins.numista_query — своя фраза поиска Numista ("" — автофраза, задача 15b)
 	// Выпуск из numista_issues (задача 13c)
 	bool      NumistaIssueLoaded;  // выпуск монеты загружен в numista_issues
 	__int64   NumistaMintage;      // тираж; -1 — не известен
