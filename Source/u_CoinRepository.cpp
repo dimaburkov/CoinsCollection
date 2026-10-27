@@ -23,7 +23,14 @@ namespace
 		L"       i.grading_company, i.grading_number, i.grade, i.label_text, i.comment,"
 		L"       c.numista_type_id, c.numista_issue_id, i.numista_item_id, c.numista_rarity, c.numista_query,"
 		L"       ni.id AS issue_loaded, ni.mintage, ni.comment AS issue_comment,"
-		L"       nt.id AS type_loaded, nt.composition"
+		L"       nt.id AS type_loaded, nt.composition,"
+		L"       CASE WHEN c.numista_type_id IS NULL THEN 0"
+		L"            WHEN nt.id IS NULL OR nt.pictures_known = 0 THEN 1"
+		L"            WHEN nt.obverse_picture IS NOT NULL AND NOT EXISTS (SELECT 1 FROM coin_photos ph"
+		L"                 WHERE ph.id_coin = c.id AND ph.side = 'obverse') THEN 1"
+		L"            WHEN nt.reverse_picture IS NOT NULL AND NOT EXISTS (SELECT 1 FROM coin_photos ph"
+		L"                 WHERE ph.id_coin = c.id AND ph.side = 'reverse') THEN 1"
+		L"            ELSE 0 END AS photo_pending"
 		L"  FROM coin_items i"
 		L"  JOIN coins c       ON c.id  = i.id_coin"
 		L"  JOIN periods p     ON p.id  = c.id_period"
@@ -150,6 +157,7 @@ namespace
 		r.NumistaIssueComment = FieldText(D, L"issue_comment");
 		r.NumistaTypeLoaded   = !D->FieldByName(L"type_loaded")->IsNull;
 		r.NumistaComposition  = FieldText(D, L"composition");
+		r.NumistaPhotoPending = FieldInt(D, L"photo_pending") != 0;
 		return r;
 	}
 }

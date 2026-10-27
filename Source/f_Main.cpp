@@ -557,8 +557,16 @@ void __fastcall TfmMain::actNumistaFindExecute(TObject *Sender)
 			// ошибка здесь — только примечание в итоге.
 			try
 			{
-				FRepository->SaveNumistaType(matcher.LoadType(typeId));
+				const TNumistaTypeInfo type = matcher.LoadType(typeId);
+				FRepository->SaveNumistaType(type);
 				message += L"\r\n" + Tr(L"Numista.Find.TypeLoaded");
+				// Фото типа из Numista (задача 17b): только для сторон, где фото типа нет.
+				int failed = 0;
+				const int photos = DownloadTypePhotos(client, type, coin.CoinId, false, failed);
+				if (photos > 0)
+					message += L"\r\n" + Format(Tr(L"Numista.Photos.Loaded"), ARRAYOFCONST((photos)));
+				if (failed > 0)
+					message += L"\r\n" + Format(Tr(L"Numista.Photos.Failed"), ARRAYOFCONST((failed)));
 			}
 			catch (Exception &e)
 			{
@@ -781,7 +789,7 @@ void __fastcall TfmMain::actNumistaUpdate(TObject *Sender)
 		toUpload  = toUpload  || (r.NumistaTypeId != 0 && r.NumistaItemId == 0);
 		uploaded  = uploaded  || r.NumistaItemId != 0;
 		noCatalog = noCatalog || (r.NumistaIssueId != 0 && !r.NumistaIssueLoaded)
-			|| (r.NumistaTypeId != 0 && !r.NumistaTypeLoaded);
+			|| (r.NumistaTypeId != 0 && !r.NumistaTypeLoaded) || (r.NumistaTypeId != 0 && r.NumistaPhotoPending);
 	}
 
 	actNumistaFind->Enabled       = coin != nullptr;
@@ -1089,6 +1097,7 @@ void __fastcall TfmMain::actNumistaCatalogExecute(TObject *Sender)
 	const String caption = StripHotkey(actNumistaCatalog->Caption);
 
 	std::set<int> typeSet, issueTypes, detailTypes;
+	std::map<int, std::set<int> > photoCoins;	// тип -> монеты, ждущие фото типа из Numista (задача 17b)
 	const std::vector<TCoinRecord> checked = CheckedRecords();
 	for (size_t i = 0; i < checked.size(); ++i)
 	{
@@ -1097,9 +1106,13 @@ void __fastcall TfmMain::actNumistaCatalogExecute(TObject *Sender)
 			issueTypes.insert(r.NumistaTypeId);
 		if (r.NumistaTypeId != 0 && !r.NumistaTypeLoaded)
 			detailTypes.insert(r.NumistaTypeId);
+		if (r.NumistaTypeId != 0 && r.NumistaPhotoPending)
+			photoCoins[r.NumistaTypeId].insert(r.CoinId);
 	}
 	typeSet.insert(issueTypes.begin(), issueTypes.end());
 	typeSet.insert(detailTypes.begin(), detailTypes.end());
+	for (std::map<int, std::set<int> >::const_iterator p = photoCoins.begin(); p != photoCoins.end(); ++p)
+		typeSet.insert(p->first);
 	if (typeSet.empty())
 	{
 		Application->MessageBox(Tr(L"Numista.Catalog.Nothing").c_str(), caption.c_str(), MB_OK | MB_ICONINFORMATION);
@@ -1113,7 +1126,8 @@ void __fastcall TfmMain::actNumistaCatalogExecute(TObject *Sender)
 	{
 		if (issueTypes.count(types[i]) && !TNumistaClient::IsCached(TNumistaMatcher::IssuesPath(types[i])))
 			++needed;
-		if (detailTypes.count(types[i]) && !TNumistaClient::IsCached(TNumistaMatcher::TypePath(types[i])))
+		if ((detailTypes.count(types[i]) || photoCoins.count(types[i]))
+			&& !TNumistaClient::IsCached(TNumistaMatcher::TypePath(types[i])))
 			++needed;
 	}
 	const int left = AppConfig().NumistaMonthlyQuota - TNumistaClient::RequestsThisMonth();
@@ -1129,7 +1143,7 @@ void __fastcall TfmMain::actNumistaCatalogExecute(TObject *Sender)
 
 	TNumistaClient client;
 	TNumistaMatcher matcher(client);
-	int processed = 0, fromCache = 0, issues = 0, details = 0;
+	int processed = 0, fromCache = 0, issues = 0, details = 0, photos = 0, photosFailed = 0;
 	String stopReason;
 	const TCursor saved = Screen->Cursor;
 	Screen->Cursor = crHourGlass;
@@ -1142,15 +1156,23 @@ void __fastcall TfmMain::actNumistaCatalogExecute(TObject *Sender)
 			StatusBar->Update();
 			const int type = types[i];
 			const bool needIssues = issueTypes.count(type) > 0, needType = detailTypes.count(type) > 0;
+			std::map<int, std::set<int> >::const_iterator pending = photoCoins.find(type);
+			const bool needPhotos = pending != photoCoins.end();
 			if ((!needIssues || TNumistaClient::IsCached(TNumistaMatcher::IssuesPath(type)))
-				&& (!needType || TNumistaClient::IsCached(TNumistaMatcher::TypePath(type))))
+				&& (!(needType || needPhotos) || TNumistaClient::IsCached(TNumistaMatcher::TypePath(type))))
 				++fromCache;
 			if (needIssues)
 				issues += FRepository->SaveNumistaIssues(type, matcher.LoadIssues(type));
-			if (needType)
+			if (needType || needPhotos)
 			{
-				FRepository->SaveNumistaType(matcher.LoadType(type));
-				++details;
+				// Тип до v8 — без ссылок на изображения: перечитать getType (из кэша) и сохранить.
+				const TNumistaTypeInfo info = matcher.LoadType(type);
+				FRepository->SaveNumistaType(info);
+				if (needType)
+					++details;
+				if (needPhotos)
+					for (std::set<int>::const_iterator c = pending->second.begin(); c != pending->second.end(); ++c)
+						photos += DownloadTypePhotos(client, info, *c, false, photosFailed);
 			}
 			++processed;
 		}
@@ -1173,6 +1195,8 @@ void __fastcall TfmMain::actNumistaCatalogExecute(TObject *Sender)
 	String report = Format(Tr(L"Numista.Catalog.Types"), ARRAYOFCONST((processed, (int)types.size(), fromCache))) + L"\r\n"
 		+ Format(Tr(L"Numista.Catalog.Issues"), ARRAYOFCONST((issues))) + L"\r\n"
 		+ Format(Tr(L"Numista.Catalog.Details"), ARRAYOFCONST((details))) + L"\r\n"
+		+ Format(Tr(L"Numista.Photos.Loaded"), ARRAYOFCONST((photos))) + L"\r\n"
+		+ (photosFailed > 0 ? Format(Tr(L"Numista.Photos.Failed"), ARRAYOFCONST((photosFailed))) + L"\r\n" : String())
 		+ Format(Tr(L"Numista.Catalog.Mintage"), ARRAYOFCONST(((int)withMintage.size()))) + L"\r\n"
 		+ Format(Tr(L"Numista.Catalog.NoMintage"), ARRAYOFCONST(((int)noMintage.size())));
 	if (!stopReason.IsEmpty())
@@ -1203,8 +1227,15 @@ void __fastcall TfmMain::actNumistaRefreshOneExecute(TObject *Sender)
 	{
 		const int issues = FRepository->SaveNumistaIssues(coin.NumistaTypeId, matcher.LoadIssues(coin.NumistaTypeId, true));
 		message = Format(Tr(L"Numista.Refresh.Issues"), ARRAYOFCONST((issues)));
-		FRepository->SaveNumistaType(matcher.LoadType(coin.NumistaTypeId, true));
+		const TNumistaTypeInfo type = matcher.LoadType(coin.NumistaTypeId, true);
+		FRepository->SaveNumistaType(type);
 		message += L"\r\n" + Tr(L"Numista.Refresh.Type");
+		// Фото типа: недостающие и загруженные раньше из Numista — заново; свои — не трогаются.
+		int failed = 0;
+		const int photos = DownloadTypePhotos(client, type, coin.CoinId, true, failed);
+		message += L"\r\n" + Format(Tr(L"Numista.Photos.Loaded"), ARRAYOFCONST((photos)));
+		if (failed > 0)
+			message += L"\r\n" + Format(Tr(L"Numista.Photos.Failed"), ARRAYOFCONST((failed)));
 	}
 	catch (Exception &e)
 	{
@@ -2031,6 +2062,36 @@ void TfmMain::ShowDetailPhotos(const TCoinRecord *ARecord)
 		label->Caption = Tr(side == psObverse ? L"Main.Details.Obverse" : L"Main.Details.Reverse")
 			+ (shown && isType ? L" (" + Tr(L"Main.Details.TypePhoto") + L")" : String());
 	}
+}
+//---------------------------------------------------------------------------
+// Фото типа из Numista (задача 17b): изображения сторон из getType — фото типа монеты
+// ACoinId (source = numista, автор — picture_copyright). Своё фото типа не заменяется;
+// AReplaceNumista — заменить и загруженное раньше из Numista. Ошибка стороны — AFailed,
+// остальное продолжается. Возвращает число загруженных фото.
+int TfmMain::DownloadTypePhotos(TNumistaClient &AClient, const TNumistaTypeInfo &AType, int ACoinId,
+	bool AReplaceNumista, int &AFailed)
+{
+	int result = 0;
+	for (int s = 0; s < 2; ++s)
+	{
+		const TPhotoSide side = (TPhotoSide)s;
+		if (AType.Picture[s].IsEmpty())
+			continue;
+		const String source = FPhotos->CoinPhotoSource(ACoinId, side);
+		if (!source.IsEmpty() && !(AReplaceNumista && SameText(source, L"numista")))
+			continue;
+		try
+		{
+			std::unique_ptr<TGraphic> image(AClient.DownloadImage(AType.Picture[s]));
+			FPhotos->SetCoinPhoto(ACoinId, side, image.get(), L"numista", AType.PictureCopyright[s]);
+			++result;
+		}
+		catch (Exception &)
+		{
+			++AFailed;
+		}
+	}
+	return result;
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::DetailPhotoDblClick(TObject *Sender)
