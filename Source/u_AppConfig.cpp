@@ -54,7 +54,8 @@ TAppConfig::TAppConfig()
 	  NumistaTokenExpires(0.0),
 	  NumistaUserId(0),
 	  NumistaRequestsCount(0),
-	  NumistaMonthlyQuota(cDefaultQuota)
+	  NumistaMonthlyQuota(cDefaultQuota),
+	  NumistaAutoLinkDetails(true)
 {
 }
 //---------------------------------------------------------------------------
@@ -105,6 +106,7 @@ void TAppConfig::Load()
 	NumistaRequestsMonth = ini->ReadString(cNumistaSection, L"RequestsMonth", L"").Trim();
 	NumistaRequestsCount = ini->ReadInteger(cNumistaSection, L"RequestsCount", 0);
 	NumistaMonthlyQuota  = ini->ReadInteger(cNumistaSection, L"MonthlyQuota", cDefaultQuota);
+	NumistaAutoLinkDetails = ini->ReadBool(cNumistaSection, L"AutoLinkDetails", true);
 }
 //---------------------------------------------------------------------------
 void TAppConfig::Save()
@@ -139,6 +141,7 @@ void TAppConfig::Save()
 		ini->WriteString(cNumistaSection, L"RequestsMonth", NumistaRequestsMonth);
 		ini->WriteInteger(cNumistaSection, L"RequestsCount", NumistaRequestsCount);
 		ini->WriteInteger(cNumistaSection, L"MonthlyQuota", NumistaMonthlyQuota);
+		ini->WriteBool(cNumistaSection, L"AutoLinkDetails", NumistaAutoLinkDetails);
 	}
 }
 //---------------------------------------------------------------------------
