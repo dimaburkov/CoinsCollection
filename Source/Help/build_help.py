@@ -279,7 +279,7 @@ T['coin-card', 'en'] = u"""
 <li><b>Coin</b> — data of the coin type: country, period, currency, denomination, year (a range — the second field; before Christ — a negative year, <code>-44</code>), variety, diameter, catalogue number, subject.
 They are shared by all items of this coin; if there are several items, the card warns you.</li>
 <li>[[ui:Numista search|Пошук Numista]] — your own search phrase for Numista. Empty — an automatic phrase is used (shown in grey):
-denomination, period, year. See [[page:numista-link|Numista: linking coins]].</li>
+country, year and subject (or country, denomination, year if there is no subject). See [[page:numista-link|Numista: linking coins]].</li>
 <li><b>My item</b> — your copy: condition, quantity, prices, dates, swap, comment, grading.</li>
 </ul>
 <h2>Photo</h2>
@@ -295,7 +295,7 @@ T['coin-card', 'uk'] = u"""
 <li><b>[[ui:Coin|Монета]]</b> — дані типу монети: країна, період, валюта, номінал, рік (діапазон — друге поле; до н. е. — від'ємний рік, <code>-44</code>), різновид, діаметр, номер у каталозі, сюжет.
 Вони спільні для всіх примірників цієї монети; якщо примірників кілька, картка попереджає.</li>
 <li>[[ui:Numista search|Пошук Numista]] — власна фраза пошуку на Numista. Порожньо — автоматична фраза (сірим):
-номінал, період, рік. Див. [[page:numista-link|Numista: зв'язок монет]].</li>
+країна, рік і сюжет (або країна, номінал, рік, якщо сюжету немає). Див. [[page:numista-link|Numista: зв'язок монет]].</li>
 <li><b>[[ui:My item|Мій примірник]]</b> — ваш примірник: стан, кількість, ціни, дати, обмін, коментар, грейдинг.</li>
 </ul>
 <h2>Фото</h2>
@@ -430,13 +430,21 @@ T['numista-link', 'en'] = u"""
 <p>If the right type is not in the list, edit [[ui:Search phrase|Фраза пошуку]] and press [[ui:Search|Пошук]] (or Enter),
 for example <code>Ort koronny - Sigismund III Vasa 1623</code>. The phrase you link with is saved in the coin card
 ([[ui:Numista search|Пошук Numista]]) and used next time.</p>
+<h2>Coins with a uCoin number (UC#)</h2>
+<p>uCoin exports many coins with its own number <code>UC# …</code> instead of KM#, Y# or C#. Numista does not know these numbers,
+so such coins are searched by an automatic phrase: <b>country + year + subject</b>, for example
+<code>Ukraine 2020 Remembrance Day of the Fallen Defenders of Ukraine</code>; without a subject — <b>country + denomination + year</b>
+(<code>Ukraine 10 hryvnias 2020</code>). Commemorative coins of one denomination and year differ only by the subject,
+so keep the [[ui:Subject|Сюжет]] field filled in the coin card. Your own search phrase always wins over the automatic one.</p>
 <h2>Historical states</h2>
 <p>Some coins are listed on Numista under another issuer than the uCoin country (for example Poland 1766 →
 <i>Polish–Lithuanian Commonwealth</i>). Such results always need your confirmation. When you choose one, the issuer is remembered
 for the coin's period, and the next coins of that period are found at once.</p>
 <h2>Many coins — Auto-link</h2>
-<p>Check coins ([[page:checks|Checking coins]]) → [[ui:Auto-link|Автозв'язок]]. Only unambiguous results are linked;
-the others are counted in the result — link them manually.
+<p>Check coins ([[page:checks|Checking coins]]) → [[ui:Auto-link|Автозв'язок]]. The confirmation shows how the checked coins
+will be searched: by the KM# / Y# / C# number, by the search phrase (UC# or no number) and how many are already linked (skipped).
+Only unambiguous results are linked. A coin found by the automatic phrase is linked only if exactly one type fits
+its year and country; otherwise it is counted as <i>needs checking</i> — link it manually.
 The check box [[ui:Also load type details and photos|Також завантажити характеристики й фото]] adds 1 request per coin.</p>
 [[shot:07-progress.png|Progress of a mass operation. Stop — stops after the current coin.]]
 """
@@ -455,13 +463,21 @@ T['numista-link', 'uk'] = u"""
 <p>Якщо потрібного типу немає у списку, змініть [[ui:Search phrase|Фраза пошуку]] і натисніть [[ui:Search|Пошук]] (або Enter),
 наприклад <code>Ort koronny - Sigismund III Vasa 1623</code>. Фраза, з якою ви пов'язали монету, зберігається в картці
 ([[ui:Numista search|Пошук Numista]]) і використовується наступного разу.</p>
+<h2>Монети з номером uCoin (UC#)</h2>
+<p>uCoin експортує багато монет із власним номером <code>UC# …</code> замість KM#, Y# або C#. Numista таких номерів не знає,
+тому такі монети шукаються за автоматичною фразою: <b>країна + рік + сюжет</b>, наприклад
+<code>Ukraine 2020 Remembrance Day of the Fallen Defenders of Ukraine</code>; без сюжету — <b>країна + номінал + рік</b>
+(<code>Ukraine 10 hryvnias 2020</code>). Пам'ятні монети одного номіналу й року відрізняються лише сюжетом,
+тому заповнюйте поле [[ui:Subject|Сюжет]] у картці монети. Власна фраза пошуку завжди важливіша за автоматичну.</p>
 <h2>Історичні держави</h2>
 <p>Деякі монети на Numista записані за іншим емітентом, ніж країна uCoin (наприклад Poland 1766 →
 <i>Polish–Lithuanian Commonwealth</i>). Такі результати завжди потребують вашого підтвердження. Коли ви вибираєте такий, емітента запам'ятовується
 для періоду монети, і наступні монети цього періоду знаходяться одразу.</p>
 <h2>Багато монет — Автозв'язок</h2>
-<p>Позначте монети ([[page:checks|Позначки монет]]) → [[ui:Auto-link|Автозв'язок]]. Пов'язуються лише однозначні результати;
-решта рахується в підсумку — пов'яжіть їх вручну.
+<p>Позначте монети ([[page:checks|Позначки монет]]) → [[ui:Auto-link|Автозв'язок]]. Підтвердження показує, як шукатимуться
+позначені монети: за номером KM# / Y# / C#, за фразою пошуку (UC# або без номера) і скільки вже пов'язано (пропускаються).
+Пов'язуються лише однозначні результати. Монета, знайдена за автоматичною фразою, пов'язується, лише якщо її року й країні
+відповідає рівно один тип; інакше вона рахується як <i>потрібна перевірка</i> — пов'яжіть її вручну.
 Позначка [[ui:Also load type details and photos|Також завантажити характеристики й фото]] додає 1 запит на монету.</p>
 [[shot:07-progress.png|Хід масової операції. Зупинити — після поточної монети.]]
 """
@@ -546,7 +562,7 @@ T['numista-catalog', 'uk'] = u"""
 T['faq', 'en'] = u"""
 <h3>A coin is not found on Numista or the wrong types are offered</h3>
 <p>Edit the search phrase in the type list and search again — [[page:numista-link|Numista: linking coins]].
-Check the catalogue number in the coin card (KM#, Y#, C#). Coins with a uCoin number (UC#) are searched only by phrase.</p>
+Check the catalogue number in the coin card (KM#, Y#, C#). Coins with a uCoin number (UC#) are searched by phrase — fill in the subject.</p>
 <h3>The monthly request quota is almost used</h3>
 <p>Work with checked coins (one request per run for upload and rarity), turn off
 [[ui:Also load type details and photos|Також завантажити характеристики й фото]] in auto-link and load the details later.</p>
@@ -564,7 +580,7 @@ Keep it on another disk or in the cloud. The program reminds you if there was no
 T['faq', 'uk'] = u"""
 <h3>Монета не знаходиться на Numista або пропонуються не ті типи</h3>
 <p>Змініть фразу пошуку у списку типів і шукайте знову — [[page:numista-link|Numista: зв'язок монет]].
-Перевірте номер у каталозі в картці монети (KM#, Y#, C#). Монети з номером uCoin (UC#) шукаються лише за фразою.</p>
+Перевірте номер у каталозі в картці монети (KM#, Y#, C#). Монети з номером uCoin (UC#) шукаються за фразою — заповніть сюжет.</p>
 <h3>Місячну квоту запитів майже вичерпано</h3>
 <p>Працюйте з позначеними монетами (один запит на запуск для вивантаження та індексу рідкісності), вимкніть
 [[ui:Also load type details and photos|Також завантажити характеристики й фото]] в автозв'язку й завантажте характеристики пізніше.</p>

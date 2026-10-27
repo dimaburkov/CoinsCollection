@@ -303,7 +303,7 @@ void TDatabase::MigrateTo8()
 }
 //---------------------------------------------------------------------------
 // v9: своя фраза поиска Numista у монеты (задача 15b); NULL — автофраза
-// (номинал, период, год — TNumistaMatcher::AutoQuery).
+// (TNumistaMatcher::AutoQuery).
 void TDatabase::MigrateTo9()
 {
 	FConnection->ExecSQL(L"ALTER TABLE coins ADD COLUMN numista_query TEXT");
