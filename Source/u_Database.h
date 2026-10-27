@@ -31,6 +31,8 @@ public:
 	// Копия файла БД: <имя>.<ASuffix>.bak рядом с БД; вызывать вне транзакции.
 	// Возвращает путь копии; не удалось — исключение.
 	String Backup(const String &ASuffix);
+	// Копия файла базы в AFile (соединение закрывается на время копирования; задача 21).
+	void CopyTo(const String &AFile);
 
 private:
 	TFDConnection *FConnection;

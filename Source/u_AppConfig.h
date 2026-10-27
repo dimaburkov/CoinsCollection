@@ -34,6 +34,12 @@ public:
 	int       NumistaMonthlyQuota;   // квота ключа в месяц (по умолчанию 2000)
 	bool      NumistaAutoLinkDetails; // автосвязь сразу загружает характеристики и фото типа (задача 17c)
 
+	// Резервные копии ([Backup], задача 21): папка последней копии, дата последней копии и
+	// последнего напоминания (0 — не было).
+	String    BackupFolder;
+	TDateTime BackupLast;
+	TDateTime BackupAsked;
+
 	// Каталог exe с завершающим "\".
 	static String ExeDir();
 

@@ -34,6 +34,8 @@ __published:	// IDE-managed Components
 	TActionList *ActionList;
 	TAction *actImport;
 	TAction *actBackup;
+	TAction *actRestore;
+	TMenuItem *miRestore;
 	TAction *actExit;
 	TAction *actAdd;
 	TAction *actEdit;
@@ -150,6 +152,9 @@ __published:	// IDE-managed Components
 	TMenuItem *miPopSep1;
 	void __fastcall FormCreate(TObject *Sender);
 	void __fastcall FormDestroy(TObject *Sender);
+	void __fastcall FormCloseQuery(TObject *Sender, bool &CanClose);
+	void __fastcall actBackupExecute(TObject *Sender);
+	void __fastcall actRestoreExecute(TObject *Sender);
 	void __fastcall actImportExecute(TObject *Sender);
 	void __fastcall actAddExecute(TObject *Sender);
 	void __fastcall actEditExecute(TObject *Sender);
@@ -261,6 +266,8 @@ private:	// User declarations
 	int  Column(int AGridCol) const;	// колонка сетки -> TItemColumn, -1 — нет
 	bool Confirm(const String &AText, const String &ACaption);
 	void ApplyPhotoEdits(const TPhotoEdits &AEdits, const TCoinRecord &ARecord);
+	// Резервная копия (задача 21): true — сделана.
+	bool MakeBackup();
 	bool SaveRecord(TCoinRecord &ARecord);
 	void SortItems();
 	int  CompareItems(const TCoinRecord &A, const TCoinRecord &B, int AColumn) const;

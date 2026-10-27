@@ -263,6 +263,10 @@
             <DependentOn>f_NumistaImport.h</DependentOn>
             <BuildOrder>30</BuildOrder>
         </CppCompile>
+        <CppCompile Include="u_Backup.cpp">
+            <DependentOn>u_Backup.h</DependentOn>
+            <BuildOrder>31</BuildOrder>
+        </CppCompile>
         <CppCompile Include="u_NumistaUploader.cpp">
             <DependentOn>u_NumistaUploader.h</DependentOn>
             <BuildOrder>24</BuildOrder>

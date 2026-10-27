@@ -72,7 +72,7 @@ T['getting-started', 'en'] = u"""
 <tr><td><code>Numista\\</code></td><td>Cached Numista answers: a coin type that was found once is never requested again.</td></tr>
 <tr><td><code>CoinsCollection.ini</code></td><td>Settings: language, your Numista API key, request counter for the month.</td></tr>
 </table>
-<div class="note">To move the collection to another computer, copy the whole program folder.</div>
+<div class="note">To move the collection to another computer, make a backup ([[page:faq|Backup and restore]]) and restore it there.</div>
 """
 T['getting-started', 'uk'] = u"""
 [[shot:01-main-window.png|Головне вікно: країни ліворуч, список монет, подробиці про монету та фото внизу.]]
@@ -93,7 +93,7 @@ T['getting-started', 'uk'] = u"""
 <tr><td><code>Numista\\</code></td><td>Збережені відповіді Numista: тип монети, знайдений один раз, більше не запитується.</td></tr>
 <tr><td><code>CoinsCollection.ini</code></td><td>Налаштування: мова, ваш ключ API Numista, лічильник запитів за місяць.</td></tr>
 </table>
-<div class="note">Щоб перенести колекцію на інший комп'ютер, скопіюйте всю папку програми.</div>
+<div class="note">Щоб перенести колекцію на інший комп'ютер, зробіть резервну копію ([[page:faq|Резервна копія та відновлення]]) і відновіть її там.</div>
 """
 
 # =====================================================================
@@ -538,9 +538,12 @@ Check the catalogue number in the coin card (KM#, Y#, C#). Coins with a uCoin nu
 <p>The file is open in an editor that locks it. Close the editor and repeat the command.</p>
 <h3>Photos from Numista were not loaded</h3>
 <p>Check the internet connection and run [[ui:Update catalogue data|Оновити дані каталогу]] for the checked coins again.</p>
-<h3>How to restore the collection from a backup copy</h3>
-<p>Close the program. In <code>Db\\</code> rename the current database (for example add <code>.old</code>) and rename the needed
-<code>*.bak</code> copy to the database name (by default <code>coins.db</code>). Start the program.</p>
+<h3>Backup and restore</h3>
+<p>[[ui:File → Backup collection|Файл → Резервна копія колекції]] saves one <code>.zip</code> file with the database, all photos and the settings.
+Keep it on another disk or in the cloud. The program reminds you if there was no backup for 30 days.</p>
+<p>[[ui:File → Restore from backup|Файл → Відновити з копії]] replaces the collection and photos with the backup. The current data is kept
+(<code>Db\\…before-restore-&lt;time&gt;.bak</code>, <code>Photos\\_before-restore-&lt;time&gt;\\</code>). Settings of this computer are not changed.</p>
+<p>Besides, the program makes automatic copies of the database (<code>Db\\*.bak</code>) before every database upgrade and every import.</p>
 """
 T['faq', 'uk'] = u"""
 <h3>Монета не знаходиться на Numista або пропонуються не ті типи</h3>
@@ -553,9 +556,12 @@ T['faq', 'uk'] = u"""
 <p>Файл відкритий у редакторі, який його блокує. Закрийте редактор і повторіть команду.</p>
 <h3>Фото з Numista не завантажилися</h3>
 <p>Перевірте підключення до інтернету й ще раз запустіть [[ui:Update catalogue data|Оновити дані каталогу]] для позначених монет.</p>
-<h3>Як відновити колекцію з резервної копії</h3>
-<p>Закрийте програму. У <code>Db\\</code> перейменуйте поточну базу (наприклад, додайте <code>.old</code>), а потрібну копію
-<code>*.bak</code> — на ім'я бази (типово <code>coins.db</code>). Запустіть програму.</p>
+<h3>Резервна копія та відновлення</h3>
+<p>[[ui:File → Backup collection|Файл → Резервна копія колекції]] зберігає один файл <code>.zip</code> з базою, усіма фото та налаштуваннями.
+Зберігайте його на іншому диску або в хмарі. Програма нагадує, якщо копії не було 30 днів.</p>
+<p>[[ui:File → Restore from backup|Файл → Відновити з копії]] замінює колекцію й фото копією. Поточні дані зберігаються
+(<code>Db\\…before-restore-&lt;час&gt;.bak</code>, <code>Photos\\_before-restore-&lt;час&gt;\\</code>). Налаштування цього комп'ютера не змінюються.</p>
+<p>Крім того, програма робить автоматичні копії бази (<code>Db\\*.bak</code>) перед кожним оновленням бази та кожним імпортом.</p>
 """
 
 # =====================================================================
