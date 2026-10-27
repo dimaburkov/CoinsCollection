@@ -267,6 +267,10 @@
             <DependentOn>u_Backup.h</DependentOn>
             <BuildOrder>31</BuildOrder>
         </CppCompile>
+        <CppCompile Include="f_About.cpp">
+            <DependentOn>f_About.h</DependentOn>
+            <BuildOrder>32</BuildOrder>
+        </CppCompile>
         <CppCompile Include="u_NumistaUploader.cpp">
             <DependentOn>u_NumistaUploader.h</DependentOn>
             <BuildOrder>24</BuildOrder>
