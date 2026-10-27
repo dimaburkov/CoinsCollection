@@ -66,6 +66,8 @@ public:
 	void SetItemNumista(int AItemId, int ANumistaItemId);
 	// Индекс редкости монеты (-1 — не известен).
 	void SetCoinRarity(int ACoinId, int ARarity);
+	// Экземпляры «из Numista» (origin = numista, задача 20) — импорт uCoin их не удаляет.
+	int  NumistaOriginCount();
 	// Своя фраза поиска Numista ("" — автофраза; задача 15b).
 	void SetCoinQuery(int ACoinId, const String &AQuery);
 	// Выпуски типа Numista (getIssues) в numista_issues — вставка или обновление

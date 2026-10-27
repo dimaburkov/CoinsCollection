@@ -32,6 +32,9 @@ public:
 	// Фото типа с источником (задача 17b): ASource — "numista", ACopyright — автор фото.
 	void SetCoinPhoto(int ACoinId, TPhotoSide ASide, TGraphic *AGraphic, const String &ASource,
 		const String &ACopyright);
+	// Фото экземпляра с источником (задача 20: свои фото предмета с Numista).
+	void SetItemPhoto(int AItemId, TPhotoSide ASide, TGraphic *AGraphic, const String &ASource,
+		const String &ACopyright);
 	// Источник фото типа ("file" / "numista"); "" — фото нет.
 	String CoinPhotoSource(int ACoinId, TPhotoSide ASide);
 

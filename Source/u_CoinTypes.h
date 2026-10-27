@@ -5,6 +5,7 @@
 #define u_CoinTypesH
 //---------------------------------------------------------------------------
 #include <System.hpp>
+#include <vector>
 //---------------------------------------------------------------------------
 
 // Состояние сохранности монеты. Пока в модели хранится строкой (TCoinRecord::Condition);
@@ -38,7 +39,8 @@ struct TCoinRecord
 	String    Period;
 	String    Currency;
 	String    Denomination;
-	int       Year;            // 0 = не указан
+	int       Year;            // 0 = не указан; < 0 — до н. э.
+	int       YearTo;          // последний год диапазона (174–179); 0 — один год (задача 20)
 	String    Variety;         // колонка "Var."
 	String    Subject;
 	double    DiameterMm;      // 0 = не указан
@@ -67,6 +69,7 @@ struct TCoinRecord
 	int       NumistaItemId;   // coin_items.numista_item_id (предмет в коллекции Numista)
 	int       NumistaRarity;   // coins.numista_rarity, 0–100; -1 — не известен
 	String    NumistaQuery;    // coins.numista_query — своя фраза поиска Numista ("" — автофраза, задача 15b)
+	String    Origin;          // coin_items.origin: "" — uCoin / вручную, "numista" — импорт из Numista (задача 20)
 	// Выпуск из numista_issues (задача 13c)
 	bool      NumistaIssueLoaded;  // выпуск монеты загружен в numista_issues
 	__int64   NumistaMintage;      // тираж; -1 — не известен
@@ -82,6 +85,7 @@ struct TCoinRecord
 		: Id(0),
 		  CoinId(0),
 		  Year(0),
+		  YearTo(0),
 		  DiameterMm(0.0),
 		  CatalogValueUah(0.0),
 		  Quantity(1),
@@ -144,9 +148,20 @@ struct TNumistaTypeInfo
 	String Picture[2];
 	String PictureCopyright[2];
 	bool   PicturesKnown;       // ссылки прочитаны из getType (false — тип загружен до v8)
+	// Для импорта из Numista (задача 20); в БД не хранятся
+	String IssuerCode;
+	String IssuerName;
+	String ValueText;           // номинал: "1 Denarius"
+	String CurrencyName;
+	String Reference;           // первая ссылка каталога: "RIC# III 123"
+	std::vector<String> References;	// все ссылки: "KM# 18", "Schön# 18" — сопоставление с монетами программы
 	TNumistaTypeInfo() : Id(0), MinYear(0), MaxYear(0), Weight(0.0), Size(0.0), Size2(0.0), Thickness(0.0),
 		Demonetized(-1), PicturesKnown(false) {}
 };
+
+//---------------------------------------------------------------------------
+// Год / диапазон для показа (задача 20): "1996", "174–179", до н. э. — "44 BC" / "44 до н. е.".
+String YearText(int AYear, int AYearTo = 0);
 
 //---------------------------------------------------------------------------
 // Записи справочников (таблицы continents, countries, periods, currencies, conditions).

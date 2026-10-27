@@ -74,6 +74,12 @@ void TPhotoRepository::SetCoinPhoto(int ACoinId, TPhotoSide ASide, TGraphic *AGr
 	SetPhoto(false, ACoinId, ASide, AGraphic, ASource, ACopyright);
 }
 //---------------------------------------------------------------------------
+void TPhotoRepository::SetItemPhoto(int AItemId, TPhotoSide ASide, TGraphic *AGraphic, const String &ASource,
+	const String &ACopyright)
+{
+	SetPhoto(true, AItemId, ASide, AGraphic, ASource, ACopyright);
+}
+//---------------------------------------------------------------------------
 String TPhotoRepository::CoinPhotoSource(int ACoinId, TPhotoSide ASide)
 {
 	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
