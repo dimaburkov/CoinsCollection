@@ -26,6 +26,7 @@ __fastcall TfmCoinEdit::TfmCoinEdit(TComponent* Owner)
 {
 	Translator().TranslateForm(this);
 	InstallHelpKey(this, L"coin-card");
+	CreateItemPhotoColumn();
 	// Автофраза поиска Numista — подсказкой в пустом поле, обновляется при правке её частей.
 	edDenomination->OnChange = QueryPartChange;
 	edYear->OnChange         = QueryPartChange;
@@ -297,81 +298,131 @@ void __fastcall TfmCoinEdit::CreateWnd()
 	DragAcceptFiles(Handle, TRUE);
 }
 //---------------------------------------------------------------------------
+// Колонка своих фото экземпляра — копия колонки из .dfm правее; кнопки — с Tag = колонка * 2 + сторона.
+void TfmCoinEdit::CreateItemPhotoColumn()
+{
+	FPhotoControls[pcType][psObverse] = { lblObverse, pnlObverse, imgObverse, lblObverseNote,
+		btnObverseLoad, btnObversePaste, btnObverseRemove };
+	FPhotoControls[pcType][psReverse] = { lblReverse, pnlReverse, imgReverse, lblReverseNote,
+		btnReverseLoad, btnReversePaste, btnReverseRemove };
+	const int shift = pnlObverse->Width + 12;
+	auto place = [shift](TControl *AControl, TControl *ASample)
+	{
+		AControl->SetBounds(ASample->Left + shift, ASample->Top, ASample->Width, ASample->Height);
+	};
+	for (int s = 0; s < 2; ++s)
+	{
+		TPhotoControls &type = FPhotoControls[pcType][s];
+		TPhotoControls &item = FPhotoControls[pcItem][s];
+		item.Caption = new TLabel(this);
+		item.Caption->Parent   = gbPhotos;
+		item.Caption->AutoSize = false;
+		place(item.Caption, type.Caption);
+		item.Frame = new TPanel(this);
+		item.Frame->Parent           = gbPhotos;
+		item.Frame->BevelOuter       = type.Frame->BevelOuter;
+		item.Frame->Color            = type.Frame->Color;
+		item.Frame->ParentBackground = false;
+		place(item.Frame, type.Frame);
+		item.Image = new TImage(this);
+		item.Image->Parent       = item.Frame;
+		item.Image->Align        = alClient;
+		item.Image->Center       = true;
+		item.Image->Proportional = true;
+		item.Image->Stretch      = true;
+		item.Note = new TLabel(this);
+		item.Note->Parent   = gbPhotos;
+		item.Note->AutoSize = false;
+		item.Note->Font->Assign(type.Note->Font);
+		place(item.Note, type.Note);
+		auto button = [&](TButton *ASample, TNotifyEvent AOnClick)
+		{
+			TButton *b = new TButton(this);
+			b->Parent  = gbPhotos;
+			b->Caption = ASample->Caption;
+			b->OnClick = AOnClick;
+			place(b, ASample);
+			return b;
+		};
+		item.Load   = button(type.Load, PhotoLoadClick);
+		item.Paste  = button(type.Paste, PhotoPasteClick);
+		item.Remove = button(type.Remove, PhotoRemoveClick);
+	}
+	for (int c = 0; c < 2; ++c)
+		for (int s = 0; s < 2; ++s)
+		{
+			TPhotoControls &p = FPhotoControls[c][s];
+			p.Load->Tag   = c * 2 + s;
+			p.Paste->Tag  = c * 2 + s;
+			p.Remove->Tag = c * 2 + s;
+			p.Caption->ShowAccelChar = false;
+			p.Caption->Caption = Tr(s == psObverse ? L"Main.Details.Obverse" : L"Main.Details.Reverse") + L" — "
+				+ Tr(c == pcType ? L"CoinEdit.ColumnType" : L"CoinEdit.ColumnItem");
+			p.Note->ShowAccelChar = false;
+			p.Note->EllipsisPosition = epEndEllipsis;	// длинное имя автора фото
+		}
+}
+//---------------------------------------------------------------------------
 void TfmCoinEdit::LoadPhotos(const TCoinRecord &ARecord)
 {
 	for (int s = 0; s < 2; ++s)
 	{
 		const TPhotoSide side = (TPhotoSide)s;
 		FItemFile[s] = ARecord.Id == 0 ? String() : FPhotos->PhotoFile(ARecord.Id, 0, side);
-		FCoinFile[s] = ARecord.CoinId == 0 ? String() : FPhotos->PhotoFile(0, ARecord.CoinId, side);
-		ShowPhoto(side);
+		FCoinFile[s] = ARecord.CoinId == 0 ? String() : FPhotos->PhotoFile(0, ARecord.CoinId, side, nullptr, &FCoinCopyright[s]);
+		ShowPhoto(pcType, side);
+		ShowPhoto(pcItem, side);
 	}
 }
 //---------------------------------------------------------------------------
-// Куда пишут кнопки: флажок «как фото типа» — монета, иначе экземпляр.
-TPhotoEdit &TfmCoinEdit::TargetEdit(TPhotoSide ASide)
+TPhotoEdit &TfmCoinEdit::TargetEdit(int AColumn, TPhotoSide ASide)
 {
-	return chkTypePhoto->Checked ? FEdits.Coin[ASide] : FEdits.Item[ASide];
+	return AColumn == pcType ? FEdits.Coin[ASide] : FEdits.Item[ASide];
 }
 //---------------------------------------------------------------------------
-// Показывается фото экземпляра (новое или сохранённое), иначе фото типа — с пометкой.
-void TfmCoinEdit::ShowPhoto(TPhotoSide ASide)
+// Колонка показывает фото своего владельца: новое (ещё не сохранённое) или сохранённое.
+void TfmCoinEdit::ShowPhoto(int AColumn, TPhotoSide ASide)
 {
-	TImage *image  = ASide == psObverse ? imgObverse : imgReverse;
-	TLabel *note   = ASide == psObverse ? lblObverseNote : lblReverseNote;
-	TButton *remove = ASide == psObverse ? btnObverseRemove : btnReverseRemove;
-	const TPhotoEdit &item = FEdits.Item[ASide], &coin = FEdits.Coin[ASide];
+	const TPhotoControls &p = FPhotoControls[AColumn][ASide];
+	const TPhotoEdit &edit = TargetEdit(AColumn, ASide);
+	const String stored = AColumn == pcType ? FCoinFile[ASide] : FItemFile[ASide];
 
 	TGraphic *graphic = nullptr;
 	String file;
-	bool isType = false;
-	if (item.Action == TPhotoEdit::paSet)
-		graphic = item.Graphic.get();
-	else if (item.Action != TPhotoEdit::paRemove && !FItemFile[ASide].IsEmpty())
-		file = FItemFile[ASide];
-	else if (coin.Action == TPhotoEdit::paSet)
-	{
-		graphic = coin.Graphic.get();
-		isType = true;
-	}
-	else if (coin.Action != TPhotoEdit::paRemove && !FCoinFile[ASide].IsEmpty())
-	{
-		file = FCoinFile[ASide];
-		isType = true;
-	}
+	if (edit.Action == TPhotoEdit::paSet)
+		graphic = edit.Graphic.get();
+	else if (edit.Action != TPhotoEdit::paRemove)
+		file = stored;
 
 	try
 	{
 		if (graphic)
-			image->Picture->Assign(graphic);
+			p.Image->Picture->Assign(graphic);
 		else if (!file.IsEmpty())
-			image->Picture->LoadFromFile(file);
+			p.Image->Picture->LoadFromFile(file);
 		else
-			image->Picture->Assign(nullptr);
+			p.Image->Picture->Assign(nullptr);
 	}
 	catch (Exception &)
 	{
-		image->Picture->Assign(nullptr);	// повреждённый файл — как «нет фото»
+		p.Image->Picture->Assign(nullptr);	// повреждённый файл — как «нет фото»
 	}
-	note->Caption = isType ? Tr(L"CoinEdit.TypePhoto") : String();
-
-	// Удалить можно то, что есть у выбранного владельца (новое или сохранённое).
-	const TPhotoEdit &target = TargetEdit(ASide);
-	const String stored = chkTypePhoto->Checked ? FCoinFile[ASide] : FItemFile[ASide];
-	remove->Enabled = target.Action == TPhotoEdit::paSet
-		|| (target.Action == TPhotoEdit::paNone && !stored.IsEmpty());
+	// Под фото типа из Numista — автор (как в просмотре).
+	p.Note->Caption = AColumn == pcType && !file.IsEmpty() && !FCoinCopyright[ASide].IsEmpty()
+		? Format(Tr(L"PhotoView.Copyright"), ARRAYOFCONST((FCoinCopyright[ASide]))) : String();
+	p.Remove->Enabled = edit.Action == TPhotoEdit::paSet || (edit.Action == TPhotoEdit::paNone && !stored.IsEmpty());
 }
 //---------------------------------------------------------------------------
-void TfmCoinEdit::SetPhoto(TPhotoSide ASide, TGraphic *AGraphic)
+void TfmCoinEdit::SetPhoto(int AColumn, TPhotoSide ASide, TGraphic *AGraphic)
 {
-	TPhotoEdit &target = TargetEdit(ASide);
+	TPhotoEdit &target = TargetEdit(AColumn, ASide);
 	target.Action = TPhotoEdit::paSet;
 	target.Graphic.reset(AGraphic);
-	ShowPhoto(ASide);
+	ShowPhoto(AColumn, ASide);
 }
 //---------------------------------------------------------------------------
 // Формат определяет WIC (JPEG, PNG, BMP, TIFF, GIF ...); не картинка — сообщение.
-bool TfmCoinEdit::LoadPhotoFile(TPhotoSide ASide, const String &AFileName)
+bool TfmCoinEdit::LoadPhotoFile(int AColumn, TPhotoSide ASide, const String &AFileName)
 {
 	std::unique_ptr<TWICImage> image(new TWICImage());
 	try
@@ -384,23 +435,23 @@ bool TfmCoinEdit::LoadPhotoFile(TPhotoSide ASide, const String &AFileName)
 			Caption.c_str(), MB_OK | MB_ICONWARNING);
 		return false;
 	}
-	SetPhoto(ASide, image.release());
+	SetPhoto(AColumn, ASide, image.release());
 	return true;
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmCoinEdit::PhotoLoadClick(TObject *Sender)
 {
-	const TPhotoSide side = (TPhotoSide)static_cast<TComponent *>(Sender)->Tag;
+	const int tag = (int)static_cast<TComponent *>(Sender)->Tag;
 	std::unique_ptr<TOpenPictureDialog> dialog(new TOpenPictureDialog(nullptr));
 	dialog->Filter = Tr(L"CoinEdit.PhotoFilter");
 	dialog->Options = dialog->Options << ofFileMustExist;
 	if (dialog->Execute(Handle))
-		LoadPhotoFile(side, dialog->FileName);
+		LoadPhotoFile(tag / 2, (TPhotoSide)(tag % 2), dialog->FileName);
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmCoinEdit::PhotoPasteClick(TObject *Sender)
 {
-	const TPhotoSide side = (TPhotoSide)static_cast<TComponent *>(Sender)->Tag;
+	const int tag = (int)static_cast<TComponent *>(Sender)->Tag;
 	if (!Clipboard()->HasFormat(CF_BITMAP))
 	{
 		Application->MessageBox(Tr(L"CoinEdit.NoClipboardImage").c_str(), Caption.c_str(), MB_OK | MB_ICONINFORMATION);
@@ -408,24 +459,20 @@ void __fastcall TfmCoinEdit::PhotoPasteClick(TObject *Sender)
 	}
 	std::unique_ptr<TBitmap> bitmap(new TBitmap());
 	bitmap->Assign(Clipboard());
-	SetPhoto(side, bitmap.release());
+	SetPhoto(tag / 2, (TPhotoSide)(tag % 2), bitmap.release());
 }
 //---------------------------------------------------------------------------
-// Новое фото выбранного владельца — отменить; сохранённое — удалить по OK.
+// Новое фото колонки — отменить; сохранённое — удалить по OK.
 void __fastcall TfmCoinEdit::PhotoRemoveClick(TObject *Sender)
 {
-	const TPhotoSide side = (TPhotoSide)static_cast<TComponent *>(Sender)->Tag;
-	TPhotoEdit &target = TargetEdit(side);
-	const String stored = chkTypePhoto->Checked ? FCoinFile[side] : FItemFile[side];
+	const int tag = (int)static_cast<TComponent *>(Sender)->Tag;
+	const int column = tag / 2;
+	const TPhotoSide side = (TPhotoSide)(tag % 2);
+	TPhotoEdit &target = TargetEdit(column, side);
+	const String stored = column == pcType ? FCoinFile[side] : FItemFile[side];
 	target.Action = stored.IsEmpty() ? TPhotoEdit::paNone : TPhotoEdit::paRemove;
 	target.Graphic.reset();
-	ShowPhoto(side);
-}
-//---------------------------------------------------------------------------
-void __fastcall TfmCoinEdit::chkTypePhotoClick(TObject *Sender)
-{
-	ShowPhoto(psObverse);
-	ShowPhoto(psReverse);
+	ShowPhoto(column, side);
 }
 //---------------------------------------------------------------------------
 // Файл, брошенный на рамку аверса или реверса (по положению курсора); первый из нескольких.
@@ -435,16 +482,22 @@ void __fastcall TfmCoinEdit::WMDropFiles(TWMDropFiles &AMessage)
 	try
 	{
 		const TPoint cursor = Mouse->CursorPos;
-		int side = -1;
-		if (PtInRect(pnlObverse->BoundsRect, pnlObverse->Parent->ScreenToClient(cursor)))
-			side = psObverse;
-		else if (PtInRect(pnlReverse->BoundsRect, pnlReverse->Parent->ScreenToClient(cursor)))
-			side = psReverse;
+		int column = -1, side = -1;
+		for (int c = 0; c < 2; ++c)
+			for (int s = 0; s < 2; ++s)
+			{
+				TPanel *frame = FPhotoControls[c][s].Frame;
+				if (PtInRect(frame->BoundsRect, frame->Parent->ScreenToClient(cursor)))
+				{
+					column = c;
+					side = s;
+				}
+			}
 		if (side >= 0 && DragQueryFileW(drop, 0xFFFFFFFF, nullptr, 0) > 0)
 		{
 			wchar_t name[MAX_PATH];
 			if (DragQueryFileW(drop, 0, name, MAX_PATH) > 0)
-				LoadPhotoFile((TPhotoSide)side, name);
+				LoadPhotoFile(column, (TPhotoSide)side, name);
 		}
 	}
 	__finally

@@ -16,6 +16,7 @@
 #include <Vcl.ToolWin.hpp>
 #include <Vcl.Grids.hpp>
 #include <Vcl.ExtCtrls.hpp>
+#include <Vcl.Buttons.hpp>
 #include <System.JSON.hpp>
 #include <map>
 #include <memory>
@@ -268,6 +269,11 @@ private:	// User declarations
 	String                           FDetailPhotos[2]; // фото в панели (полный путь; "" — нет), индекс — TPhotoSide
 	String                           FDetailCopyrights[2]; // автор фото Numista ("" — свой снимок)
 	String                           FDetailPhotoTitle; // заголовок окна просмотра
+	// Переключатель «моє фото / каталог» в рамке аверса (задача 30): виден, если у монеты есть
+	// и свои фото, и фото типа; выбор действует для всех монет до конца сеанса.
+	TSpeedButton                    *FPhotoSwitch;
+	bool                             FDetailShowType;  // показывать фото типа вместо своих
+	bool                             FDetailIsType;    // в панели сейчас фото типа
 	std::set<int>                    FChecked;         // отмеченные экземпляры (coin_items.id), только в памяти
 
 	void BuildLanguageMenu();
@@ -332,6 +338,7 @@ private:	// User declarations
 	void ImportNumistaItem(TNumistaClient &AClient, TNumistaMatcher &AMatcher, TJSONValue *AItem,
 		const TNumistaTypeInfo &AType, int &ACountries, int &APhotos, int &APhotosFailed);
 	void __fastcall DetailPhotoDblClick(TObject *Sender);
+	void __fastcall PhotoSwitchClick(TObject *Sender);
 	void UploadItems(const std::vector<TCoinRecord> &ACandidates);
 	// Автосвязь (задача 28): тип от связанной монеты той же страны с тем же номером
 	// (ANumberTypes: ключ NumberKey → типы), если год монеты — в годах ровно одного из них. 0 — нет.

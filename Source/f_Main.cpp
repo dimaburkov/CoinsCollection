@@ -3150,6 +3150,17 @@ void TfmMain::CreateDetailRows()
 	imgReverse->Tag = psReverse;
 	imgObverse->OnDblClick = DetailPhotoDblClick;
 	imgReverse->OnDblClick = DetailPhotoDblClick;
+	// Переключатель «моє фото / каталог» (задача 30) — поверх фото, в левом верхнем углу аверса.
+	FPhotoSwitch = new TSpeedButton(this);
+	FPhotoSwitch->Parent     = pnlObverse;
+	FPhotoSwitch->SetBounds(2, 2, 30, 26);
+	FPhotoSwitch->Flat       = true;
+	FPhotoSwitch->Font->Name = L"Segoe UI Symbol";
+	FPhotoSwitch->Font->Size = 14;
+	FPhotoSwitch->Caption    = L"\u21C4";
+	FPhotoSwitch->ShowHint   = true;
+	FPhotoSwitch->Visible    = false;
+	FPhotoSwitch->OnClick    = PhotoSwitchClick;
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::dgItemsSelectCell(TObject *Sender, int ACol, int ARow, bool &CanSelect)
@@ -3210,10 +3221,24 @@ void TfmMain::ShowDetails(int AIndex)
 }
 //---------------------------------------------------------------------------
 // Фото записи в рамках панели (задача 16): экземпляра, иначе типа — с пометкой в подписи.
+// Есть и свои фото, и фото типа — переключатель «⇄» (задача 30): FDetailShowType — фото типа.
 // Тот же файл повторно не читается; ошибка чтения — «Нет фото», без сообщений.
 void TfmMain::ShowDetailPhotos(const TCoinRecord *ARecord)
 {
 	FDetailPhotoTitle = ARecord ? CoinText(*ARecord) : String();
+	String own[2], ownCopyright[2], type[2], typeCopyright[2];
+	for (int s = 0; s < 2 && ARecord && FPhotos; ++s)
+	{
+		if (ARecord->Id != 0)
+			own[s] = FPhotos->PhotoFile(ARecord->Id, 0, (TPhotoSide)s, nullptr, &ownCopyright[s]);
+		if (ARecord->CoinId != 0)
+			type[s] = FPhotos->PhotoFile(0, ARecord->CoinId, (TPhotoSide)s, nullptr, &typeCopyright[s]);
+	}
+	const bool hasOwn  = !own[0].IsEmpty() || !own[1].IsEmpty();
+	const bool hasType = !type[0].IsEmpty() || !type[1].IsEmpty();
+	FDetailIsType = !hasOwn || (hasType && FDetailShowType);
+	FPhotoSwitch->Visible = hasOwn && hasType;
+	FPhotoSwitch->Hint    = Tr(FDetailIsType ? L"Main.Details.ShowOwn" : L"Main.Details.ShowType");
 	for (int s = 0; s < 2; ++s)
 	{
 		const TPhotoSide side = (TPhotoSide)s;
@@ -3221,9 +3246,9 @@ void TfmMain::ShowDetailPhotos(const TCoinRecord *ARecord)
 		TLabel *none  = side == psObverse ? lblObverseNone : lblReverseNone;
 		TLabel *label = side == psObverse ? lblObverse : lblReverse;
 
-		bool isType = false;
-		const String file = ARecord && FPhotos ? FPhotos->PhotoFile(ARecord->Id, ARecord->CoinId, side, &isType,
-			&FDetailCopyrights[s]) : String();
+		const bool isType = FDetailIsType;
+		const String file = isType ? type[s] : own[s];
+		FDetailCopyrights[s] = isType ? typeCopyright[s] : ownCopyright[s];
 		if (file != FDetailPhotos[s])
 		{
 			FDetailPhotos[s] = file;
@@ -3244,7 +3269,7 @@ void TfmMain::ShowDetailPhotos(const TCoinRecord *ARecord)
 		none->Visible  = !shown;
 		image->Cursor  = shown ? crHandPoint : crDefault;
 		label->Caption = Tr(side == psObverse ? L"Main.Details.Obverse" : L"Main.Details.Reverse")
-			+ (shown && isType ? L" (" + Tr(L"Main.Details.TypePhoto") + L")" : String());
+			+ (shown ? L" (" + Tr(isType ? L"Main.Details.TypePhoto" : L"Main.Details.OwnPhoto") + L")" : String());
 	}
 }
 //---------------------------------------------------------------------------
@@ -3278,12 +3303,40 @@ int TfmMain::DownloadTypePhotos(TNumistaClient &AClient, const TNumistaTypeInfo 
 	return result;
 }
 //---------------------------------------------------------------------------
+// Просмотр (задача 30): свои фото экземпляра и фото типа — два комплекта с переключателем,
+// если есть оба; открывается на комплекте, показанном в панели.
 void __fastcall TfmMain::DetailPhotoDblClick(TObject *Sender)
 {
 	const TPhotoSide side = (TPhotoSide)static_cast<TComponent *>(Sender)->Tag;
-	if (!FDetailPhotos[side].IsEmpty())
-		TfmPhotoView::Execute(this, FDetailPhotoTitle, FDetailPhotos[psObverse], FDetailPhotos[psReverse], side,
-			FDetailCopyrights[psObverse], FDetailCopyrights[psReverse]);
+	const int index = CurrentIndex();
+	if (FDetailPhotos[side].IsEmpty() || index < 0)
+		return;
+	const TCoinRecord &r = FItems[index];
+	TPhotoViewSet own, type;
+	own.Caption  = Tr(L"PhotoView.OwnPhoto");
+	type.Caption = Tr(L"PhotoView.TypePhoto");
+	for (int s = 0; s < 2; ++s)
+	{
+		own.Files[s]  = r.Id != 0 ? FPhotos->PhotoFile(r.Id, 0, (TPhotoSide)s, nullptr, &own.Copyrights[s]) : String();
+		type.Files[s] = r.CoinId != 0 ? FPhotos->PhotoFile(0, r.CoinId, (TPhotoSide)s, nullptr, &type.Copyrights[s])
+			: String();
+		if (SameText(FPhotos->CoinPhotoSource(r.CoinId, (TPhotoSide)s), L"numista"))
+			type.Caption = Tr(L"PhotoView.Catalog");
+	}
+	std::vector<TPhotoViewSet> sets;
+	if (!own.Empty())
+		sets.push_back(own);
+	if (!type.Empty())
+		sets.push_back(type);
+	// Просмотр открывается на комплекте, показанном в панели (переключатель «⇄»).
+	const int start = sets.size() < 2 ? 0 : (FDetailIsType ? 1 : 0);
+	TfmPhotoView::Execute(this, FDetailPhotoTitle, sets, start, side);
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::PhotoSwitchClick(TObject *Sender)
+{
+	FDetailShowType = !FDetailIsType;
+	UpdateDetails();
 }
 //---------------------------------------------------------------------------
 // Строки характеристик типа (задача 13d); ATypeId = 0 или тип не загружен — все пустые.

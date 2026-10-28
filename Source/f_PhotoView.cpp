@@ -20,12 +20,14 @@ namespace
 __fastcall TfmPhotoView::TfmPhotoView(TComponent *AOwner)
 	: TForm(AOwner, 0),
 	  FToolbar(nullptr),
+	  FSetButtons(),
 	  FObverse(nullptr),
 	  FReverse(nullptr),
 	  FFit(nullptr),
 	  FHint(nullptr),
 	  FView(nullptr),
 	  FCopyright(nullptr),
+	  FSet(0),
 	  FSide(psObverse),
 	  FZoom(0.0),
 	  FPanX(0.0),
@@ -50,17 +52,24 @@ __fastcall TfmPhotoView::TfmPhotoView(TComponent *AOwner)
 	FToolbar->Height     = 32;
 	FToolbar->BevelOuter = bvNone;
 
-	auto button = [this](int ALeft, int AWidth, const String &ACaption, int AGroup) {
+	// Положение кнопок — LayoutToolbar (кнопки комплектов — только если комплектов два).
+	auto button = [this](int AWidth, const String &ACaption, int AGroup) {
 		TSpeedButton *b = new TSpeedButton(this);
 		b->Parent     = FToolbar;
-		b->SetBounds(ALeft, 4, AWidth, 24);
+		b->SetBounds(0, 4, AWidth, 24);
 		b->Caption    = ACaption;
 		b->GroupIndex = AGroup;
 		return b;
 	};
-	FObverse = button(8,   90, Tr(L"PhotoView.Obverse"), 1);
-	FReverse = button(100, 90, Tr(L"PhotoView.Reverse"), 1);
-	FFit     = button(200, 120, Tr(L"PhotoView.Fit"), 0);
+	for (int i = 0; i < 2; ++i)
+	{
+		FSetButtons[i] = button(110, String(), 2);
+		FSetButtons[i]->Tag     = i;
+		FSetButtons[i]->OnClick = SetClick;
+	}
+	FObverse = button(90, Tr(L"PhotoView.Obverse"), 1);
+	FReverse = button(90, Tr(L"PhotoView.Reverse"), 1);
+	FFit     = button(120, Tr(L"PhotoView.Fit"), 0);
 	FObverse->Tag = psObverse;
 	FReverse->Tag = psReverse;
 	FObverse->OnClick = SideClick;
@@ -69,9 +78,7 @@ __fastcall TfmPhotoView::TfmPhotoView(TComponent *AOwner)
 
 	FHint = new TLabel(this);
 	FHint->Parent     = FToolbar;
-	FHint->Left       = 332;
 	FHint->Top        = 9;
-	FHint->Caption    = Tr(L"PhotoView.Hint");
 	FHint->Font->Color = clGrayText;
 
 	FCopyright = new TLabel(this);
@@ -96,37 +103,64 @@ __fastcall TfmPhotoView::TfmPhotoView(TComponent *AOwner)
 	InstallHelpKey(this, L"photos");
 }
 //---------------------------------------------------------------------------
-void TfmPhotoView::Execute(TComponent *AOwner, const String &ATitle, const String &AObverseFile,
-	const String &AReverseFile, TPhotoSide ASide, const String &AObverseCopyright, const String &AReverseCopyright)
+void TfmPhotoView::Execute(TComponent *AOwner, const String &ATitle, const std::vector<TPhotoViewSet> &ASets,
+	int ASet, TPhotoSide ASide)
 {
+	if (ASets.empty())
+		return;
 	std::unique_ptr<TfmPhotoView> form(new TfmPhotoView(AOwner));
-	form->Caption  = ATitle;
-	form->FFiles[psObverse] = AObverseFile;
-	form->FFiles[psReverse] = AReverseFile;
-	form->FCopyrights[psObverse] = AObverseCopyright;
-	form->FCopyrights[psReverse] = AReverseCopyright;
-	form->FObverse->Enabled = !AObverseFile.IsEmpty();
-	form->FReverse->Enabled = !AReverseFile.IsEmpty();
-	form->ShowSide(form->FFiles[ASide].IsEmpty() ? (TPhotoSide)(1 - ASide) : ASide);
+	form->Caption = ATitle;
+	form->FSets   = ASets;
+	form->FSets.resize(std::min<size_t>(ASets.size(), 2));
+	form->LayoutToolbar();
+	form->ShowPhoto(std::min<int>(std::max(ASet, 0), (int)form->FSets.size() - 1), ASide);
 	form->ShowModal();
 }
 //---------------------------------------------------------------------------
-// Файл декодируется один раз (в TBitmap): перерисовка при масштабе и сдвиге — быстрая.
-// Ошибка чтения — пустое окно, без сообщений.
-void TfmPhotoView::ShowSide(TPhotoSide ASide)
+void TfmPhotoView::LayoutToolbar()
 {
-	FSide = ASide;
-	(ASide == psObverse ? FObverse : FReverse)->Down = true;
-	FCopyright->Caption = FCopyrights[ASide].IsEmpty() ? String()
-		: Format(Tr(L"PhotoView.Copyright"), ARRAYOFCONST((FCopyrights[ASide])));
-	FCopyright->Visible = !FCopyrights[ASide].IsEmpty();
+	const bool sets = FSets.size() > 1;
+	int left = 8;
+	for (int i = 0; i < 2; ++i)
+	{
+		FSetButtons[i]->Visible = sets;
+		if (!sets)
+			continue;
+		FSetButtons[i]->Caption = FSets[i].Caption;
+		FSetButtons[i]->Enabled = !FSets[i].Empty();
+		FSetButtons[i]->Left    = left;
+		left += FSetButtons[i]->Width + 2;
+	}
+	if (sets)
+		left += 10;
+	FObverse->Left = left;
+	FReverse->Left = left + FObverse->Width + 2;
+	FFit->Left     = FReverse->Left + FReverse->Width + 10;
+	FHint->Left    = FFit->Left + FFit->Width + 12;
+	FHint->Caption = Tr(sets ? L"PhotoView.HintSets" : L"PhotoView.Hint");
+}
+//---------------------------------------------------------------------------
+// Файл декодируется один раз (в TBitmap): перерисовка при масштабе и сдвиге — быстрая.
+// Ошибка чтения — пустое окно, без сообщений. Стороны ASide нет — другая сторона.
+void TfmPhotoView::ShowPhoto(int ASet, TPhotoSide ASide)
+{
+	FSet = ASet;
+	const TPhotoViewSet &set = FSets[ASet];
+	FSide = set.Files[ASide].IsEmpty() && !set.Files[1 - ASide].IsEmpty() ? (TPhotoSide)(1 - ASide) : ASide;
+	FSetButtons[ASet]->Down = true;
+	FObverse->Enabled = !set.Files[psObverse].IsEmpty();
+	FReverse->Enabled = !set.Files[psReverse].IsEmpty();
+	(FSide == psObverse ? FObverse : FReverse)->Down = true;
+	const String copyright = set.Copyrights[FSide];
+	FCopyright->Caption = copyright.IsEmpty() ? String() : Format(Tr(L"PhotoView.Copyright"), ARRAYOFCONST((copyright)));
+	FCopyright->Visible = !copyright.IsEmpty();
 	FBitmap.reset();
 	try
 	{
-		if (!FFiles[ASide].IsEmpty())
+		if (!set.Files[FSide].IsEmpty())
 		{
 			std::unique_ptr<TPicture> picture(new TPicture());
-			picture->LoadFromFile(FFiles[ASide]);
+			picture->LoadFromFile(set.Files[FSide]);
 			std::unique_ptr<TBitmap> bitmap(new TBitmap());
 			bitmap->PixelFormat = pf24bit;
 			bitmap->SetSize(picture->Width, picture->Height);
@@ -188,7 +222,12 @@ void __fastcall TfmPhotoView::ViewPaint(TObject *Sender)
 //---------------------------------------------------------------------------
 void __fastcall TfmPhotoView::SideClick(TObject *Sender)
 {
-	ShowSide((TPhotoSide)static_cast<TComponent *>(Sender)->Tag);
+	ShowPhoto(FSet, (TPhotoSide)static_cast<TComponent *>(Sender)->Tag);
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmPhotoView::SetClick(TObject *Sender)
+{
+	ShowPhoto((int)static_cast<TComponent *>(Sender)->Tag, FSide);
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmPhotoView::FitClick(TObject *Sender)
@@ -246,7 +285,7 @@ void __fastcall TfmPhotoView::ViewMouseUp(TObject *Sender, TMouseButton Button, 
 	FView->Cursor = crDefault;
 }
 //---------------------------------------------------------------------------
-// Esc — закрыть; ← / → / пробел — другая сторона; 0 / Home — по размеру окна.
+// Esc — закрыть; ← / → / пробел — другая сторона; ↑ / ↓ — другой комплект; 0 / Home — по размеру окна.
 void __fastcall TfmPhotoView::FormKeyDown(TObject *Sender, WORD &Key, TShiftState Shift)
 {
 	if (Key == VK_ESCAPE)
@@ -254,8 +293,14 @@ void __fastcall TfmPhotoView::FormKeyDown(TObject *Sender, WORD &Key, TShiftStat
 	else if (Key == VK_LEFT || Key == VK_RIGHT || Key == VK_SPACE)
 	{
 		const TPhotoSide other = (TPhotoSide)(1 - FSide);
-		if (!FFiles[other].IsEmpty())
-			ShowSide(other);
+		if (!FSets[FSet].Files[other].IsEmpty())
+			ShowPhoto(FSet, other);
+	}
+	else if (Key == VK_UP || Key == VK_DOWN)
+	{
+		const int other = 1 - FSet;
+		if (other < (int)FSets.size() && !FSets[other].Empty())
+			ShowPhoto(other, FSide);
 	}
 	else if (Key == '0' || Key == VK_HOME)
 		Fit();

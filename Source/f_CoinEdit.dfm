@@ -4,7 +4,7 @@ object fmCoinEdit: TfmCoinEdit
   BorderStyle = bsDialog
   Caption = 'Coin'
   ClientHeight = 615
-  ClientWidth = 720
+  ClientWidth = 900
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -451,7 +451,7 @@ object fmCoinEdit: TfmCoinEdit
   object gbPhotos: TGroupBox
     Left = 520
     Top = 26
-    Width = 192
+    Width = 372
     Height = 547
     Caption = 'Photo'
     TabOrder = 2
@@ -597,19 +597,9 @@ object fmCoinEdit: TfmCoinEdit
       TabOrder = 7
       OnClick = PhotoRemoveClick
     end
-    object chkTypePhoto: TCheckBox
-      Left = 12
-      Top = 478
-      Width = 172
-      Height = 34
-      Caption = 'Save as coin type photo (for all items of this coin)'
-      TabOrder = 8
-      WordWrap = True
-      OnClick = chkTypePhotoClick
-    end
   end
   object btnOK: TButton
-    Left = 556
+    Left = 736
     Top = 582
     Width = 75
     Height = 25
@@ -619,7 +609,7 @@ object fmCoinEdit: TfmCoinEdit
     OnClick = btnOKClick
   end
   object btnCancel: TButton
-    Left = 637
+    Left = 817
     Top = 582
     Width = 75
     Height = 25

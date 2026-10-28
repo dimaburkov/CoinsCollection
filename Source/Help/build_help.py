@@ -290,7 +290,9 @@ country, year and subject (or country, denomination, year if there is no subject
 <li><b>My item</b> — your copy: condition, quantity, prices, dates, swap, comment, grading.</li>
 </ul>
 <h2>Photo</h2>
-<p>Obverse and reverse: [[ui:File...|Файл...]], [[ui:Paste|Вставити]] (from the clipboard), [[ui:Remove|Видалити]], or drag a file from Explorer onto the frame.
+<p>Two columns: on the left the <b>coin type</b> photos (pictures from the Numista catalogue or your own type photo, shared by all items
+of the coin; the picture author is shown below), on the right <b>my photo</b> — your own shots of this item.
+Each frame: [[ui:File...|Файл...]], [[ui:Paste|Вставити]] (from the clipboard), [[ui:Remove|Видалити]], or drag a file from Explorer onto the frame.
 See [[page:photos|Photos]].</p>
 <p>Changes are saved with <b>OK</b>; <b>Cancel</b> changes nothing.</p>
 """
@@ -309,7 +311,9 @@ T['coin-card', 'uk'] = u"""
 <li><b>[[ui:My item|Мій примірник]]</b> — ваш примірник: стан, кількість, ціни, дати, обмін, коментар, грейдинг.</li>
 </ul>
 <h2>Фото</h2>
-<p>Аверс і реверс: [[ui:File...|Файл...]], [[ui:Paste|Вставити]] (з буфера обміну), [[ui:Remove|Видалити]] або перетягніть файл із Провідника на рамку.
+<p>Дві колонки: ліворуч фото <b>типу</b> (зображення з каталогу Numista або ваше фото типу, спільне для всіх примірників монети;
+під ним — автор зображення), праворуч <b>моє фото</b> — ваші знімки цього примірника.
+Для кожної рамки: [[ui:File...|Файл...]], [[ui:Paste|Вставити]] (з буфера обміну), [[ui:Remove|Видалити]] або перетягніть файл із Провідника на рамку.
 Див. [[page:photos|Фото]].</p>
 <p>Зміни зберігаються кнопкою <b>OK</b>; <b>[[ui:Cancel|Скасувати]]</b> нічого не змінює.</p>
 """
@@ -320,9 +324,12 @@ T['photos', 'en'] = u"""
 <h2>Item photo and coin type photo</h2>
 <ul>
 <li>An <b>item photo</b> is your own shot of your copy.</li>
-<li>A <b>coin type photo</b> is shared by all items of the coin. In the card, check
-[[ui:Save as coin type photo|Зберегти як фото типу]] before adding it.</li>
-<li>The item photo is shown first; without it — the coin type photo, marked <i>coin type</i>.</li>
+<li>A <b>coin type photo</b> is shared by all items of the coin (usually the picture from the Numista catalogue).</li>
+<li>The [[page:coin-card|coin card]] shows both side by side: coin type on the left, <i>my photo</i> on the right —
+a poor photo of a worn coin can be compared with the catalogue at once.</li>
+<li>The coin details show the item photo; without it — the coin type photo, marked <i>coin type</i>.
+If the coin has both, the button <b>⇄</b> in the corner of the obverse switches between your photo and the catalogue;
+the choice stays while you move through the list.</li>
 </ul>
 <h2>Adding photos</h2>
 <p>In the [[page:coin-card|coin card]]: [[ui:File...|Файл...]] (JPEG, PNG, BMP, GIF, TIFF), [[ui:Paste|Вставити]],
@@ -332,7 +339,8 @@ or drag a file onto the frame. Photos are reduced to 1200 px and saved as JPEG i
 ([[page:numista-link|linking]], [[page:numista-catalog|update catalogue data]]). Your own coin type photo is never replaced.
 The picture author is shown in the viewer: <i>Photo: &lt;author&gt; / Numista</i>.</p>
 <h2>Viewer</h2>
-<p>Double-click a photo in the coin details. Mouse wheel — zoom, drag — move, ←/→ or Space — other side,
+<p>Double-click a photo in the coin details. If the coin has both your photos and catalogue photos, the buttons
+[[ui:My photo|Моє фото]] / [[ui:Catalogue|Каталог]] (or ↑/↓) switch between them. Mouse wheel — zoom, drag — move, ←/→ or Space — other side,
 <b>0</b> or Home — fit to window, Esc — close.</p>
 """
 T['photos', 'uk'] = u"""
@@ -340,9 +348,12 @@ T['photos', 'uk'] = u"""
 <h2>Фото примірника і фото типу</h2>
 <ul>
 <li><b>Фото примірника</b> — ваш власний знімок вашого примірника.</li>
-<li><b>Фото типу</b> спільне для всіх примірників монети. У картці позначте
-[[ui:Save as coin type photo|Зберегти як фото типу]] перед додаванням.</li>
-<li>Спершу показується фото примірника; без нього — фото типу з позначкою <i>фото типу</i>.</li>
+<li><b>Фото типу</b> спільне для всіх примірників монети (зазвичай зображення з каталогу Numista).</li>
+<li>У [[page:coin-card|картці монети]] видно обидва поруч: ліворуч фото типу, праворуч <i>моє фото</i> —
+погане фото стертої монети можна одразу порівняти з каталогом.</li>
+<li>У подробицях монети показується фото примірника; без нього — фото типу з позначкою <i>фото типу</i>.
+Якщо в монети є обидва, кнопка <b>⇄</b> у куті аверсу перемикає між вашим фото й каталогом;
+вибір зберігається, поки ви переходите між монетами.</li>
 </ul>
 <h2>Додавання фото</h2>
 <p>У [[page:coin-card|картці монети]]: [[ui:File...|Файл...]] (JPEG, PNG, BMP, GIF, TIFF), [[ui:Paste|Вставити]]
@@ -352,7 +363,8 @@ T['photos', 'uk'] = u"""
 ([[page:numista-link|зв'язок]], [[page:numista-catalog|оновлення даних каталогу]]). Ваше власне фото типу ніколи не замінюється.
 Автор зображення показується у вікні перегляду: <i>Photo: &lt;автор&gt; / Numista</i>.</p>
 <h2>Перегляд</h2>
-<p>Подвійне клацання по фото в подробицях. Коліщатко миші — масштаб, перетягування — зсув, ←/→ або Пробіл — інша сторона,
+<p>Подвійне клацання по фото в подробицях. Якщо в монети є і ваші фото, і фото каталогу, кнопки
+[[ui:My photo|Моє фото]] / [[ui:Catalogue|Каталог]] (або ↑/↓) перемикають між ними. Коліщатко миші — масштаб, перетягування — зсув, ←/→ або Пробіл — інша сторона,
 <b>0</b> або Home — за розміром вікна, Esc — закрити.</p>
 """
 
