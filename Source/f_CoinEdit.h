@@ -111,19 +111,18 @@ __published:	// IDE-managed Components
 	TButton *btnReverseLoad;
 	TButton *btnReversePaste;
 	TButton *btnReverseRemove;
-	TCheckBox *chkTypePhoto;
 	void __fastcall cbCountryChange(TObject *Sender);
 	void __fastcall QueryPartChange(TObject *Sender);
 	void __fastcall btnOKClick(TObject *Sender);
 	void __fastcall PhotoLoadClick(TObject *Sender);
 	void __fastcall PhotoPasteClick(TObject *Sender);
 	void __fastcall PhotoRemoveClick(TObject *Sender);
-	void __fastcall chkTypePhotoClick(TObject *Sender);
 private:	// User declarations
 	TCoinRepository        *FRepository;   // не владеет
 	TPhotoRepository       *FPhotos;       // не владеет
 	String                  FItemFile[2];  // сохранённое фото экземпляра (полный путь; "" — нет), индекс — TPhotoSide
 	String                  FCoinFile[2];  // сохранённое фото типа
+	String                  FCoinCopyright[2]; // автор сохранённого фото типа из Numista ("" — своё)
 	TPhotoEdits             FEdits;
 	std::vector<TCountry>   FCountries;
 	std::vector<TCondition> FConditions;   // индекс в cbCondition = индекс + 1 (0 — «нет»)
@@ -140,13 +139,26 @@ private:	// User declarations
 	static bool   TryParseNumber(const String &AText, double &AValue);
 	static String NumberText(double AValue);
 
-	// Фото: загрузка сохранённых, показ стороны с учётом FEdits, изменение выбранного
-	// владельца (флажок «как фото типа»).
+	// Фото (задача 30): две колонки — фото типа (каталог; колонка из .dfm) и свои фото
+	// экземпляра (колонка создаётся в коде). Колонка определяет владельца фото.
+	enum TPhotoColumn { pcType, pcItem };
+	struct TPhotoControls
+	{
+		TLabel  *Caption;
+		TPanel  *Frame;
+		TImage  *Image;
+		TLabel  *Note;
+		TButton *Load;
+		TButton *Paste;
+		TButton *Remove;
+	};
+	TPhotoControls FPhotoControls[2][2];	// [колонка][сторона]
+	void CreateItemPhotoColumn();
 	void LoadPhotos(const TCoinRecord &ARecord);
-	void ShowPhoto(TPhotoSide ASide);
-	TPhotoEdit &TargetEdit(TPhotoSide ASide);
-	void SetPhoto(TPhotoSide ASide, TGraphic *AGraphic);	// забирает AGraphic
-	bool LoadPhotoFile(TPhotoSide ASide, const String &AFileName);
+	void ShowPhoto(int AColumn, TPhotoSide ASide);
+	TPhotoEdit &TargetEdit(int AColumn, TPhotoSide ASide);
+	void SetPhoto(int AColumn, TPhotoSide ASide, TGraphic *AGraphic);	// забирает AGraphic
+	bool LoadPhotoFile(int AColumn, TPhotoSide ASide, const String &AFileName);
 	// Перетаскивание файлов из Проводника на рамку.
 	void __fastcall WMDropFiles(TWMDropFiles &AMessage);
 protected:
