@@ -209,7 +209,8 @@ private:	// User declarations
 	// icCheck — флажок отметки, icNumista — N# (задача 12a), icUploaded — выгружен в коллекцию Numista (задача 13),
 	// icRarity — индекс редкости (задача 13a), icMintage — тираж выпуска (задача 13c),
 	// icComposition — металл типа (задача 13d).
-	enum TItemColumn { icCheck, icCountry, icPeriod, icCurrency, icDenomination, icNumista, icUploaded, icRarity, icMintage,
+	enum TItemColumn { icCheck, icCountry, icPeriod, icCurrency, icDenomination, icSubject, icNumista, icUploaded, icRarity,
+		icMintage,
 		icComposition, icYear, icCondition, icValue, icCount };
 
 	// Строка панели подробностей: подпись и значение (создаются в коде, см. CreateDetailRows).
@@ -247,6 +248,9 @@ private:	// User declarations
 	TTreeNode                       *FCheckedNode;     // узел «Отмеченные» (счётчик меняется без перестройки дерева)
 	std::vector<int>                 FColumns;         // видимые колонки сетки (TItemColumn)
 	int                              FColWidths[icCount];
+	// Колонка «Сюжет» (задача 27) занимает свободное место, пока её ширину не задали мышью.
+	bool                             FSubjectAuto;
+	int                              FSubjectAutoWidth;	// последняя ширина, заданная программой
 	std::vector<TDetailRow>          FDetailRows;      // порядок = TDetailRowIndex
 	std::map<String, int>            FConditionOrder;  // код состояния -> sort_order
 	int                              FSortColumn;
@@ -270,6 +274,8 @@ private:	// User declarations
 	bool MatchNode(const TCoinRecord &ARecord, const TNavNode &ANode) const;
 	void ApplyFilter();
 	void UpdateColumns();
+	void FitSubjectColumn();
+	void __fastcall pnlRightResize(TObject *Sender);	// назначается в конструкторе
 	int  Column(int AGridCol) const;	// колонка сетки -> TItemColumn, -1 — нет
 	bool Confirm(const String &AText, const String &ACaption);
 	void ApplyPhotoEdits(const TPhotoEdits &AEdits, const TCoinRecord &ARecord);
