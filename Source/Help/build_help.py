@@ -477,6 +477,16 @@ is already linked, the coin takes its type without a search — when the coin's 
 The issue and mintage are found by the coin's own year.
 The check box [[ui:Also load type details and photos|Також завантажити характеристики й фото]] adds 1 request per coin.</p>
 [[shot:07-progress.png|Progress of a mass operation. Stop — stops after the current coin.]]
+<h2>Coins of one number from different years</h2>
+<p>When you link a coin manually, the program looks for other coins of the same country with the same number that are not linked yet
+and whose year is within the years of the chosen type, and offers to link them too — each with the issue of its own year.
+[[ui:Link manually|Пов'язати вручну]] for such a coin opens the type list at once with the type of the linked coin
+(<i>as the coin of 1870</i>) — without a search.</p>
+<h2>Issue</h2>
+<p>The issue is chosen by the coin's year and, if the variety is filled in, by the mint mark. Mint marks are compared without dots
+and spaces, Cyrillic letters as Latin ones: <code>EM</code> = <code>Е.М.</code>, <code>SPB</code> = <code>С.П.Б.</code>.
+If Numista has several issues for the year, the regular one is taken (not Proof, BU, a set, a pattern or a restrike).
+Otherwise choose the issue yourself: [[ui:Choose issue|Вибрати випуск]].</p>
 """
 T['numista-link', 'uk'] = u"""
 [[shot:02-context-menu.png|Меню правого клацання: ця монета (вгорі) і позначені монети (внизу).]]
@@ -525,6 +535,16 @@ T['numista-link', 'uk'] = u"""
 монета бере її тип без пошуку — якщо рік монети входить у роки цього типу. Випуск і тираж визначаються за власним роком монети.
 Позначка [[ui:Also load type details and photos|Також завантажити характеристики й фото]] додає 1 запит на монету.</p>
 [[shot:07-progress.png|Хід масової операції. Зупинити — після поточної монети.]]
+<h2>Монети одного номера різних років</h2>
+<p>Коли ви пов'язуєте монету вручну, програма шукає інші ще не пов'язані монети тієї ж країни з тим самим номером,
+рік яких входить у роки вибраного типу, і пропонує пов'язати їх теж — кожну з випуском свого року.
+[[ui:Link manually|Пов'язати вручну]] для такої монети одразу відкриває список типів з типом пов'язаної монети
+(<i>як у монети 1870 року</i>) — без пошуку.</p>
+<h2>Випуск</h2>
+<p>Випуск вибирається за роком монети і, якщо заповнено різновид, за знаком монетного двору. Знаки двору порівнюються без крапок
+і пробілів, кирилиця — як латиниця: <code>EM</code> = <code>Е.М.</code>, <code>SPB</code> = <code>С.П.Б.</code>.
+Якщо на Numista за рік кілька випусків, береться звичайний (не Proof, BU, набір, пробна монета чи рестрайк).
+Інакше виберіть випуск самі: [[ui:Choose issue|Вибрати випуск]].</p>
 """
 
 # =====================================================================

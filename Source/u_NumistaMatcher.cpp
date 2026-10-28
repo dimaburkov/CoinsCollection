@@ -429,15 +429,16 @@ int TNumistaMatcher::FindIssue(int ATypeId, const TCoinRecord &ACoin)
 	if (ATypeId == 0 || ACoin.Year == 0)
 		return 0;
 
-	const String mint = ACoin.Variety.Trim();
+	const String mint = MintKey(ACoin.Variety);
 	// Для года и двора у Numista бывает несколько выпусков: обычный и с комментарием
-	// ("BU set", "Proof"). Несколько совпадений — берётся единственный без комментария.
-	int result = 0, matches = 0, plain = 0, plainMatches = 0;
+	// ("BU set", "Proof"). Несколько совпадений — берётся единственный без комментария;
+	// комментарий у всех ("St. Petersburg Mint" / "Proof") — единственный обычный.
+	int result = 0, matches = 0, plain = 0, plainMatches = 0, regular = 0, regularMatches = 0;
 	for (const TNumistaIssue &issue : LoadIssues(ATypeId))
 	{
 		if (issue.EffectiveYear() != ACoin.Year)
 			continue;
-		if (!mint.IsEmpty() && !SameText(issue.MintLetter, mint))
+		if (!mint.IsEmpty() && MintKey(issue.MintLetter) != mint)
 			continue;
 		result = issue.Id;
 		++matches;
@@ -446,10 +447,62 @@ int TNumistaMatcher::FindIssue(int ATypeId, const TCoinRecord &ACoin)
 			plain = result;
 			++plainMatches;
 		}
+		if (!IsSpecialIssue(issue.Comment))
+		{
+			regular = result;
+			++regularMatches;
+		}
 	}
 	if (matches == 1)
 		return result;
-	return plainMatches == 1 ? plain : 0;
+	if (plainMatches == 1)
+		return plain;
+	return regularMatches == 1 ? regular : 0;
+}
+//---------------------------------------------------------------------------
+String TNumistaMatcher::MintKey(const String &AMint)
+{
+	// Кириллица → латиница (как пишет uCoin: "EM", "SPB").
+	static const wchar_t *const cCyrillic = L"АБВГДЕЁЗИЙКЛМНОПРСТУФХЦЫЭ";
+	static const wchar_t *const cLatin[] = { L"A", L"B", L"V", L"G", L"D", L"E", L"E", L"Z", L"I", L"Y", L"K", L"L",
+		L"M", L"N", L"O", L"P", L"R", L"S", L"T", L"U", L"F", L"H", L"C", L"Y", L"E" };
+	const String text = AnsiUpperCase(AMint);
+	String result;
+	for (int i = 1; i <= text.Length(); ++i)
+	{
+		const wchar_t c = text[i];
+		if (c == L'.' || c == L' ' || c == L'-')
+			continue;
+		const wchar_t *found = wcschr(cCyrillic, c);
+		if (found && c != 0)
+			result += cLatin[found - cCyrillic];
+		else
+			result += c;
+	}
+	return result;
+}
+//---------------------------------------------------------------------------
+bool TNumistaMatcher::IsSpecialIssue(const String &AComment)
+{
+	static const wchar_t *const cWords[] = { L"PROOF", L"PROOFLIKE", L"BU", L"SET", L"PATTERN", L"RESTRIKE",
+		L"SPECIMEN" };
+	// По словам: "BU" в "Budapest" не считается.
+	const String text = AnsiUpperCase(AComment);
+	String word;
+	for (int i = 1; i <= text.Length() + 1; ++i)
+	{
+		const wchar_t c = i <= text.Length() ? text[i] : L' ';
+		if (IsCharAlpha(c))
+		{
+			word += c;
+			continue;
+		}
+		for (const wchar_t *special : cWords)
+			if (word == special)
+				return true;
+		word = String();
+	}
+	return false;
 }
 //---------------------------------------------------------------------------
 String TNumistaMatcher::TypePath(int ATypeId)
