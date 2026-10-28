@@ -82,10 +82,10 @@ std::unique_ptr<TJSONValue> TNumistaClient::ParseJson(const String &AText)
 //---------------------------------------------------------------------------
 String TNumistaClient::Get(const String &APath, bool AWithToken)
 {
-	return Send(APath, AWithToken, String());
+	return Send(L"GET", APath, AWithToken, String());
 }
 //---------------------------------------------------------------------------
-String TNumistaClient::Send(const String &APath, bool AWithToken, const String &ABody)
+String TNumistaClient::Send(const String &AMethod, const String &APath, bool AWithToken, const String &ABody)
 {
 	const TAppConfig &config = AppConfig();
 	if (config.NumistaApiKey.IsEmpty())
@@ -93,7 +93,7 @@ String TNumistaClient::Send(const String &APath, bool AWithToken, const String &
 	if (RequestBudget >= 0 && RequestsMade >= RequestBudget)
 		throw ENumistaError(BudgetExhausted, Tr(L"Numista.Error.Budget"));
 
-	const bool post = !ABody.IsEmpty();
+	const bool withBody = !ABody.IsEmpty();
 	TNetHeaders headers;
 	headers.Length = 1 + (AWithToken ? 1 : 0);
 	int h = 0;
@@ -106,7 +106,7 @@ String TNumistaClient::Send(const String &APath, bool AWithToken, const String &
 	http->ResponseTimeout   = cResponseTimeoutMs;
 	http->UserAgent         = UserAgent();
 	http->Accept            = L"application/json";
-	if (post)
+	if (withBody)
 		http->ContentType = L"application/json";
 
 	CountRequest();	// запрос уходит — он учитывается в квоте, даже если вернётся ошибка
@@ -114,13 +114,16 @@ String TNumistaClient::Send(const String &APath, bool AWithToken, const String &
 	_di_IHTTPResponse response;
 	try
 	{
-		if (post)
-		{
-			std::unique_ptr<TStringStream> body(new TStringStream(ABody, TEncoding::UTF8, false));
-			response = http->Post(String(BaseUrl) + APath, body.get(), nullptr, headers);
-		}
+		const String url = String(BaseUrl) + APath;
+		std::unique_ptr<TStringStream> body(new TStringStream(ABody, TEncoding::UTF8, false));
+		if (AMethod == L"POST")
+			response = http->Post(url, body.get(), nullptr, headers);
+		else if (AMethod == L"PATCH")
+			response = http->Patch(url, body.get(), nullptr, headers);
+		else if (AMethod == L"DELETE")
+			response = http->Delete(url, nullptr, headers);
 		else
-			response = http->Get(String(BaseUrl) + APath, nullptr, headers);
+			response = http->Get(url, nullptr, headers);
 	}
 	catch (Exception &e)
 	{
@@ -315,11 +318,32 @@ std::unique_ptr<TJSONValue> TNumistaClient::GetCollectedItems()
 //---------------------------------------------------------------------------
 int TNumistaClient::AddCollectedItem(const String &AJson)
 {
-	const String body = Send(L"/users/" + IntToStr(AppConfig().NumistaUserId) + L"/collected_items", true, AJson);
+	const String body = Send(L"POST", L"/users/" + IntToStr(AppConfig().NumistaUserId) + L"/collected_items", true, AJson);
 	std::unique_ptr<TJSONValue> json = ParseJson(body);
 	const int id = StrToIntDef(JsonString(json.get(), L"id"), 0);
 	if (id == 0)
 		throw ENumistaError(0, Tr(L"Numista.Error.Json"));
 	return id;
+}
+//---------------------------------------------------------------------------
+void TNumistaClient::EditCollectedItemType(int AItemId, int ATypeId, int AIssueId)
+{
+	const String json = L"{\"type\":" + IntToStr(ATypeId) + L",\"issue\":"
+		+ (AIssueId != 0 ? IntToStr(AIssueId) : String(L"null")) + L"}";
+	Send(L"PATCH", L"/users/" + IntToStr(AppConfig().NumistaUserId) + L"/collected_items/" + IntToStr(AItemId), true, json);
+}
+//---------------------------------------------------------------------------
+void TNumistaClient::DeleteCollectedItem(int AItemId)
+{
+	try
+	{
+		Send(L"DELETE", L"/users/" + IntToStr(AppConfig().NumistaUserId) + L"/collected_items/" + IntToStr(AItemId),
+			true, String());
+	}
+	catch (ENumistaError &e)
+	{
+		if (e.StatusCode != 404)
+			throw;
+	}
 }
 //---------------------------------------------------------------------------

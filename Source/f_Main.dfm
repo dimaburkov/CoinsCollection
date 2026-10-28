@@ -342,6 +342,9 @@ object fmMain: TfmMain
     object miPopNumistaRefreshOne: TMenuItem
       Action = actNumistaRefreshOne
     end
+    object miPopNumistaUnlinkOne: TMenuItem
+      Action = actNumistaUnlinkOne
+    end
     object miPopSep1: TMenuItem
       Caption = '-'
     end
@@ -360,6 +363,9 @@ object fmMain: TfmMain
     end
     object miPopNumistaCatalog: TMenuItem
       Action = actNumistaCatalog
+    end
+    object miPopNumistaUnlink: TMenuItem
+      Action = actNumistaUnlink
     end
   end
   object pmHeader: TPopupMenu
@@ -528,6 +534,18 @@ object fmMain: TfmMain
       OnExecute = actNumistaRefreshOneExecute
       OnUpdate = actNumistaUpdate
     end
+    object actNumistaUnlinkOne: TAction
+      Category = 'Numista'
+      Caption = '&Unlink from Numista...'
+      OnExecute = actNumistaUnlinkExecute
+      OnUpdate = actNumistaUpdate
+    end
+    object actNumistaUnlink: TAction
+      Category = 'Numista'
+      Caption = '&Unlink...'
+      OnExecute = actNumistaUnlinkExecute
+      OnUpdate = actNumistaUpdate
+    end
     object actNumistaUpload: TAction
       Category = 'Numista'
       Caption = 'U&pload...'
@@ -644,6 +662,9 @@ object fmMain: TfmMain
       object miNumistaRefreshOne: TMenuItem
         Action = actNumistaRefreshOne
       end
+      object miNumistaUnlinkOne: TMenuItem
+        Action = actNumistaUnlinkOne
+      end
       object miNumistaSep2: TMenuItem
         Caption = '-'
       end
@@ -662,6 +683,9 @@ object fmMain: TfmMain
       end
       object miNumistaCatalog: TMenuItem
         Action = actNumistaCatalog
+      end
+      object miNumistaUnlink: TMenuItem
+        Action = actNumistaUnlink
       end
     end
     object miSettings: TMenuItem
