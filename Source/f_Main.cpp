@@ -758,7 +758,31 @@ void __fastcall TfmMain::actNumistaFindExecute(TObject *Sender)
 			countryIssuer = NumistaIssuers()[AnsiUpperCase(coin.Country)];
 			periodIssuer = FRepository->Lookups().PeriodIssuers()[
 				TLookupRepository::PeriodKey(coin.Country, coin.Period)];
-			types = matcher.Search(coin, periodIssuer.IsEmpty() ? countryIssuer : periodIssuer, countryIssuer, true);
+			// Не связанная монета, у «соседа» с тем же номером тип подходит по году (задача 28a) —
+			// окно выбора сразу с ним, без поиска.
+			const int sameTypeId = coin.NumistaTypeId == 0 && coin.NumistaQuery.IsEmpty()
+				? TypeBySameNumber(coin, NumberTypes(), matcher) : 0;
+			TNumistaTypeInfo info;
+			if (sameTypeId != 0 && FRepository->LoadNumistaType(sameTypeId, info))
+			{
+				TNumistaType same;
+				same.Id         = info.Id;
+				same.IssuerCode = info.IssuerCode;
+				same.IssuerName = info.IssuerName;
+				same.MinYear    = info.MinYear;
+				same.MaxYear    = info.MaxYear;
+				same.ByAutoQuery = true;	// только с подтверждением в окне выбора
+				for (size_t i = 0; i < FAll.size(); ++i)
+					if (FAll[i].NumistaTypeId == sameTypeId && NumberKey(FAll[i]) == NumberKey(coin))
+					{
+						same.Title = info.Title + L"  " + Format(Tr(L"NumistaChoose.SameNumber"),
+							ARRAYOFCONST((YearText(FAll[i].Year, FAll[i].YearTo))));
+						break;
+					}
+				types.push_back(same);
+			}
+			else
+				types = matcher.Search(coin, periodIssuer.IsEmpty() ? countryIssuer : periodIssuer, countryIssuer, true);
 		}
 		__finally
 		{
@@ -844,6 +868,16 @@ void __fastcall TfmMain::actNumistaFindExecute(TObject *Sender)
 			catch (Exception &e)
 			{
 				message += L"\r\n" + Tr(L"Numista.Find.TypeFailed") + L" " + e.Message;
+			}
+			// Монеты того же номера других лет — связать тоже (задача 28a).
+			try
+			{
+				OfferSameNumber(client, matcher, coin, typeId, caption, message);
+			}
+			catch (Exception &e)
+			{
+				message += L"\r\n\r\n" + Tr(L"Numista.Match.Stopped") + L" " + e.Message;
+				icon = MB_ICONWARNING;
 			}
 		}
 	}
@@ -956,10 +990,7 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 	}
 
 	// Связанные монеты по стране и номеру (задача 28): тип для монет того же номера других лет.
-	std::map<String, std::set<int> > numberTypes;
-	for (size_t i = 0; i < FAll.size(); ++i)
-		if (FAll[i].NumistaTypeId != 0 && !NumberKey(FAll[i]).IsEmpty())
-			numberTypes[NumberKey(FAll[i])].insert(FAll[i].NumistaTypeId);
+	std::map<String, std::set<int> > numberTypes = NumberTypes();
 	matcher.EnsureCountryIssuers(FRepository->Lookups());
 	std::map<String, String> issuers = NumistaIssuers();
 	std::map<String, String> periodIssuers = FRepository->Lookups().PeriodIssuers();
@@ -1176,6 +1207,69 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 		report += L"\r\n\r\n" + Tr(L"Numista.Match.Stopped") + L" " + stopReason;
 	Application->MessageBox((report + L"\r\n\r\n" + NumistaRequestsText(client.RequestsMade)).c_str(),
 		caption.c_str(), MB_OK | (stopReason.IsEmpty() ? MB_ICONINFORMATION : MB_ICONWARNING));
+}
+//---------------------------------------------------------------------------
+std::map<String, std::set<int> > TfmMain::NumberTypes() const
+{
+	std::map<String, std::set<int> > result;
+	for (size_t i = 0; i < FAll.size(); ++i)
+		if (FAll[i].NumistaTypeId != 0 && !NumberKey(FAll[i]).IsEmpty())
+			result[NumberKey(FAll[i])].insert(FAll[i].NumistaTypeId);
+	return result;
+}
+//---------------------------------------------------------------------------
+void TfmMain::OfferSameNumber(TNumistaClient &AClient, TNumistaMatcher &AMatcher, const TCoinRecord &ACoin,
+	int ATypeId, const String &ACaption, String &AMessage)
+{
+	const String key = NumberKey(ACoin);
+	if (key.IsEmpty())
+		return;
+	// FAll ещё без новой связи монеты ACoin — тип добавляется вручную.
+	std::map<String, std::set<int> > numberTypes = NumberTypes();
+	numberTypes[key].insert(ATypeId);
+
+	std::vector<TCoinRecord> coins;
+	std::set<int> seen;
+	for (size_t i = 0; i < FAll.size(); ++i)
+	{
+		const TCoinRecord &r = FAll[i];
+		if (r.CoinId == ACoin.CoinId || r.NumistaTypeId != 0 || !r.NumistaQuery.IsEmpty() || NumberKey(r) != key
+			|| !seen.insert(r.CoinId).second)
+			continue;
+		if (TypeBySameNumber(r, numberTypes, AMatcher) == ATypeId)
+			coins.push_back(r);
+	}
+	if (coins.empty())
+		return;
+
+	std::sort(coins.begin(), coins.end(),
+		[](const TCoinRecord &A, const TCoinRecord &B) { return A.Year < B.Year; });
+	String years;
+	for (size_t i = 0; i < coins.size() && i < 10; ++i)
+		years += (i == 0 ? String() : String(L", ")) + YearText(coins[i].Year, coins[i].YearTo);
+	if (coins.size() > 10)
+		years += L", …";
+	const TNumistaTypeInfo type = AMatcher.LoadType(ATypeId);	// из кэша: только что загружен
+	const String question = Format(Tr(L"Numista.Same.Offer"), ARRAYOFCONST(((int)coins.size(),
+		ACoin.CatalogNumber.Trim(), years, YearText(type.MinYear, type.MaxYear == type.MinYear ? 0 : type.MaxYear),
+		ATypeId)));
+	if (Application->MessageBox(question.c_str(), ACaption.c_str(), MB_YESNO | MB_ICONQUESTION) != IDYES)
+		return;
+
+	int linked = 0, withIssue = 0, photosFailed = 0;
+	for (size_t i = 0; i < coins.size(); ++i)
+	{
+		const int issueId = AMatcher.FindIssue(ATypeId, coins[i]);
+		FRepository->SetCoinNumista(coins[i].CoinId, ATypeId, issueId);
+		++linked;
+		if (issueId != 0)
+			++withIssue;
+		DownloadTypePhotos(AClient, type, coins[i].CoinId, false, photosFailed);
+	}
+	StoreIssues(*FRepository, AMatcher, ATypeId);
+	AMessage += L"\r\n\r\n" + Format(Tr(L"Numista.Same.Linked"), ARRAYOFCONST((linked, withIssue)));
+	if (photosFailed > 0)
+		AMessage += L"\r\n" + Format(Tr(L"Numista.Photos.Failed"), ARRAYOFCONST((photosFailed)));
 }
 //---------------------------------------------------------------------------
 // Годы типа — из numista_types; не загружены — getType (с кэшем) и сохранить.

@@ -80,8 +80,9 @@ public:
 	bool SameBranch(const String &AIssuer1, const String &AIssuer2) const;
 
 	// Выпуск типа для монеты: год совпадает и (если указана разновидность)
-	// совпадает знак монетного двора; из нескольких — единственный без комментария
-	// (обычный тираж, а не "BU set" / "Proof"). 0 — не найден или не однозначен.
+	// совпадает знак монетного двора (без точек и пробелов, кириллица — латиницей:
+	// "Е.М." = "EM"; задача 28a); из нескольких — единственный без комментария, иначе
+	// единственный обычный (не Proof / BU / набор …). 0 — не найден или не однозначен.
 	int FindIssue(int ATypeId, const TCoinRecord &ACoin);
 	// Все выпуски типа (getIssues, с кэшем; ARefresh — мимо кэша, кэш перезаписывается).
 	std::vector<TNumistaIssue> LoadIssues(int ATypeId, bool ARefresh = false);
@@ -92,6 +93,10 @@ public:
 	static String TypePath(int ATypeId);
 
 	static String TypeUrl(int ATypeId);
+	// Знак двора для сравнения: заглавные, без точек / пробелов / дефисов, кириллица латиницей.
+	static String MintKey(const String &AMint);
+	// Примечание выпуска говорит о Proof, BU, наборе, пробе, рестрайке … (не обычный тираж).
+	static bool IsSpecialIssue(const String &AComment);
 
 private:
 	TNumistaClient &FClient;

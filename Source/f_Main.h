@@ -337,6 +337,12 @@ private:	// User declarations
 	// (ANumberTypes: ключ NumberKey → типы), если год монеты — в годах ровно одного из них. 0 — нет.
 	int  TypeBySameNumber(const TCoinRecord &ACoin, const std::map<String, std::set<int> > &ANumberTypes,
 		TNumistaMatcher &AMatcher);
+	// Связанные монеты: ключ NumberKey → их типы (задача 28).
+	std::map<String, std::set<int> > NumberTypes() const;
+	// После ручной связи монеты ACoin с ATypeId (задача 28a): несвязанные монеты той же страны
+	// с тем же номером, год которых — в годах типа, — с вопросом связать их тоже. Итог — в AMessage.
+	void OfferSameNumber(TNumistaClient &AClient, TNumistaMatcher &AMatcher, const TCoinRecord &ACoin, int ATypeId,
+		const String &ACaption, String &AMessage);
 	// Отвязка / перепривязка (задача 26). Что сделать на Numista с выгруженными экземплярами.
 	enum TNumistaItemAction { niaKeep, niaFix, niaDelete };
 	// Подтверждение с выбором для выгруженных экземпляров AUploaded (пусто — без выбора):
