@@ -37,6 +37,12 @@ object fmMain: TfmMain
       Action = actAdd
       AutoSize = True
     end
+    object tbAddSample: TToolButton
+      Left = 25
+      Top = 0
+      Action = actAddSample
+      AutoSize = True
+    end
     object tbEdit: TToolButton
       Left = 50
       Top = 0
@@ -327,6 +333,12 @@ object fmMain: TfmMain
       Caption = 'Coin'
       Enabled = False
     end
+    object miPopAddSample: TMenuItem
+      Action = actAddSample
+    end
+    object miPopSep0: TMenuItem
+      Caption = '-'
+    end
     object miPopNumistaFind: TMenuItem
       Action = actNumistaFind
     end
@@ -416,6 +428,13 @@ object fmMain: TfmMain
       Caption = '&Add'
       ShortCut = 45
       OnExecute = actAddExecute
+    end
+    object actAddSample: TAction
+      Category = 'Collection'
+      Caption = 'Add from &sample...'
+      ShortCut = 16429
+      OnExecute = actAddSampleExecute
+      OnUpdate = actAddSampleUpdate
     end
     object actEdit: TAction
       Category = 'Collection'
@@ -598,6 +617,9 @@ object fmMain: TfmMain
       Caption = '&Collection'
       object miAdd: TMenuItem
         Action = actAdd
+      end
+      object miAddSample: TMenuItem
+        Action = actAddSample
       end
       object miEdit: TMenuItem
         Action = actEdit

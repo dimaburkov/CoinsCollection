@@ -157,8 +157,9 @@ public:		// User declarations
 	// Показать карточку для ARecord (Id == 0 — новый экземпляр).
 	// true — пользователь нажал OK, поля ARecord обновлены, APhotoEdits — изменения фото
 	// (в БД не пишет: запись — вызывающий код, затем APhotoEdits.Apply).
+	// ASample — новая монета по образцу (задача 29): свой заголовок, фокус в поле «Год».
 	static bool Execute(TComponent *AOwner, TCoinRepository &ARepository, TPhotoRepository &APhotos,
-		TCoinRecord &ARecord, TPhotoEdits &APhotoEdits);
+		TCoinRecord &ARecord, TPhotoEdits &APhotoEdits, bool ASample = false);
 
 	BEGIN_MESSAGE_MAP
 		VCL_MESSAGE_HANDLER(WM_DROPFILES, TWMDropFiles, WMDropFiles)

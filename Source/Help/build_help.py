@@ -278,6 +278,9 @@ T['checks', 'uk'] = u"""
 T['coin-card', 'en'] = u"""
 [[shot:03-coin-card.png|The coin card: Coin, My item and Photo.]]
 <p>[[ui:Collection → Add / Edit / Delete|Колекція → Додати / Змінити / Видалити]], or double-click a row to edit it.</p>
+<p>[[ui:Add from sample|Додати за зразком]] (Ctrl+Ins, also in the right-click menu) opens the card filled with the selected coin —
+change the year and press OK. The Numista link, the search phrase, photos and dates are not copied; auto-link then finds
+the new coin by the coin with the same number. With the same year the card adds one more item of the same coin.</p>
 <h2>Coin and My item</h2>
 <ul>
 <li><b>Coin</b> — data of the coin type: country, period, currency, denomination, year (a range — the second field; before Christ — a negative year, <code>-44</code>), variety, diameter, catalogue number, subject.
@@ -294,6 +297,9 @@ See [[page:photos|Photos]].</p>
 T['coin-card', 'uk'] = u"""
 [[shot:03-coin-card.png|Картка монети: Монета, Мій примірник і Фото.]]
 <p>[[ui:Collection → Add / Edit / Delete|Колекція → Додати / Змінити / Видалити]] або подвійне клацання по рядку — змінити.</p>
+<p>[[ui:Add from sample|Додати за зразком]] (Ctrl+Ins, також у меню правого клацання) відкриває картку, заповнену даними виділеної монети, —
+змініть рік і натисніть OK. Зв'язок з Numista, фраза пошуку, фото й дати не копіюються; автозв'язок потім знайде нову монету
+за монетою з тим самим номером. З тим самим роком картка додасть ще один примірник тієї ж монети.</p>
 <h2>Монета і Мій примірник</h2>
 <ul>
 <li><b>[[ui:Coin|Монета]]</b> — дані типу монети: країна, період, валюта, номінал, рік (діапазон — друге поле; до н. е. — від'ємний рік, <code>-44</code>), різновид, діаметр, номер у каталозі, сюжет.
