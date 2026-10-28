@@ -38,6 +38,7 @@ __published:	// IDE-managed Components
 	TMenuItem *miRestore;
 	TAction *actExit;
 	TAction *actAdd;
+	TAction *actAddSample;
 	TAction *actEdit;
 	TAction *actDelete;
 	TAction *actNeedToReplace;
@@ -76,6 +77,9 @@ __published:	// IDE-managed Components
 	TMenuItem *miExit;
 	TMenuItem *miCollection;
 	TMenuItem *miAdd;
+	TMenuItem *miAddSample;
+	TMenuItem *miPopAddSample;
+	TMenuItem *miPopSep0;
 	TMenuItem *miEdit;
 	TMenuItem *miDelete;
 	TMenuItem *miCollectionSep1;
@@ -110,6 +114,7 @@ __published:	// IDE-managed Components
 	TMenuItem *miAbout;
 	TToolBar *ToolBar;
 	TToolButton *tbAdd;
+	TToolButton *tbAddSample;
 	TToolButton *tbEdit;
 	TToolButton *tbDelete;
 	TToolButton *tbSep1;
@@ -163,6 +168,8 @@ __published:	// IDE-managed Components
 	void __fastcall actRestoreExecute(TObject *Sender);
 	void __fastcall actImportExecute(TObject *Sender);
 	void __fastcall actAddExecute(TObject *Sender);
+	void __fastcall actAddSampleExecute(TObject *Sender);
+	void __fastcall actAddSampleUpdate(TObject *Sender);
 	void __fastcall actEditExecute(TObject *Sender);
 	void __fastcall actEditUpdate(TObject *Sender);
 	void __fastcall actDeleteExecute(TObject *Sender);

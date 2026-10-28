@@ -34,12 +34,12 @@ __fastcall TfmCoinEdit::TfmCoinEdit(TComponent* Owner)
 }
 //---------------------------------------------------------------------------
 bool TfmCoinEdit::Execute(TComponent *AOwner, TCoinRepository &ARepository, TPhotoRepository &APhotos,
-	TCoinRecord &ARecord, TPhotoEdits &APhotoEdits)
+	TCoinRecord &ARecord, TPhotoEdits &APhotoEdits, bool ASample)
 {
 	std::unique_ptr<TfmCoinEdit> form(new TfmCoinEdit(AOwner));
 	form->FRepository = &ARepository;
 	form->FPhotos     = &APhotos;
-	form->Caption = Tr(ARecord.Id == 0 ? L"CoinEdit.TitleNew" : L"CoinEdit.TitleEdit");
+	form->Caption = Tr(ASample ? L"CoinEdit.TitleSample" : ARecord.Id == 0 ? L"CoinEdit.TitleNew" : L"CoinEdit.TitleEdit");
 
 	// Поля монеты общие для всех её экземпляров — предупредить, если их несколько.
 	const int items = ARecord.CoinId == 0 ? 0 : ARepository.ItemCount(ARecord.CoinId);
@@ -49,6 +49,8 @@ bool TfmCoinEdit::Execute(TComponent *AOwner, TCoinRepository &ARepository, TPho
 	form->LoadLookups();
 	form->LoadFrom(ARecord);
 	form->LoadPhotos(ARecord);
+	if (ASample)
+		form->ActiveControl = form->edYear;	// обычно меняется только год (текст выделяется)
 	if (form->ShowModal() != mrOk)
 		return false;
 

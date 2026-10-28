@@ -571,6 +571,52 @@ void __fastcall TfmMain::actAddExecute(TObject *Sender)
 	SelectId(record.Id);
 }
 //---------------------------------------------------------------------------
+// Новая монета по образцу выделенной (задача 29): поля монеты и экземпляра копируются,
+// связь с Numista, своя фраза поиска (в ней бывает год), фото, даты uCoin / покупки и
+// номер сертификата грейдинга — нет. Тот же год без изменений — ещё один экземпляр той же монеты.
+void __fastcall TfmMain::actAddSampleExecute(TObject *Sender)
+{
+	const int index = CurrentIndex();
+	if (index < 0)
+		return;
+	const TCoinRecord &sample = FItems[index];
+	TCoinRecord record;
+	record.Country         = sample.Country;
+	record.Period          = sample.Period;
+	record.Currency        = sample.Currency;
+	record.Denomination    = sample.Denomination;
+	record.Year            = sample.Year;
+	record.YearTo          = sample.YearTo;
+	record.Variety         = sample.Variety;
+	record.Subject         = sample.Subject;
+	record.DiameterMm      = sample.DiameterMm;
+	record.CatalogNumber   = sample.CatalogNumber;
+	record.Condition       = sample.Condition;
+	record.CatalogValueUah = sample.CatalogValueUah;
+	record.MyValueUah      = sample.MyValueUah;
+	record.Color           = sample.Color;
+	record.Quantity        = sample.Quantity;
+	record.NeedToReplace   = sample.NeedToReplace;
+	record.SwapInfo        = sample.SwapInfo;
+	record.GradingCompany  = sample.GradingCompany;
+	record.Grade           = sample.Grade;
+	record.LabelText       = sample.LabelText;
+	record.Comment         = sample.Comment;
+
+	TPhotoEdits photos;
+	if (!TfmCoinEdit::Execute(this, *FRepository, *FPhotos, record, photos, true) || !SaveRecord(record))
+		return;
+	ApplyPhotoEdits(photos, record);
+	LoadItems();
+	SelectId(record.Id);
+}
+//---------------------------------------------------------------------------
+// В поле поиска Ctrl+Ins — копирование текста, команда выключена.
+void __fastcall TfmMain::actAddSampleUpdate(TObject *Sender)
+{
+	actAddSample->Enabled = CurrentIndex() >= 0 && ActiveControl != edSearch;
+}
+//---------------------------------------------------------------------------
 void __fastcall TfmMain::actEditExecute(TObject *Sender)
 {
 	const int index = CurrentIndex();
