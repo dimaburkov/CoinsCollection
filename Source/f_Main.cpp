@@ -57,6 +57,14 @@ namespace
 	{
 		return StrCmpLogicalW(A.c_str(), B.c_str());
 	}
+	// Страна + номер каталога целиком ("KM# 6b", "UC# 428") — монеты одного типа разных лет
+	// (задача 28). "" — номера нет.
+	String NumberKey(const TCoinRecord &ARecord)
+	{
+		const String number = ARecord.CatalogNumber.Trim();
+		return number.IsEmpty() ? String() : AnsiUpperCase(ARecord.Country.Trim()) + L"|" + AnsiUpperCase(number);
+	}
+	//-----------------------------------------------------------------------
 	// Ширина колонок по умолчанию (порядок = TItemColumn).
 	// Auto-link checked: больше стольких монет — подтверждение.
 	const int cConfirmCheckCoins = 10;
@@ -901,8 +909,65 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 		return;
 	}
 
-	// Подтверждение с оценкой запросов (обычно 2 на монету) и флажком «характеристики и фото
-	// сразу» (+1 запрос getType на монету; задача 17c). Флажок запоминается в ini.
+	// Связанные монеты по стране и номеру (задача 28): тип для монет того же номера других лет.
+	std::map<String, std::set<int> > numberTypes;
+	for (size_t i = 0; i < FAll.size(); ++i)
+		if (FAll[i].NumistaTypeId != 0 && !NumberKey(FAll[i]).IsEmpty())
+			numberTypes[NumberKey(FAll[i])].insert(FAll[i].NumistaTypeId);
+	matcher.EnsureCountryIssuers(FRepository->Lookups());
+	std::map<String, String> issuers = NumistaIssuers();
+	std::map<String, String> periodIssuers = FRepository->Lookups().PeriodIssuers();
+
+	// Оценка запросов с учётом кэша (задача 28): поиск, выпуски (getIssues) и характеристики
+	// (getType) — 0, если ответ уже в кэше, тот же запрос будет у монеты раньше в этом запуске
+	// или тип берётся от монеты с тем же номером. Остальное — 2 на монету (+1 характеристики).
+	int estimate = 0, estimateDetails = 0;
+	{
+		std::set<String> plannedKeys, plannedPaths;
+		std::set<int> plannedTypes;
+		auto typeCost = [&](int ATypeId)
+		{
+			if (!plannedTypes.insert(ATypeId).second)
+				return;
+			if (!TNumistaClient::IsCached(TNumistaMatcher::IssuesPath(ATypeId)))
+				++estimate;
+			if (!TNumistaClient::IsCached(TNumistaMatcher::TypePath(ATypeId)))
+				++estimateDetails;
+		};
+		for (size_t i = 0; i < coins.size(); ++i)
+		{
+			const TCoinRecord &coin = coins[i];
+			const String key = coin.NumistaQuery.IsEmpty() && coin.Year != 0 ? NumberKey(coin) : String();
+			if (!key.IsEmpty() && (numberTypes.count(key) || plannedKeys.count(key)))
+			{
+				if (numberTypes.count(key))
+					for (int typeId : numberTypes[key])
+						typeCost(typeId);
+				continue;
+			}
+			if (!key.IsEmpty())
+				plannedKeys.insert(key);
+			const String countryIssuer = issuers[AnsiUpperCase(coin.Country)];
+			const String periodIssuer = periodIssuers[TLookupRepository::PeriodKey(coin.Country, coin.Period)];
+			const String path = matcher.FirstSearchPath(coin, periodIssuer.IsEmpty() ? countryIssuer : periodIssuer,
+				byAutoQuery.count(coin.CoinId) > 0);
+			if (!plannedPaths.insert(path).second)
+				continue;
+			std::vector<TNumistaType> cached;
+			if (!matcher.CachedTypes(path, cached))
+			{
+				estimate += 2;
+				++estimateDetails;
+			}
+			else if (cached.size() == 1)
+				typeCost(cached[0].Id);
+			else if (cached.empty() && !byPhrase.count(coin.CoinId))
+				++estimate;	// повтор поиска с годом (задача 15a)
+		}
+	}
+
+	// Подтверждение с оценкой запросов и флажком «характеристики и фото сразу» (getType;
+	// задача 17c). Флажок запоминается в ini.
 	const int count = (int)coins.size();
 	bool details = AppConfig().NumistaAutoLinkDetails;
 	{
@@ -916,9 +981,9 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 			+ Format(Tr(L"Numista.Check.ByNumber"), ARRAYOFCONST((count - (int)byPhrase.size()))) + L"\r\n"
 			+ Format(Tr(L"Numista.Check.ByPhrase"), ARRAYOFCONST(((int)byPhrase.size()))) + L"\r\n"
 			+ Format(Tr(L"Numista.Check.Linked"), ARRAYOFCONST(((int)linkedBefore.size()))) + L"\r\n\r\n"
-			+ Format(Tr(L"Numista.Check.Requests"), ARRAYOFCONST((count * 2,
+			+ Format(Tr(L"Numista.Check.Requests"), ARRAYOFCONST((estimate, std::max(0, count * 2 - estimate),
 				TNumistaClient::RequestsThisMonth(), AppConfig().NumistaMonthlyQuota)));
-		dialog->VerificationText = Format(Tr(L"Numista.Check.Details"), ARRAYOFCONST((count)));
+		dialog->VerificationText = Format(Tr(L"Numista.Check.Details"), ARRAYOFCONST((estimateDetails)));
 		if (details)
 			dialog->Flags = dialog->Flags << tfVerificationFlagChecked;
 		if (!dialog->Execute(Handle) || dialog->ModalResult != mrOk)
@@ -935,16 +1000,13 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 	client.RequestBudget = count * (details ? 4 : 3);
 
 	int linked = 0, withIssue = 0, ambiguous = 0, notFound = 0, otherIssuer = 0, processed = 0;
-	int linkedByPhrase = 0, phraseCheck = 0;
+	int linkedByPhrase = 0, linkedBySame = 0, phraseCheck = 0;
 	int typesLoaded = 0, typesFailed = 0, photos = 0, photosFailed = 0;
 	std::set<int> linkedCoins;
 	String stopReason;
 	std::unique_ptr<TProgress> progress(new TProgress(this, caption, count, &client));
 	try
 	{
-		matcher.EnsureCountryIssuers(FRepository->Lookups());
-		std::map<String, String> issuers = NumistaIssuers();
-		std::map<String, String> periodIssuers = FRepository->Lookups().PeriodIssuers();
 		for (size_t i = 0; i < coins.size() && stopReason.IsEmpty(); ++i)
 		{
 			const TCoinRecord &coin = coins[i];
@@ -958,11 +1020,21 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 				const String countryIssuer = issuers[AnsiUpperCase(coin.Country)];
 				const String periodIssuer = periodIssuers[TLookupRepository::PeriodKey(coin.Country, coin.Period)];
 				const String issuer = periodIssuer.IsEmpty() ? countryIssuer : periodIssuer;
-				const bool autoQuery = byAutoQuery.count(coin.CoinId) > 0;
+				// Тип от монеты с тем же номером (задача 28) — без поиска; иначе поиск.
+				const String key = coin.NumistaQuery.IsEmpty() ? NumberKey(coin) : String();
+				const int sameTypeId = key.IsEmpty() ? 0 : TypeBySameNumber(coin, numberTypes, matcher);
+				const bool autoQuery = sameTypeId == 0 && byAutoQuery.count(coin.CoinId) > 0;
 				int phraseFound = 0;
-				const std::vector<TNumistaType> types = autoQuery
-					? matcher.SearchAutoQuery(coin, issuer, countryIssuer, phraseFound)
-					: matcher.Search(coin, issuer, countryIssuer);
+				std::vector<TNumistaType> types;
+				if (sameTypeId != 0)
+				{
+					types.push_back(TNumistaType());
+					types[0].Id = sameTypeId;
+				}
+				else if (autoQuery)
+					types = matcher.SearchAutoQuery(coin, issuer, countryIssuer, phraseFound);
+				else
+					types = matcher.Search(coin, issuer, countryIssuer);
 				if (autoQuery && types.size() != 1)
 				{
 					if (phraseFound == 0)
@@ -987,8 +1059,12 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 					if (issueId != 0)
 						StoreIssues(*FRepository, matcher, types[0].Id);
 					linkedCoins.insert(coin.CoinId);
+					if (!key.IsEmpty())
+						numberTypes[key].insert(types[0].Id);	// для следующих монет этого номера
 					++linked;
-					if (byPhrase.count(coin.CoinId))
+					if (sameTypeId != 0)
+						++linkedBySame;
+					else if (byPhrase.count(coin.CoinId))
 						++linkedByPhrase;
 					if (issueId != 0)
 						++withIssue;
@@ -1033,7 +1109,8 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 			FChecked.erase(FAll[i].Id);
 	LoadItems();	// и строка состояния
 	String report = Format(Tr(L"Numista.Match.Linked"), ARRAYOFCONST((linked, withIssue))) + L"\r\n"
-		+ Format(Tr(L"Numista.Match.LinkedSplit"), ARRAYOFCONST((linked - linkedByPhrase, linkedByPhrase))) + L"\r\n"
+		+ Format(Tr(L"Numista.Match.LinkedSplit"), ARRAYOFCONST((linked - linkedByPhrase - linkedBySame, linkedByPhrase,
+			linkedBySame))) + L"\r\n"
 		+ Format(Tr(L"Numista.Match.Ambiguous"), ARRAYOFCONST((ambiguous))) + L"\r\n"
 		+ Format(Tr(L"Numista.Match.PhraseCheck"), ARRAYOFCONST((phraseCheck))) + L"\r\n"
 		+ Format(Tr(L"Numista.Match.NotFound"), ARRAYOFCONST((notFound))) + L"\r\n"
@@ -1053,6 +1130,32 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 		report += L"\r\n\r\n" + Tr(L"Numista.Match.Stopped") + L" " + stopReason;
 	Application->MessageBox((report + L"\r\n\r\n" + NumistaRequestsText(client.RequestsMade)).c_str(),
 		caption.c_str(), MB_OK | (stopReason.IsEmpty() ? MB_ICONINFORMATION : MB_ICONWARNING));
+}
+//---------------------------------------------------------------------------
+// Годы типа — из numista_types; не загружены — getType (с кэшем) и сохранить.
+int TfmMain::TypeBySameNumber(const TCoinRecord &ACoin, const std::map<String, std::set<int> > &ANumberTypes,
+	TNumistaMatcher &AMatcher)
+{
+	const std::map<String, std::set<int> >::const_iterator found = ANumberTypes.find(NumberKey(ACoin));
+	if (found == ANumberTypes.end() || ACoin.Year == 0)
+		return 0;
+	int result = 0, fits = 0;
+	for (int typeId : found->second)
+	{
+		TNumistaTypeInfo info;
+		if (!FRepository->LoadNumistaType(typeId, info) || info.MinYear == 0)
+		{
+			info = AMatcher.LoadType(typeId);
+			FRepository->SaveNumistaType(info);
+		}
+		const int maxYear = info.MaxYear != 0 ? info.MaxYear : info.MinYear;
+		if (info.MinYear != 0 && info.MinYear <= ACoin.Year && ACoin.Year <= maxYear)
+		{
+			result = typeId;
+			++fits;
+		}
+	}
+	return fits == 1 ? result : 0;
 }
 //---------------------------------------------------------------------------
 // Отвязать от Numista (задача 26): эта монета или отмеченные связанные. Снимаются тип и

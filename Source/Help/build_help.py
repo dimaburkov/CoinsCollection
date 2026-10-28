@@ -393,7 +393,9 @@ T['numista-connect', 'en'] = u"""
 <p>The free Numista key allows <b>2000 requests per month</b>. Every result window shows how many requests the operation used
 and how many are used this month.</p>
 <ul>
-<li>Answers are cached in <code>Numista\\</code>: the same type is never requested twice.</li>
+<li>Answers are cached in <code>Numista\\</code>: the same type is never requested twice. Coins of one type from different
+years with the same catalogue number cost requests only once — the other years take the answers from the cache.
+The auto-link confirmation shows how many requests will really be sent.</li>
 <li>Photos are files of the Numista website, not API requests — they do not use the quota.</li>
 <li>Typical costs: linking a coin — 3–5 requests; uploading checked items — 1 per item plus 2 per run; rarity index — 1 per run.</li>
 </ul>
@@ -412,7 +414,9 @@ T['numista-connect', 'uk'] = u"""
 <p>Безкоштовний ключ Numista дає <b>2000 запитів на місяць</b>. Кожне вікно з підсумком показує, скільки запитів використала операція
 і скільки використано цього місяця.</p>
 <ul>
-<li>Відповіді зберігаються в <code>Numista\\</code>: той самий тип ніколи не запитується двічі.</li>
+<li>Відповіді зберігаються в <code>Numista\\</code>: той самий тип ніколи не запитується двічі. Монети одного типу різних
+років з тим самим номером у каталозі витрачають запити лише один раз — інші роки беруть відповіді з кешу.
+Підтвердження автозв'язку показує, скільки запитів справді буде надіслано.</li>
 <li>Фото — файли сайту Numista, а не запити API: квоту вони не витрачають.</li>
 <li>Звичайні витрати: зв'язок монети — 3–5 запитів; вивантаження позначених — 1 на примірник плюс 2 на запуск; індекс рідкісності — 1 на запуск.</li>
 </ul>
@@ -462,6 +466,9 @@ for the coin's period, and the next coins of that period are found at once.</p>
 will be searched: by the KM# / Y# / C# number, by the search phrase (UC# or no number) and how many are already linked (skipped).
 Only unambiguous results are linked. A coin found by the automatic phrase is linked only if exactly one type fits
 its year and country; otherwise it is counted as <i>needs checking</i> — link it manually.
+If another coin of the same country with exactly the same number (for example <code>KM# 6b</code> or <code>UC# 1</code>)
+is already linked, the coin takes its type without a search — when the coin's year is within the years of that type.
+The issue and mintage are found by the coin's own year.
 The check box [[ui:Also load type details and photos|Також завантажити характеристики й фото]] adds 1 request per coin.</p>
 [[shot:07-progress.png|Progress of a mass operation. Stop — stops after the current coin.]]
 """
@@ -508,6 +515,8 @@ T['numista-link', 'uk'] = u"""
 позначені монети: за номером KM# / Y# / C#, за фразою пошуку (UC# або без номера) і скільки вже пов'язано (пропускаються).
 Пов'язуються лише однозначні результати. Монета, знайдена за автоматичною фразою, пов'язується, лише якщо її року й країні
 відповідає рівно один тип; інакше вона рахується як <i>потрібна перевірка</i> — пов'яжіть її вручну.
+Якщо вже пов'язана інша монета тієї ж країни з точно таким самим номером (наприклад <code>KM# 6b</code> або <code>UC# 1</code>),
+монета бере її тип без пошуку — якщо рік монети входить у роки цього типу. Випуск і тираж визначаються за власним роком монети.
 Позначка [[ui:Also load type details and photos|Також завантажити характеристики й фото]] додає 1 запит на монету.</p>
 [[shot:07-progress.png|Хід масової операції. Зупинити — після поточної монети.]]
 """

@@ -26,7 +26,9 @@
 <p>The free Numista key allows <b>2000 requests per month</b>. Every result window shows how many requests the operation used
 and how many are used this month.</p>
 <ul>
-<li>Answers are cached in <code>Numista\</code>: the same type is never requested twice.</li>
+<li>Answers are cached in <code>Numista\</code>: the same type is never requested twice. Coins of one type from different
+years with the same catalogue number cost requests only once — the other years take the answers from the cache.
+The auto-link confirmation shows how many requests will really be sent.</li>
 <li>Photos are files of the Numista website, not API requests — they do not use the quota.</li>
 <li>Typical costs: linking a coin — 3–5 requests; uploading checked items — 1 per item plus 2 per run; rarity index — 1 per run.</li>
 </ul>

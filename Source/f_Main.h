@@ -326,6 +326,10 @@ private:	// User declarations
 		const TNumistaTypeInfo &AType, int &ACountries, int &APhotos, int &APhotosFailed);
 	void __fastcall DetailPhotoDblClick(TObject *Sender);
 	void UploadItems(const std::vector<TCoinRecord> &ACandidates);
+	// Автосвязь (задача 28): тип от связанной монеты той же страны с тем же номером
+	// (ANumberTypes: ключ NumberKey → типы), если год монеты — в годах ровно одного из них. 0 — нет.
+	int  TypeBySameNumber(const TCoinRecord &ACoin, const std::map<String, std::set<int> > &ANumberTypes,
+		TNumistaMatcher &AMatcher);
 	// Отвязка / перепривязка (задача 26). Что сделать на Numista с выгруженными экземплярами.
 	enum TNumistaItemAction { niaKeep, niaFix, niaDelete };
 	// Подтверждение с выбором для выгруженных экземпляров AUploaded (пусто — без выбора):
