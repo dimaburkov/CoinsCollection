@@ -71,6 +71,11 @@ public:
 	// («Ukraine 2020 Remembrance Day of the Fallen Defenders of Ukraine»), иначе — страна,
 	// номинал, год («Ukraine 10 hryvnias 2020»).
 	static String AutoQuery(const TCoinRecord &ACoin);
+	// Оценка запросов автосвязи (задача 28). Адрес первого поиска для монеты — как в Search /
+	// SearchAutoQuery (AAutoQuery — монета ищется по автофразе); ключ кэша.
+	String FirstSearchPath(const TCoinRecord &ACoin, const String &AIssuer, bool AAutoQuery) const;
+	// Типы из кэшированного ответа поиска, без запроса; false — ответа в кэше нет.
+	bool CachedTypes(const String &APath, std::vector<TNumistaType> &ATypes);
 	// Эмитенты в одной ветке иерархии Numista (общий корень).
 	bool SameBranch(const String &AIssuer1, const String &AIssuer2) const;
 
@@ -99,6 +104,10 @@ private:
 	String RootOf(const String &AIssuer) const;
 	std::vector<TNumistaType> SearchAll(const TCoinRecord &ACoin, const String &AIssuer, const String &ACountryIssuer);
 	std::vector<TNumistaType> QueryTypes(const String &APath);
+	// Адреса searchTypes: по фразе, по номеру каталога (без issuer / date), по номиналу.
+	static String PhrasePath(const String &AQuery);
+	static String NumberPath(int ACatalogueId, const String &ANumber);
+	static String DenominationPath(const TCoinRecord &ACoin, const String &AIssuer);
 };
 //---------------------------------------------------------------------------
 #endif

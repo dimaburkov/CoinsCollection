@@ -55,6 +55,9 @@ for the coin's period, and the next coins of that period are found at once.</p>
 will be searched: by the KM# / Y# / C# number, by the search phrase (UC# or no number) and how many are already linked (skipped).
 Only unambiguous results are linked. A coin found by the automatic phrase is linked only if exactly one type fits
 its year and country; otherwise it is counted as <i>needs checking</i> — link it manually.
+If another coin of the same country with exactly the same number (for example <code>KM# 6b</code> or <code>UC# 1</code>)
+is already linked, the coin takes its type without a search — when the coin's year is within the years of that type.
+The issue and mintage are found by the coin's own year.
 The check box <span class="ui">Also load type details and photos</span> adds 1 request per coin.</p>
 <figure class="shot"><img src="../images/07-progress.png" alt="Progress of a mass operation. Stop — stops after the current coin." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Screenshot: images/07-progress.png</div><figcaption>Progress of a mass operation. Stop — stops after the current coin.</figcaption></figure>
 </main>

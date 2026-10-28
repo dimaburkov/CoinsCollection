@@ -264,7 +264,56 @@ std::vector<TNumistaType> TNumistaMatcher::SearchPhrase(const String &AQuery)
 {
 	if (AQuery.Trim().IsEmpty())
 		return std::vector<TNumistaType>();
-	return QueryTypes(L"/types?q=" + UrlParam(AQuery.Trim()) + L"&lang=en&count=" + IntToStr(cPageSize));
+	return QueryTypes(PhrasePath(AQuery));
+}
+//---------------------------------------------------------------------------
+String TNumistaMatcher::FirstSearchPath(const TCoinRecord &ACoin, const String &AIssuer, bool AAutoQuery) const
+{
+	if (!ACoin.NumistaQuery.Trim().IsEmpty())
+		return PhrasePath(ACoin.NumistaQuery);
+	if (AAutoQuery)
+		return PhrasePath(AutoQuery(ACoin));
+	int catalogueId = 0;
+	String number;
+	if (ParseCatalogNumber(ACoin.CatalogNumber, catalogueId, number))
+	{
+		const String path = NumberPath(catalogueId, number);
+		if (!AIssuer.IsEmpty())
+			return path + L"&issuer=" + UrlParam(AIssuer);
+		return path + (ACoin.Year > 0 ? L"&date=" + IntToStr(ACoin.Year) : String());
+	}
+	return DenominationPath(ACoin, AIssuer);
+}
+//---------------------------------------------------------------------------
+bool TNumistaMatcher::CachedTypes(const String &APath, std::vector<TNumistaType> &ATypes)
+{
+	ATypes.clear();
+	if (!TNumistaClient::IsCached(APath))
+		return false;
+	ATypes = QueryTypes(APath);	// из кэша — без запроса
+	return true;
+}
+//---------------------------------------------------------------------------
+String TNumistaMatcher::PhrasePath(const String &AQuery)
+{
+	return L"/types?q=" + UrlParam(AQuery.Trim()) + L"&lang=en&count=" + IntToStr(cPageSize);
+}
+//---------------------------------------------------------------------------
+String TNumistaMatcher::NumberPath(int ACatalogueId, const String &ANumber)
+{
+	return L"/types?catalogue=" + IntToStr(ACatalogueId) + L"&number=" + UrlParam(ANumber)
+		+ L"&lang=en&count=" + IntToStr(cPageSize);
+}
+//---------------------------------------------------------------------------
+String TNumistaMatcher::DenominationPath(const TCoinRecord &ACoin, const String &AIssuer)
+{
+	String path = L"/types?q=" + UrlParam(AIssuer.IsEmpty() ? ACoin.Country + L" " + ACoin.Denomination : ACoin.Denomination)
+		+ L"&lang=en&count=" + IntToStr(cPageSize);
+	if (!AIssuer.IsEmpty())
+		path += L"&issuer=" + UrlParam(AIssuer);
+	if (ACoin.Year > 0)
+		path += L"&year=" + IntToStr(ACoin.Year);
+	return path;
 }
 //---------------------------------------------------------------------------
 std::vector<TNumistaType> TNumistaMatcher::SearchAutoQuery(const TCoinRecord &ACoin, const String &AIssuer,
@@ -317,12 +366,11 @@ std::vector<TNumistaType> TNumistaMatcher::Search(const TCoinRecord &ACoin, cons
 std::vector<TNumistaType> TNumistaMatcher::SearchAll(const TCoinRecord &ACoin, const String &AIssuer,
 	const String &ACountryIssuer)
 {
-	const String common = L"&lang=en&count=" + IntToStr(cPageSize);
 	int catalogueId = 0;
 	String number;
 	if (ParseCatalogNumber(ACoin.CatalogNumber, catalogueId, number))
 	{
-		const String path = L"/types?catalogue=" + IntToStr(catalogueId) + L"&number=" + UrlParam(number) + common;
+		const String path = NumberPath(catalogueId, number);
 		if (!AIssuer.IsEmpty())
 		{
 			std::vector<TNumistaType> found = QueryTypes(path + L"&issuer=" + UrlParam(AIssuer));
@@ -350,12 +398,7 @@ std::vector<TNumistaType> TNumistaMatcher::SearchAll(const TCoinRecord &ACoin, c
 	}
 
 	// UC# / без номера — по номиналу и году.
-	String path = L"/types?q=" + UrlParam(AIssuer.IsEmpty() ? ACoin.Country + L" " + ACoin.Denomination : ACoin.Denomination) + common;
-	if (!AIssuer.IsEmpty())
-		path += L"&issuer=" + UrlParam(AIssuer);
-	if (ACoin.Year > 0)
-		path += L"&year=" + IntToStr(ACoin.Year);
-	return QueryTypes(path);
+	return QueryTypes(DenominationPath(ACoin, AIssuer));
 }
 //---------------------------------------------------------------------------
 std::vector<TNumistaIssue> TNumistaMatcher::LoadIssues(int ATypeId, bool ARefresh)
