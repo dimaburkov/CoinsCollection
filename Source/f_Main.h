@@ -64,6 +64,8 @@ __published:	// IDE-managed Components
 	TAction *actNumistaUploadOne;
 	TAction *actNumistaRarityOne;
 	TAction *actNumistaRefreshOne;
+	TAction *actNumistaUnlinkOne;
+	TAction *actNumistaUnlink;
 	TAction *actSettings;
 	TAction *actAbout;
 	TMainMenu *MainMenu;
@@ -98,6 +100,8 @@ __published:	// IDE-managed Components
 	TMenuItem *miNumistaUploadOne;
 	TMenuItem *miNumistaRarityOne;
 	TMenuItem *miNumistaRefreshOne;
+	TMenuItem *miNumistaUnlinkOne;
+	TMenuItem *miNumistaUnlink;
 	TMenuItem *miNumistaCheckedTitle;
 	TMenuItem *miSettings;
 	TMenuItem *miLanguage;
@@ -142,6 +146,8 @@ __published:	// IDE-managed Components
 	TMenuItem *miPopNumistaUploadOne;
 	TMenuItem *miPopNumistaRarityOne;
 	TMenuItem *miPopNumistaRefreshOne;
+	TMenuItem *miPopNumistaUnlinkOne;
+	TMenuItem *miPopNumistaUnlink;
 	TMenuItem *miPopCheckedTitle;
 	TPopupMenu *pmHeader;
 	TMenuItem *miHdrCheckAll;
@@ -185,6 +191,7 @@ __published:	// IDE-managed Components
 	void __fastcall actNumistaUploadOneExecute(TObject *Sender);
 	void __fastcall actNumistaRarityOneExecute(TObject *Sender);
 	void __fastcall actNumistaRefreshOneExecute(TObject *Sender);
+	void __fastcall actNumistaUnlinkExecute(TObject *Sender);
 	void __fastcall actNumistaUpdate(TObject *Sender);
 	void __fastcall pmItemsPopup(TObject *Sender);
 	void __fastcall miNumistaClick(TObject *Sender);
@@ -313,6 +320,22 @@ private:	// User declarations
 		const TNumistaTypeInfo &AType, int &ACountries, int &APhotos, int &APhotosFailed);
 	void __fastcall DetailPhotoDblClick(TObject *Sender);
 	void UploadItems(const std::vector<TCoinRecord> &ACandidates);
+	// Отвязка / перепривязка (задача 26). Что сделать на Numista с выгруженными экземплярами.
+	enum TNumistaItemAction { niaKeep, niaFix, niaDelete };
+	// Подтверждение с выбором для выгруженных экземпляров AUploaded (пусто — без выбора):
+	// AAllowFix — вариант «исправить тип и выпуск» (по умолчанию), иначе по умолчанию «оставить».
+	// AClearQuery — флажок «очистить фразу поиска» (nullptr — без флажка). false — отмена.
+	bool AskNumistaItems(const String &ACaption, const String &AText, const std::vector<TCoinRecord> &AUploaded,
+		bool AAllowFix, TNumistaItemAction &AAction, bool *AClearQuery);
+	// Действие AAction с выгруженными экземплярами монеты ACoinId из AUploaded; ошибка — ENumistaError.
+	// Возвращает число обработанных экземпляров.
+	int  ApplyNumistaItems(TNumistaClient &AClient, const std::vector<TCoinRecord> &AUploaded, int ACoinId,
+		TNumistaItemAction AAction, int ATypeId, int AIssueId);
+	// Перед сменой типа / выпуска связанной монеты: выгруженные экземпляры (с вопросом), фото
+	// типа из Numista. false — пользователь отменил; ANote — строка для итога.
+	bool PrepareRelink(TNumistaClient &AClient, const TCoinRecord &ACoin, int ATypeId, int AIssueId,
+		const String &ACaption, String &ANote);
+	void RemoveNumistaPhotos(int ACoinId);
 	void ReadRarity(const std::set<int> &ACoinIds, const String &ACaption);
 	String NumistaRequestsText(int ASent) const;
 public:		// User declarations

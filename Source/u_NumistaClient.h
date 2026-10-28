@@ -64,6 +64,12 @@ public:
 	// addCollectedItems — POST /users/{user_id}/collected_items, тело — JSON.
 	// Возвращает id добавленного предмета.
 	int AddCollectedItem(const String &AJson);
+	// editCollectedItem — PATCH /users/{user_id}/collected_items/{item_id}: тип и выпуск
+	// предмета (AIssueId = 0 — выпуск не определён, null). Остальные поля не меняются (задача 26).
+	void EditCollectedItemType(int AItemId, int ATypeId, int AIssueId);
+	// deleteCollectedItem — DELETE /users/{user_id}/collected_items/{item_id}.
+	// Предмета уже нет (404) — не ошибка.
+	void DeleteCollectedItem(int AItemId);
 
 	// Изображение каталога Numista (https://...numista.com/...; obverse / reverse.picture из
 	// getType) — файл сайта, не запрос к API: квоту не тратит. Подпись — UserAgent()
@@ -83,8 +89,8 @@ private:
 	// GET BaseUrl + APath; AWithToken — добавить Authorization: Bearer.
 	// Не 2xx — ENumistaError с понятным текстом. Возвращает тело ответа.
 	String Get(const String &APath, bool AWithToken);
-	// Общая часть GET / POST: ABody не пустое — POST с JSON.
-	String Send(const String &APath, bool AWithToken, const String &ABody);
+	// Общая часть запросов: AMethod — GET / POST / PATCH / DELETE; ABody — JSON (POST, PATCH).
+	String Send(const String &AMethod, const String &APath, bool AWithToken, const String &ABody);
 	int    LoadList(const String &AName, const String &APath, const String &AArrayName, bool ARefresh);
 	static void CountRequest();
 	static std::unique_ptr<TJSONValue> ParseJson(const String &AText);

@@ -436,6 +436,19 @@ so such coins are searched by an automatic phrase: <b>country + year + subject</
 <code>Ukraine 2020 Remembrance Day of the Fallen Defenders of Ukraine</code>; without a subject — <b>country + denomination + year</b>
 (<code>Ukraine 10 hryvnias 2020</code>). Commemorative coins of one denomination and year differ only by the subject,
 so keep the [[ui:Subject|Сюжет]] field filled in the coin card. Your own search phrase always wins over the automatic one.</p>
+<h2>Wrong link — unlink or link again</h2>
+<p>If a coin is linked with the wrong type, right-click it → [[ui:Unlink from Numista|Відв'язати від Numista]]
+(for checked coins — [[ui:Unlink|Відв'язати]] in the lower part of the menu). The type, the issue and the type photos loaded from Numista
+are removed; your own photos and the rarity index stay. The check box [[ui:Also clear the search phrase|Також очистити фразу пошуку]]
+removes the search phrase that led to the wrong type.</p>
+<p>Or simply use [[ui:Link manually|Пов'язати вручну]] again: the program asks whether to replace the link, and the photos of the old type
+are replaced by the photos of the new one.</p>
+<p>If the coin is already uploaded to your Numista collection, the program asks what to do there:</p>
+<ul>
+<li><b>change the type and issue</b> of the item on Numista (when you link again; the comment, price and date stay) — 1 request per item;</li>
+<li><b>delete the item</b> from your Numista collection — it can be uploaded again later; 1 request per item;</li>
+<li><b>nothing on Numista</b> — only the link in the program changes.</li>
+</ul>
 <h2>Historical states</h2>
 <p>Some coins are listed on Numista under another issuer than the uCoin country (for example Poland 1766 →
 <i>Polish–Lithuanian Commonwealth</i>). Such results always need your confirmation. When you choose one, the issuer is remembered
@@ -469,6 +482,19 @@ T['numista-link', 'uk'] = u"""
 <code>Ukraine 2020 Remembrance Day of the Fallen Defenders of Ukraine</code>; без сюжету — <b>країна + номінал + рік</b>
 (<code>Ukraine 10 hryvnias 2020</code>). Пам'ятні монети одного номіналу й року відрізняються лише сюжетом,
 тому заповнюйте поле [[ui:Subject|Сюжет]] у картці монети. Власна фраза пошуку завжди важливіша за автоматичну.</p>
+<h2>Помилковий зв'язок — відв'язати або пов'язати знову</h2>
+<p>Якщо монету пов'язано з неправильним типом, клацніть по ній правою кнопкою → [[ui:Unlink from Numista|Відв'язати від Numista]]
+(для позначених монет — [[ui:Unlink|Відв'язати]] у нижній частині меню). Тип, випуск і фото типу, завантажені з Numista,
+видаляються; власні фото та індекс рідкісності залишаються. Позначка [[ui:Also clear the search phrase|Також очистити фразу пошуку]]
+прибирає фразу пошуку, яка привела до неправильного типу.</p>
+<p>Або просто ще раз виберіть [[ui:Link manually|Пов'язати вручну]]: програма запитає, чи замінити зв'язок, а фото старого типу
+заміняться фото нового.</p>
+<p>Якщо монету вже вивантажено у вашу колекцію Numista, програма запитає, що зробити там:</p>
+<ul>
+<li><b>змінити тип і випуск</b> примірника на Numista (при повторному зв'язку; коментар, ціна й дата залишаються) — 1 запит на примірник;</li>
+<li><b>видалити примірник</b> з вашої колекції Numista — пізніше його можна вивантажити знову; 1 запит на примірник;</li>
+<li><b>нічого не змінювати на Numista</b> — змінюється лише зв'язок у програмі.</li>
+</ul>
 <h2>Історичні держави</h2>
 <p>Деякі монети на Numista записані за іншим емітентом, ніж країна uCoin (наприклад Poland 1766 →
 <i>Polish–Lithuanian Commonwealth</i>). Такі результати завжди потребують вашого підтвердження. Коли ви вибираєте такий, емітента запам'ятовується
@@ -563,6 +589,9 @@ T['faq', 'en'] = u"""
 <h3>A coin is not found on Numista or the wrong types are offered</h3>
 <p>Edit the search phrase in the type list and search again — [[page:numista-link|Numista: linking coins]].
 Check the catalogue number in the coin card (KM#, Y#, C#). Coins with a uCoin number (UC#) are searched by phrase — fill in the subject.</p>
+<h3>A coin is linked with the wrong type</h3>
+<p>[[ui:Unlink from Numista|Відв'язати від Numista]] or [[ui:Link manually|Пов'язати вручну]] again —
+[[page:numista-link|Numista: linking coins]], section “Wrong link”.</p>
 <h3>The monthly request quota is almost used</h3>
 <p>Work with checked coins (one request per run for upload and rarity), turn off
 [[ui:Also load type details and photos|Також завантажити характеристики й фото]] in auto-link and load the details later.</p>
@@ -581,6 +610,9 @@ T['faq', 'uk'] = u"""
 <h3>Монета не знаходиться на Numista або пропонуються не ті типи</h3>
 <p>Змініть фразу пошуку у списку типів і шукайте знову — [[page:numista-link|Numista: зв'язок монет]].
 Перевірте номер у каталозі в картці монети (KM#, Y#, C#). Монети з номером uCoin (UC#) шукаються за фразою — заповніть сюжет.</p>
+<h3>Монету пов'язано з неправильним типом</h3>
+<p>[[ui:Unlink from Numista|Відв'язати від Numista]] або ще раз [[ui:Link manually|Пов'язати вручну]] —
+[[page:numista-link|Numista: зв'язок монет]], розділ «Помилковий зв'язок».</p>
 <h3>Місячну квоту запитів майже вичерпано</h3>
 <p>Працюйте з позначеними монетами (один запит на запуск для вивантаження та індексу рідкісності), вимкніть
 [[ui:Also load type details and photos|Також завантажити характеристики й фото]] в автозв'язку й завантажте характеристики пізніше.</p>

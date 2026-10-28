@@ -670,6 +670,10 @@ void __fastcall TfmMain::actNumistaFindExecute(TObject *Sender)
 		return;
 	const TCoinRecord coin = FItems[index];
 	const String caption = StripHotkey(actNumistaFind->Caption);
+	// Уже связана — замена связи только с подтверждением (задача 26).
+	if (coin.NumistaTypeId != 0 && !Confirm(Format(Tr(L"Numista.Relink.Confirm"),
+		ARRAYOFCONST((CoinText(coin), coin.NumistaTypeId))), caption))
+		return;
 
 	TNumistaClient client;
 	TNumistaMatcher matcher(client);
@@ -713,6 +717,23 @@ void __fastcall TfmMain::actNumistaFindExecute(TObject *Sender)
 			typeId = TfmNumistaChoose::Execute(this,
 				Format(Tr(L"NumistaChoose.Found"), ARRAYOFCONST(((int)types.size(), CoinText(coin)))), types,
 				matcher, query);
+		// Выпуск не определился однозначно — выбор вручную (Cancel — только тип).
+		int issueId = 0;
+		if (typeId != 0)
+		{
+			issueId = matcher.FindIssue(typeId, coin);
+			if (issueId == 0)
+			{
+				const std::vector<TNumistaIssue> issues = matcher.LoadIssues(typeId);
+				if (!issues.empty())
+					issueId = std::max(0, TfmNumistaIssue::Execute(this, CoinText(coin), typeId, coin.Year, issues, 0));
+			}
+		}
+		// Перепривязка (задача 26): выгруженные экземпляры и фото старого типа — до сохранения связи;
+		// отмена или ошибка запроса — связь не меняется.
+		String relinkNote;
+		if (typeId != 0 && !PrepareRelink(client, coin, typeId, issueId, caption, relinkNote))
+			typeId = 0;
 		if (typeId != 0 && query != startQuery)
 			FRepository->SetCoinQuery(coin.CoinId, query == autoQuery ? String() : query);
 		// Выбран из нового поиска в окне — его результаты (из кэша) для названия и эмитента в итоге.
@@ -724,14 +745,6 @@ void __fastcall TfmMain::actNumistaFindExecute(TObject *Sender)
 			message = Tr(L"Numista.Find.Cancelled");
 		else
 		{
-			// Выпуск не определился однозначно — выбор вручную (Cancel — только тип).
-			int issueId = matcher.FindIssue(typeId, coin);
-			if (issueId == 0)
-			{
-				const std::vector<TNumistaIssue> issues = matcher.LoadIssues(typeId);
-				if (!issues.empty())
-					issueId = std::max(0, TfmNumistaIssue::Execute(this, CoinText(coin), typeId, coin.Year, issues, 0));
-			}
 			FRepository->SetCoinNumista(coin.CoinId, typeId, issueId);
 			if (issueId != 0)
 				StoreIssues(*FRepository, matcher, typeId);
@@ -741,6 +754,8 @@ void __fastcall TfmMain::actNumistaFindExecute(TObject *Sender)
 					chosen = types[i];
 			message = Format(Tr(L"Numista.Find.Linked"), ARRAYOFCONST((typeId, chosen.Title))) + L"\r\n"
 				+ (issueId != 0 ? Tr(L"Numista.Find.IssueFound") : Tr(L"Numista.Find.IssueNotFound"));
+			if (!relinkNote.IsEmpty())
+				message += L"\r\n" + relinkNote;
 			// Эмитент вне ветки страны — запомнить для периода: следующие монеты периода
 			// найдутся сразу, в том числе автосвязью (задача 15a).
 			if (!chosen.IssuerCode.IsEmpty() && !matcher.SameBranch(chosen.IssuerCode, countryIssuer)
@@ -1033,6 +1048,210 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 		caption.c_str(), MB_OK | (stopReason.IsEmpty() ? MB_ICONINFORMATION : MB_ICONWARNING));
 }
 //---------------------------------------------------------------------------
+// Отвязать от Numista (задача 26): эта монета или отмеченные связанные. Снимаются тип и
+// выпуск монеты, фото типа из Numista и (флажок) своя фраза поиска; свои фото, индекс
+// редкости, кэш и характеристики типа остаются. Выгруженные экземпляры (все экземпляры
+// монеты) — по выбору: удалить из коллекции на Numista (deleteCollectedItem) или оставить там.
+// Ошибка запроса — монета остаётся связанной, остановка.
+void __fastcall TfmMain::actNumistaUnlinkExecute(TObject *Sender)
+{
+	const bool one = Sender == actNumistaUnlinkOne;
+	const String caption = Tr(L"Main.Numista.UnlinkTitle");
+	std::set<int> coinIds;
+	if (one)
+	{
+		const int index = CurrentIndex();
+		if (index >= 0 && FItems[index].NumistaTypeId != 0)
+			coinIds.insert(FItems[index].CoinId);
+	}
+	else
+		for (size_t i = 0; i < FAll.size(); ++i)
+			if (FChecked.count(FAll[i].Id) && FAll[i].NumistaTypeId != 0)
+				coinIds.insert(FAll[i].CoinId);
+	if (coinIds.empty())
+		return;
+
+	std::vector<TCoinRecord> coins, uploaded;
+	std::set<int> seen;
+	for (size_t i = 0; i < FAll.size(); ++i)
+	{
+		const TCoinRecord &r = FAll[i];
+		if (!coinIds.count(r.CoinId))
+			continue;
+		if (seen.insert(r.CoinId).second)
+			coins.push_back(r);
+		if (r.NumistaItemId != 0)
+			uploaded.push_back(r);
+	}
+
+	const String text = (coins.size() == 1
+		? Format(Tr(L"Numista.Unlink.ConfirmOne"), ARRAYOFCONST((CoinText(coins[0]), coins[0].NumistaTypeId)))
+		: Format(Tr(L"Numista.Unlink.Confirm"), ARRAYOFCONST(((int)coins.size()))))
+		+ L"\r\n\r\n" + Tr(L"Numista.Unlink.Note");
+	TNumistaItemAction action = niaKeep;
+	bool clearQuery = true;
+	if (!AskNumistaItems(caption, text, uploaded, false, action, &clearQuery))
+		return;
+
+	TNumistaClient client;
+	int unlinked = 0, items = 0;
+	String stopReason;
+	std::unique_ptr<TProgress> progress(new TProgress(this, caption, (int)coins.size(), &client));
+	try
+	{
+		if (action != niaKeep)
+			client.Authorize();
+		for (size_t i = 0; i < coins.size(); ++i)
+		{
+			if (!progress->Step((int)i, CoinText(coins[i])))
+			{
+				stopReason = Tr(L"Progress.Stopped");
+				break;
+			}
+			items += ApplyNumistaItems(client, uploaded, coins[i].CoinId, action, 0, 0);
+			RemoveNumistaPhotos(coins[i].CoinId);
+			FRepository->SetCoinNumista(coins[i].CoinId, 0, 0);
+			if (clearQuery)
+				FRepository->SetCoinQuery(coins[i].CoinId, String());
+			++unlinked;
+		}
+	}
+	catch (Exception &e)
+	{
+		stopReason = e.Message;
+	}
+	progress.reset();
+	LoadItems();
+
+	String report = Format(Tr(L"Numista.Unlink.Done"), ARRAYOFCONST((unlinked)));
+	if (action == niaDelete)
+		report += L"\r\n" + Format(Tr(L"Numista.Items.Deleted"), ARRAYOFCONST((items)));
+	if (!stopReason.IsEmpty())
+		report += L"\r\n\r\n" + Tr(L"Numista.Match.Stopped") + L" " + stopReason;
+	if (client.RequestsMade > 0)
+		report += L"\r\n\r\n" + NumistaRequestsText(client.RequestsMade);
+	Application->MessageBox(report.c_str(), caption.c_str(),
+		MB_OK | (stopReason.IsEmpty() ? MB_ICONINFORMATION : MB_ICONWARNING));
+}
+//---------------------------------------------------------------------------
+bool TfmMain::AskNumistaItems(const String &ACaption, const String &AText, const std::vector<TCoinRecord> &AUploaded,
+	bool AAllowFix, TNumistaItemAction &AAction, bool *AClearQuery)
+{
+	const int count = (int)AUploaded.size();
+	std::vector<TNumistaItemAction> actions;
+	std::unique_ptr<TTaskDialog> dialog(new TTaskDialog(nullptr));
+	dialog->Caption = ACaption;
+	dialog->Title   = ACaption;
+	dialog->MainIcon = tdiWarning;
+	dialog->CommonButtons = TTaskDialogCommonButtons() << tcbOk << tcbCancel;
+	dialog->DefaultButton = tcbOk;
+	dialog->Text = AText;
+	if (count > 0)
+	{
+		dialog->Text = dialog->Text + L"\r\n\r\n" + Format(Tr(L"Numista.Items.Uploaded"), ARRAYOFCONST((count)));
+		auto add = [&](const String &ACaptionText, TNumistaItemAction AItemAction, bool ADefault)
+		{
+			TTaskDialogBaseButtonItem *button = dialog->RadioButtons->Add();
+			button->Caption = ACaptionText;
+			button->Default = ADefault;
+			actions.push_back(AItemAction);
+		};
+		if (AAllowFix)
+			add(Format(Tr(L"Numista.Items.Fix"), ARRAYOFCONST((count))), niaFix, true);
+		add(Format(Tr(L"Numista.Items.Delete"), ARRAYOFCONST((count))), niaDelete, false);
+		add(Tr(L"Numista.Items.Keep"), niaKeep, !AAllowFix);
+	}
+	if (AClearQuery)
+	{
+		dialog->VerificationText = Tr(L"Numista.Unlink.ClearQuery");
+		if (*AClearQuery)
+			dialog->Flags = dialog->Flags << tfVerificationFlagChecked;
+	}
+	if (!dialog->Execute(Handle) || dialog->ModalResult != mrOk)
+		return false;
+	AAction = niaKeep;
+	if (count > 0 && dialog->RadioButton)
+		AAction = actions[dialog->RadioButton->Index];
+	if (AClearQuery)
+		*AClearQuery = dialog->Flags.Contains(tfVerificationFlagChecked);
+
+	if (AAction == niaKeep)
+		return true;
+	// Экземпляры, импортированные из Numista (задача 20), есть только там.
+	const int fromNumista = (int)std::count_if(AUploaded.begin(), AUploaded.end(),
+		[](const TCoinRecord &r) { return SameText(r.Origin, L"numista"); });
+	if (AAction == niaDelete && fromNumista > 0
+		&& Application->MessageBox(Format(Tr(L"Numista.Items.FromNumista"), ARRAYOFCONST((fromNumista))).c_str(),
+			ACaption.c_str(), MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) != IDYES)
+		return false;
+	// Квота: запрос на экземпляр и токен.
+	const int needed = count + 1;
+	const int left = AppConfig().NumistaMonthlyQuota - TNumistaClient::RequestsThisMonth();
+	if (needed > left)
+	{
+		Application->MessageBox(Format(Tr(L"Numista.Items.Quota"), ARRAYOFCONST((needed, left))).c_str(),
+			ACaption.c_str(), MB_OK | MB_ICONWARNING);
+		return false;
+	}
+	return true;
+}
+//---------------------------------------------------------------------------
+int TfmMain::ApplyNumistaItems(TNumistaClient &AClient, const std::vector<TCoinRecord> &AUploaded, int ACoinId,
+	TNumistaItemAction AAction, int ATypeId, int AIssueId)
+{
+	int result = 0;
+	for (size_t i = 0; i < AUploaded.size() && AAction != niaKeep; ++i)
+	{
+		const TCoinRecord &r = AUploaded[i];
+		if (r.CoinId != ACoinId || r.NumistaItemId == 0)
+			continue;
+		if (AAction == niaFix)
+			AClient.EditCollectedItemType(r.NumistaItemId, ATypeId, AIssueId);
+		else
+		{
+			AClient.DeleteCollectedItem(r.NumistaItemId);
+			FRepository->SetItemNumista(r.Id, 0);	// снова «не выгружен»
+		}
+		++result;
+	}
+	return result;
+}
+//---------------------------------------------------------------------------
+bool TfmMain::PrepareRelink(TNumistaClient &AClient, const TCoinRecord &ACoin, int ATypeId, int AIssueId,
+	const String &ACaption, String &ANote)
+{
+	if (ACoin.NumistaTypeId == 0 || (ATypeId == ACoin.NumistaTypeId && AIssueId == ACoin.NumistaIssueId))
+		return true;
+	std::vector<TCoinRecord> uploaded;
+	for (size_t i = 0; i < FAll.size(); ++i)
+		if (FAll[i].CoinId == ACoin.CoinId && FAll[i].NumistaItemId != 0)
+			uploaded.push_back(FAll[i]);
+	if (!uploaded.empty())
+	{
+		TNumistaItemAction action = niaKeep;
+		if (!AskNumistaItems(ACaption, Format(Tr(L"Numista.Relink.Change"),
+			ARRAYOFCONST((CoinText(ACoin), ACoin.NumistaTypeId, ATypeId))), uploaded, true, action, nullptr))
+			return false;
+		if (action != niaKeep)
+		{
+			AClient.Authorize();
+			const int done = ApplyNumistaItems(AClient, uploaded, ACoin.CoinId, action, ATypeId, AIssueId);
+			ANote = Format(Tr(action == niaFix ? L"Numista.Items.Fixed" : L"Numista.Items.Deleted"), ARRAYOFCONST((done)));
+		}
+	}
+	if (ATypeId != ACoin.NumistaTypeId)
+		RemoveNumistaPhotos(ACoin.CoinId);
+	return true;
+}
+//---------------------------------------------------------------------------
+// Фото типа, загруженные из Numista (источник numista); свои фото не трогаются.
+void TfmMain::RemoveNumistaPhotos(int ACoinId)
+{
+	for (int s = 0; s < 2; ++s)
+		if (SameText(FPhotos->CoinPhotoSource(ACoinId, (TPhotoSide)s), L"numista"))
+			FPhotos->RemoveCoinPhoto(ACoinId, (TPhotoSide)s);
+}
+//---------------------------------------------------------------------------
 // Отмеченные экземпляры (в порядке коллекции).
 std::vector<TCoinRecord> TfmMain::CheckedRecords() const
 {
@@ -1050,7 +1269,7 @@ void __fastcall TfmMain::actNumistaUpdate(TObject *Sender)
 	const int index = CurrentIndex();
 	const TCoinRecord *coin = index >= 0 ? &FItems[index] : nullptr;
 	bool coinUploaded = false;	// у монеты выгружен хотя бы один экземпляр
-	bool noType = false, toUpload = false, uploaded = false, noCatalog = false;
+	bool noType = false, toUpload = false, uploaded = false, noCatalog = false, linked = false;
 	for (size_t i = 0; i < FAll.size(); ++i)
 	{
 		const TCoinRecord &r = FAll[i];
@@ -1059,6 +1278,7 @@ void __fastcall TfmMain::actNumistaUpdate(TObject *Sender)
 		if (!FChecked.count(r.Id))
 			continue;
 		noType    = noType    || r.NumistaTypeId == 0;
+		linked    = linked    || r.NumistaTypeId != 0;
 		toUpload  = toUpload  || (r.NumistaTypeId != 0 && r.NumistaItemId == 0);
 		uploaded  = uploaded  || r.NumistaItemId != 0;
 		noCatalog = noCatalog || (r.NumistaIssueId != 0 && !r.NumistaIssueLoaded)
@@ -1070,11 +1290,13 @@ void __fastcall TfmMain::actNumistaUpdate(TObject *Sender)
 	actNumistaUploadOne->Enabled  = coin && coin->NumistaTypeId != 0 && coin->NumistaItemId == 0;
 	actNumistaRarityOne->Enabled  = coinUploaded;
 	actNumistaRefreshOne->Enabled = coin && coin->NumistaTypeId != 0;
+	actNumistaUnlinkOne->Enabled  = coin && coin->NumistaTypeId != 0;
 
 	actNumistaCheck->Enabled   = noType;
 	actNumistaUpload->Enabled  = toUpload;
 	actNumistaRarity->Enabled  = uploaded;
 	actNumistaCatalog->Enabled = noCatalog;
+	actNumistaUnlink->Enabled  = linked;
 }
 //---------------------------------------------------------------------------
 // Подписи частей меню Numista (контекстного и главного): выделенная монета и
