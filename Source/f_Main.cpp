@@ -46,7 +46,7 @@ namespace
 	const wchar_t *const cColumnKeys[] =
 	{
 		L"", L"Main.Column.Country", L"Main.Column.Period", L"Main.Column.Currency", L"Main.Column.Denomination",
-		L"Main.Column.Numista", L"Main.Column.Uploaded", L"Main.Column.Rarity", L"Main.Column.Mintage",
+		L"Main.Column.Subject", L"Main.Column.Numista", L"Main.Column.Uploaded", L"Main.Column.Rarity", L"Main.Column.Mintage",
 		L"Main.Column.Composition",
 		L"Main.Column.Year", L"Main.Column.Condition", L"Main.Column.Value"
 	};
@@ -60,7 +60,9 @@ namespace
 	// Ширина колонок по умолчанию (порядок = TItemColumn).
 	// Auto-link checked: больше стольких монет — подтверждение.
 	const int cConfirmCheckCoins = 10;
-	const int cDefaultWidths[] = { 22, 130, 160, 120, 130, 70, 24, 70, 85, 120, 50, 65, 85 };
+	const int cDefaultWidths[] = { 22, 130, 160, 120, 130, 200, 70, 24, 70, 85, 120, 50, 65, 85 };
+	// Наименьшая ширина колонки «Сюжет», растянутой на свободное место (задача 27).
+	const int cMinSubjectWidth = 150;
 	// Подписи строк панели подробностей (порядок = TDetailRowIndex).
 	const wchar_t *const cDetailKeys[] =
 	{
@@ -115,8 +117,13 @@ __fastcall TfmMain::TfmMain(TComponent* Owner)
 {
 	for (int c = 0; c < icCount; ++c)
 		FColWidths[c] = cDefaultWidths[c];
-	UpdateColumns();
+	FSubjectAuto = true;
+	FSubjectAutoWidth = 0;
+	// Строки подробностей — до колонок: смена ColCount вызывает OnSelectCell → ShowDetails.
 	CreateDetailRows();
+	UpdateColumns();
+	// Не в .dfm: OnResize при загрузке формы пришёл бы до создания полей (FColumns).
+	pnlRight->OnResize = pnlRightResize;
 
 	Translator().TranslateForm(this);
 	BuildLanguageMenu();
@@ -2401,7 +2408,8 @@ void TfmMain::ApplyFilter()
 	UpdateDetails();
 }
 //---------------------------------------------------------------------------
-// Колонка Country не нужна, когда выбрана одна страна. Ширины, заданные
+// Колонка Country не нужна, когда выбрана одна страна, — вместо неё Subject (задача 27):
+// у памятных монет одной страны строки отличаются только сюжетом. Ширины, заданные
 // пользователем мышью, запоминаются по логическим колонкам.
 void TfmMain::UpdateColumns()
 {
@@ -2409,7 +2417,7 @@ void TfmMain::UpdateColumns()
 	const bool showCountry = !node || node->Kind != nkCountry;
 	std::vector<int> columns;
 	for (int c = 0; c < icCount; ++c)
-		if (c != icCountry || showCountry)
+		if ((c != icCountry || showCountry) && (c != icSubject || !showCountry))
 			columns.push_back(c);
 	if (columns == FColumns && dgItems->ColCount == (int)columns.size())
 		return;
@@ -2427,6 +2435,39 @@ void TfmMain::UpdateColumns()
 		FSortColumn = icYear;
 		FSortAscending = true;
 	}
+	FitSubjectColumn();
+}
+//---------------------------------------------------------------------------
+// «Сюжет» — на всё свободное место справа (не уже cMinSubjectWidth; лишнее —
+// горизонтальная прокрутка). Ширина изменена мышью — дальше не растягивается.
+void TfmMain::FitSubjectColumn()
+{
+	// Без окна сетки не считать: ClientWidth создал бы окна формы в конструкторе, раньше
+	// строк панели подробностей (их OnResize — обращение к ещё не созданным строкам).
+	if (!dgItems->HandleAllocated())
+		return;
+	const std::vector<int>::const_iterator found = std::find(FColumns.begin(), FColumns.end(), (int)icSubject);
+	if (found == FColumns.end() || dgItems->ColCount != (int)FColumns.size())
+		return;
+	const int col = (int)(found - FColumns.begin());
+	if (FSubjectAutoWidth != 0 && dgItems->ColWidths[col] != FSubjectAutoWidth)
+		FSubjectAuto = false;
+	if (!FSubjectAuto)
+		return;
+	int used = 0;
+	for (int i = 0; i < dgItems->ColCount; ++i)
+		used += (i == col ? 0 : dgItems->ColWidths[i]) + dgItems->GridLineWidth;
+	const int width = std::max(cMinSubjectWidth, dgItems->ClientWidth - used);
+	FSubjectAutoWidth = width;
+	FColWidths[icSubject] = width;
+	if (dgItems->ColWidths[col] != width)
+		dgItems->ColWidths[col] = width;
+}
+//---------------------------------------------------------------------------
+// Размер окна или сплиттер дерева / панели подробностей.
+void __fastcall TfmMain::pnlRightResize(TObject *Sender)
+{
+	FitSubjectColumn();
 }
 //---------------------------------------------------------------------------
 int TfmMain::Column(int AGridCol) const
@@ -2480,6 +2521,7 @@ int TfmMain::CompareItems(const TCoinRecord &A, const TCoinRecord &B, int AColum
 		case icPeriod:       return CompareStrings(A.Period, B.Period);
 		case icCurrency:     return CompareStrings(A.Currency, B.Currency);
 		case icDenomination: return CompareStrings(A.Denomination, B.Denomination);
+		case icSubject:      return CompareStrings(A.Subject, B.Subject);
 		case icYear:         return A.Year != B.Year ? CompareValues(A.Year, B.Year) : CompareValues(A.YearTo, B.YearTo);
 		case icValue:        return CompareValues(A.CatalogValueUah, B.CatalogValueUah);
 		case icCondition:
@@ -2525,6 +2567,7 @@ String TfmMain::CellText(const TCoinRecord &R, int AColumn) const
 		case icPeriod:       return R.Period;
 		case icCurrency:     return R.Currency;
 		case icDenomination: return R.Denomination;
+		case icSubject:      return R.Subject;
 		case icYear:         return YearText(R.Year, R.YearTo);
 		case icCondition:    return R.Condition;
 		case icValue:        return R.CatalogValueUah == 0.0 ? String() : FormatFloat(L"#,##0.00", R.CatalogValueUah);
@@ -2537,6 +2580,7 @@ String TfmMain::CellText(const TCoinRecord &R, int AColumn) const
 void TfmMain::UpdateRowCount()
 {
 	dgItems->RowCount = std::max<int>(1, (int)FItems.size()) + 1;
+	FitSubjectColumn();	// вертикальная прокрутка могла появиться / исчезнуть
 }
 //---------------------------------------------------------------------------
 int TfmMain::CurrentIndex() const

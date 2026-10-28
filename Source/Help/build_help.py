@@ -194,6 +194,8 @@ The number in brackets is the number of items.</p>
 <tr><th>Column</th><th>Meaning</th></tr>
 <tr><td>☐</td><td>Check box for mass operations ([[page:checks|Checking coins]]).</td></tr>
 <tr><td>Country, Period, Currency, Denomination</td><td>From uCoin. Country is hidden when one country is selected in the tree.</td></tr>
+<tr><td>[[ui:Subject|Сюжет]]</td><td>Subject of a commemorative coin (from uCoin or the coin card); shown instead of Country when one country is selected. The column takes the free width of the list;
+after you change its width with the mouse, it keeps your width.</td></tr>
 <tr><td>#Numista</td><td>Numista type number (N#). Grey — the issue is not chosen yet.</td></tr>
 <tr><td>✓</td><td>The item is uploaded to your Numista collection.</td></tr>
 <tr><td>Rarity</td><td>Rarity index from your Numista collection comment ([[page:numista-upload|Numista: upload]]).</td></tr>
@@ -222,6 +224,8 @@ T['main-window', 'uk'] = u"""
 <tr><th>Колонка</th><th>Значення</th></tr>
 <tr><td>☐</td><td>Позначка для масових операцій ([[page:checks|Позначки монет]]).</td></tr>
 <tr><td>[[ui:Country|Країна]], [[ui:Period|Період]], [[ui:Currency|Валюта]], [[ui:Denomination|Номінал]]</td><td>З uCoin. Країна прихована, коли в дереві вибрано одну країну.</td></tr>
+<tr><td>[[ui:Subject|Сюжет]]</td><td>Сюжет пам'ятної монети (з uCoin або картки монети); показується замість Країни, коли вибрано одну країну. Колонка займає вільну ширину списку;
+якщо змінити її ширину мишею, залишається ваша ширина.</td></tr>
 <tr><td>#Numista</td><td>Номер типу Numista (N#). Сірим — випуск ще не вибрано.</td></tr>
 <tr><td>✓</td><td>Примірник вивантажено у вашу колекцію на Numista.</td></tr>
 <tr><td>[[ui:Rarity|Рідкість]]</td><td>Індекс рідкісності з коментаря вашої колекції на Numista ([[page:numista-upload|Numista: вивантаження]]).</td></tr>
