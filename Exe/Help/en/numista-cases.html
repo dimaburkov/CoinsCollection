@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to link a coin — typical cases — Coins Collection — Help</title>
+<link rel="stylesheet" href="../help.css">
+</head>
+<body>
+<header>
+<span class="app">Coins Collection — Help</span>
+<nav><a href="index.html">Contents</a><a href="../uk/numista-cases.html">Українською</a></nav>
+</header>
+<main>
+<h1>How to link a coin — typical cases</h1>
+<p>Find the case that looks like yours: what you see — what to do — where to read more.</p>
+<h2>1. The coin has a KM#, Y# or C# number</h2>
+<p><b>You see:</b> the number in the <span class="ui">uCoin number</span> row of the details.<br>
+<b>Do:</b> check the coins and press <span class="ui">Auto-link</span>. Most such coins are linked at once.<br>
+<b>More:</b> <a href="numista-link.html">Numista: linking coins</a>.</p>
+<h2>2. uCoin number (UC#), commemorative coin</h2>
+<p><b>You see:</b> <code>UC# 428</code> instead of KM#. Numista does not know uCoin numbers.<br>
+<b>Do:</b> auto-link searches by the phrase <i>country + year + subject</i>. Commemorative coins of one year differ only
+by the subject — make sure the <span class="ui">Subject</span> field is filled in the coin card.<br>
+<b>More:</b> <a href="numista-link.html">Numista: linking coins</a>, section <i>Coins with a uCoin number</i>.</p>
+<h2>3. Nothing is found</h2>
+<p><b>You see:</b> auto-link counts the coin as <i>not found</i>; the type list is empty.<br>
+<b>Why:</b> sometimes Numista keeps the catalogue number not at the type but at its issues (example: Russian Empire
+2 kopecks <code>Y# 10</code> — on Numista it is one type <i>2 Kopecks — Alexander II / III / Nicholas II</i>), or names
+differ (uCoin <i>kopeks</i>, Numista <i>Kopecks</i>).<br>
+<b>Do:</b></p>
+<ol>
+<li>Find the coin on the Numista website: search by country and denomination, compare the pictures.</li>
+<li>Copy the type title from its page (for example <code>2 Kopecks - Alexander II / III / Nicholas II</code>).</li>
+<li>In the program: <span class="ui">Link manually</span>, paste the title into <span class="ui">Search phrase</span>,
+press <span class="ui">Search</span> and choose the type. The phrase is saved in the coin card.</li>
+</ol>
+<figure class="shot"><img src="../images/14-numista-type-page.png" alt="Numista: the type title to copy." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Screenshot: images/14-numista-type-page.png</div><figcaption>Numista: the type title to copy.</figcaption></figure>
+<figure class="shot"><img src="../images/15-choose-type-phrase.png" alt="The type list after searching by the copied title." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Screenshot: images/15-choose-type-phrase.png</div><figcaption>The type list after searching by the copied title.</figcaption></figure>
+<h2>4. Many years of one coin</h2>
+<p><b>You see:</b> the same coin of different years (1 kopiyka 2005, 2006…), all with the same number.<br>
+<b>Do:</b> link one coin. The program offers to link the other years at once (if they fit the years of the type);
+auto-link also takes the type from the linked coin — without new requests. Each coin gets the issue of its own year.<br>
+<b>More:</b> <a href="numista-link.html">Numista: linking coins</a>, section <i>Coins of one number from different years</i>.</p>
+<figure class="shot"><img src="../images/16-same-number-offer.png" alt="After linking one coin: the offer to link the other years." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Screenshot: images/16-same-number-offer.png</div><figcaption>After linking one coin: the offer to link the other years.</figcaption></figure>
+<h2>5. Historical state</h2>
+<p><b>You see:</b> the coin is found only under another issuer (Poland 1766 → <i>Polish–Lithuanian Commonwealth</i>).<br>
+<b>Do:</b> confirm the type in the list. The issuer is remembered for the period, the next coins of the period are found at once.<br>
+<b>More:</b> <a href="numista-link.html">Numista: linking coins</a>, section <i>Historical states</i>.</p>
+<h2>6. The issue is not identified</h2>
+<p><b>You see:</b> #Numista is grey, no mintage. Numista has several issues for the year (different mints, Proof).<br>
+<b>Do:</b> fill in the mint in <span class="ui">Variety</span> (for example <code>SPB</code>, <code>EM</code>) and link again, or
+choose it yourself: <span class="ui">Choose issue</span>.</p>
+<figure class="shot"><img src="../images/17-choose-issue.png" alt="Choosing the issue: year, mint, mintage, note." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Screenshot: images/17-choose-issue.png</div><figcaption>Choosing the issue: year, mint, mintage, note.</figcaption></figure>
+<h2>7. Linked with the wrong type</h2>
+<p><b>Do:</b> <span class="ui">Unlink from Numista</span> or simply <span class="ui">Link manually</span> again.
+If the coin is already uploaded to your Numista collection, the program asks whether to change the item there too.<br>
+<b>More:</b> <a href="numista-link.html">Numista: linking coins</a>, section <i>Wrong link</i>.</p>
+<h2>8. Ancient coins and coins that uCoin does not have</h2>
+<p><b>Do:</b> add them on the Numista website to your collection, then
+<span class="ui">Numista → Import from my Numista collection</span>.
+See <a href="start.html">Where to start</a>, way 2.</p>
+</main>
+<footer>Coins Collection</footer>
+</body>
+</html>

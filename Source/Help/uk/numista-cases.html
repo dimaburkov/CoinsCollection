@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Як пов'язати монету — типові випадки — Колекція монет — Довідка</title>
+<link rel="stylesheet" href="../help.css">
+</head>
+<body>
+<header>
+<span class="app">Колекція монет — Довідка</span>
+<nav><a href="index.html">Зміст</a><a href="../en/numista-cases.html">In English</a></nav>
+</header>
+<main>
+<h1>Як пов'язати монету — типові випадки</h1>
+<p>Знайдіть випадок, схожий на ваш: що ви бачите — що робити — де читати докладніше.</p>
+<h2>1. У монети є номер KM#, Y# або C#</h2>
+<p><b>Ви бачите:</b> номер у рядку <span class="ui">uCoin number/Номер uCoin</span> у подробицях.<br>
+<b>Що робити:</b> позначте монети й натисніть <span class="ui">Auto-link/Автозв'язок</span>. Більшість таких монет зв'язуються одразу.<br>
+<b>Докладніше:</b> <a href="numista-link.html">Numista: зв'язок монет</a>.</p>
+<h2>2. Номер uCoin (UC#), пам'ятна монета</h2>
+<p><b>Ви бачите:</b> <code>UC# 428</code> замість KM#. Numista не знає номерів uCoin.<br>
+<b>Що робити:</b> автозв'язок шукає за фразою <i>країна + рік + сюжет</i>. Пам'ятні монети одного року відрізняються лише
+сюжетом — перевірте, що в картці монети заповнено <span class="ui">Subject/Сюжет</span>.<br>
+<b>Докладніше:</b> <a href="numista-link.html">Numista: зв'язок монет</a>, розділ <i>Монети з номером uCoin</i>.</p>
+<h2>3. Нічого не знайдено</h2>
+<p><b>Ви бачите:</b> автозв'язок рахує монету як <i>не знайдено</i>; список типів порожній.<br>
+<b>Чому:</b> іноді Numista зберігає номер у каталозі не в типу, а в його випусків (приклад: Російська імперія,
+2 копійки <code>Y# 10</code> — на Numista це один тип <i>2 Kopecks — Alexander II / III / Nicholas II</i>), або назви
+різняться (uCoin <i>kopeks</i>, Numista <i>Kopecks</i>).<br>
+<b>Що робити:</b></p>
+<ol>
+<li>Знайдіть монету на сайті Numista: пошук за країною й номіналом, порівняйте зображення.</li>
+<li>Скопіюйте назву типу з його сторінки (наприклад <code>2 Kopecks - Alexander II / III / Nicholas II</code>).</li>
+<li>У програмі: <span class="ui">Link manually/Пов'язати вручну</span>, вставте назву у <span class="ui">Search phrase/Фраза пошуку</span>,
+натисніть <span class="ui">Search/Пошук</span> і виберіть тип. Фраза зберігається в картці монети.</li>
+</ol>
+<figure class="shot"><img src="../images/14-numista-type-page.png" alt="Numista: назва типу, яку треба скопіювати." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Скриншот: images/14-numista-type-page.png</div><figcaption>Numista: назва типу, яку треба скопіювати.</figcaption></figure>
+<figure class="shot"><img src="../images/15-choose-type-phrase.png" alt="Список типів після пошуку за скопійованою назвою." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Скриншот: images/15-choose-type-phrase.png</div><figcaption>Список типів після пошуку за скопійованою назвою.</figcaption></figure>
+<h2>4. Багато років однієї монети</h2>
+<p><b>Ви бачите:</b> та сама монета різних років (1 копійка 2005, 2006…), усі з тим самим номером.<br>
+<b>Що робити:</b> пов'яжіть одну монету. Програма одразу запропонує пов'язати інші роки (якщо вони входять у роки типу);
+автозв'язок теж бере тип від пов'язаної монети — без нових запитів. Кожна монета отримує випуск свого року.<br>
+<b>Докладніше:</b> <a href="numista-link.html">Numista: зв'язок монет</a>, розділ <i>Монети одного номера різних років</i>.</p>
+<figure class="shot"><img src="../images/16-same-number-offer.png" alt="Після зв'язку однієї монети: пропозиція пов'язати інші роки." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Скриншот: images/16-same-number-offer.png</div><figcaption>Після зв'язку однієї монети: пропозиція пов'язати інші роки.</figcaption></figure>
+<h2>5. Історична держава</h2>
+<p><b>Ви бачите:</b> монета знаходиться лише в іншого емітента (Poland 1766 → <i>Polish–Lithuanian Commonwealth</i>).<br>
+<b>Що робити:</b> підтвердьте тип у списку. Емітента запам'ятовується для періоду, наступні монети періоду знаходяться одразу.<br>
+<b>Докладніше:</b> <a href="numista-link.html">Numista: зв'язок монет</a>, розділ <i>Історичні держави</i>.</p>
+<h2>6. Випуск не визначився</h2>
+<p><b>Ви бачите:</b> #Numista сірим, тиражу немає. На Numista за рік кілька випусків (різні двори, Proof).<br>
+<b>Що робити:</b> заповніть двір у полі <span class="ui">Variety/Різновид</span> (наприклад <code>SPB</code>, <code>EM</code>) і пов'яжіть знову
+або виберіть самі: <span class="ui">Choose issue/Вибрати випуск</span>.</p>
+<figure class="shot"><img src="../images/17-choose-issue.png" alt="Вибір випуску: рік, двір, тираж, примітка." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Скриншот: images/17-choose-issue.png</div><figcaption>Вибір випуску: рік, двір, тираж, примітка.</figcaption></figure>
+<h2>7. Пов'язано з неправильним типом</h2>
+<p><b>Що робити:</b> <span class="ui">Unlink from Numista/Відв'язати від Numista</span> або просто ще раз <span class="ui">Link manually/Пов'язати вручну</span>.
+Якщо монету вже вивантажено у вашу колекцію Numista, програма запитає, чи змінити примірник і там.<br>
+<b>Докладніше:</b> <a href="numista-link.html">Numista: зв'язок монет</a>, розділ <i>Помилковий зв'язок</i>.</p>
+<h2>8. Античні монети та монети, яких немає на uCoin</h2>
+<p><b>Що робити:</b> додайте їх на сайті Numista до своєї колекції, потім
+<span class="ui">Numista → Import from my Numista collection/Numista → Імпорт з моєї колекції Numista</span>.
+Див. <a href="start.html">З чого почати</a>, шлях 2.</p>
+</main>
+<footer>Coins Collection</footer>
+</body>
+</html>
