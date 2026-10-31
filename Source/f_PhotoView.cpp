@@ -38,7 +38,8 @@ __fastcall TfmPhotoView::TfmPhotoView(TComponent *AOwner)
 {
 	BorderStyle  = bsSizeable;
 	Position     = poOwnerFormCenter;
-	Width        = 900;
+	// Шире 900: в панели кнопки комплектов и подсказка (задача 30); не шире рабочей области.
+	Width        = std::min(1080, Screen->WorkAreaWidth - 40);
 	Height       = 720;
 	KeyPreview   = true;
 	Color        = clBtnFace;

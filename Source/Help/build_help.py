@@ -15,14 +15,17 @@ MISSING = {'en': u'Screenshot', 'uk': u'Скриншот'}
 PAGES = [
  # id, title_en, title_uk
  ('index', 'Contents', 'Зміст'),
- ('getting-started', 'Getting started', 'Початок роботи'),
+ ('start', 'Where to start', 'З чого почати'),
+ ('getting-started', 'Installation and settings', 'Встановлення та налаштування'),
  ('import', 'Import from uCoin', 'Імпорт з uCoin'),
  ('main-window', 'Main window', 'Головне вікно'),
  ('checks', 'Checking coins', 'Позначки монет'),
  ('coin-card', 'Coin card', 'Картка монети'),
  ('photos', 'Photos', 'Фото'),
  ('references', 'Reference lists', 'Довідники'),
+ ('numista-register', 'Numista: registration and API key', 'Numista: реєстрація та ключ API'),
  ('numista-connect', 'Numista: connection and requests', 'Numista: підключення та запити'),
+ ('numista-cases', 'How to link a coin — typical cases', "Як пов'язати монету — типові випадки"),
  ('numista-link', 'Numista: linking coins', "Numista: зв'язок монет"),
  ('numista-upload', 'Numista: upload and rarity index', 'Numista: вивантаження та індекс рідкісності'),
  ('numista-catalog', 'Numista: mintage and type details', 'Numista: тираж і характеристики'),
@@ -33,18 +36,22 @@ T = {}  # (id, lang) -> body
 
 # =====================================================================
 T['index', 'en'] = u"""
-<p>Coins Collection keeps your coin collection on your computer and helps you move it from
-<b>uCoin</b> to <b>Numista</b>: it imports the uCoin export file, finds every coin in the Numista
-catalogue and adds it to your Numista collection.</p>
+<p>Coins Collection keeps your whole coin collection on your computer — in one place, from two sources:
+modern coins from <b>uCoin</b> (import of the uCoin export file) and coins that uCoin does not have, such as ancient,
+Roman or Celtic coins, from <b>Numista</b>. The program finds every coin in the Numista catalogue, loads mintage,
+details and pictures, and can add your coins to your Numista collection.</p>
+<p>New here? Start with [[page:start|Where to start]].</p>
 <ol class="toc">
 [[toc]]
 </ol>
 <div class="note">Press <b>F1</b> in any window to open the help page about that window.</div>
 """
 T['index', 'uk'] = u"""
-<p>«Колекція монет» зберігає вашу колекцію монет на комп'ютері й допомагає перенести її з
-<b>uCoin</b> на <b>Numista</b>: імпортує файл експорту uCoin, знаходить кожну монету в каталозі Numista
-і додає її до вашої колекції на Numista.</p>
+<p>«Колекція монет» зберігає всю вашу колекцію на комп'ютері — в одному місці, з двох джерел:
+сучасні монети з <b>uCoin</b> (імпорт файлу експорту uCoin) і монети, яких немає на uCoin, — античні, римські,
+кельтські — з <b>Numista</b>. Програма знаходить кожну монету в каталозі Numista, завантажує тираж,
+характеристики й зображення та може додати ваші монети до вашої колекції на Numista.</p>
+<p>Уперше тут? Почніть зі сторінки [[page:start|З чого почати]].</p>
 <ol class="toc">
 [[toc]]
 </ol>
@@ -64,12 +71,7 @@ T['getting-started', 'en'] = u"""
 <p><b>Update:</b> install the new version over the old one — your collection, photos and settings stay; the database is upgraded automatically (with a backup copy).<br>
 <b>Removal:</b> the program files are removed, your collection, photos and settings stay in the folder.</p>
 <h2>First steps</h2>
-<ol>
-<li>Export your collection from uCoin to an <code>.xlsx</code> file and import it: [[page:import|Import from uCoin]].</li>
-<li>Register on Numista, get your own API key and enter it in [[ui:Numista → Connect / Settings|Numista → Підключення / налаштування]]: [[page:numista-connect|Numista: connection]].</li>
-<li>Link your coins with the Numista catalogue: [[page:numista-link|Numista: linking coins]].</li>
-<li>Upload them to your Numista collection: [[page:numista-upload|Numista: upload]].</li>
-</ol>
+<p>Your way depends on where your collection is now — uCoin, Numista, both or neither: [[page:start|Where to start]].</p>
 <h2>Language</h2>
 <p>[[ui:Settings → Language|Налаштування → Мова]] — English or Ukrainian. English is used by default.</p>
 <h2>Where the data is</h2>
@@ -93,12 +95,7 @@ T['getting-started', 'uk'] = u"""
 <p><b>Оновлення:</b> встановіть нову версію поверх старої — колекція, фото та налаштування залишаються; база оновлюється автоматично (з резервною копією).<br>
 <b>Видалення:</b> файли програми видаляються, колекція, фото та налаштування залишаються в папці.</p>
 <h2>Перші кроки</h2>
-<ol>
-<li>Експортуйте колекцію з uCoin у файл <code>.xlsx</code> та імпортуйте його: [[page:import|Імпорт з uCoin]].</li>
-<li>Зареєструйтеся на Numista, отримайте власний ключ API та введіть його в [[ui:Numista → Connect / Settings|Numista → Підключення / налаштування]]: [[page:numista-connect|Numista: підключення]].</li>
-<li>Пов'яжіть монети з каталогом Numista: [[page:numista-link|Numista: зв'язок монет]].</li>
-<li>Вивантажте їх у свою колекцію на Numista: [[page:numista-upload|Numista: вивантаження]].</li>
-</ol>
+<p>Ваш шлях залежить від того, де зараз ваша колекція — на uCoin, на Numista, там і там чи ніде: [[page:start|З чого почати]].</p>
 <h2>Мова</h2>
 <p>[[ui:Settings → Language|Налаштування → Мова]] — English або Українська. Без налаштування — англійська.</p>
 <h2>Де зберігаються дані</h2>
@@ -400,6 +397,7 @@ T['references', 'uk'] = u"""
 T['numista-connect', 'en'] = u"""
 [[shot:05-numista-settings.png|Numista → Connect / Settings.]]
 <h2>Your API key</h2>
+<p>Step by step with pictures: [[page:numista-register|Numista: registration and API key]].</p>
 <ol>
 <li>Register on <a href="https://en.numista.com/">numista.com</a>.</li>
 <li>Request your API key (signed in to Numista): <a href="https://en.numista.com/api/api_key.php">en.numista.com/api/api_key.php</a>.</li>
@@ -421,6 +419,7 @@ The auto-link confirmation shows how many requests will really be sent.</li>
 T['numista-connect', 'uk'] = u"""
 [[shot:05-numista-settings.png|Numista → Підключення / налаштування.]]
 <h2>Ваш ключ API</h2>
+<p>Крок за кроком з картинками: [[page:numista-register|Numista: реєстрація та ключ API]].</p>
 <ol>
 <li>Зареєструйтеся на <a href="https://en.numista.com/">numista.com</a>.</li>
 <li>Запросіть свій ключ API (увійшовши на Numista): <a href="https://en.numista.com/api/api_key.php">en.numista.com/api/api_key.php</a>.</li>
@@ -444,6 +443,7 @@ T['numista-connect', 'uk'] = u"""
 T['numista-link', 'en'] = u"""
 [[shot:02-context-menu.png|Right-click menu of a coin: this coin (top) and checked coins (bottom).]]
 <p>Linking finds the Numista type (#Numista) and issue of a coin. Then the program loads the mintage, the type details and the photos.</p>
+<div class="note">A coin is not found or something went wrong? See [[page:numista-cases|How to link a coin — typical cases]].</div>
 <h2>One coin — Link manually</h2>
 <p>Right-click a coin → [[ui:Link manually|Пов'язати вручну]] (or the [[ui:Numista|Numista]] menu).</p>
 <ol>
@@ -503,6 +503,7 @@ Otherwise choose the issue yourself: [[ui:Choose issue|Вибрати випус
 T['numista-link', 'uk'] = u"""
 [[shot:02-context-menu.png|Меню правого клацання: ця монета (вгорі) і позначені монети (внизу).]]
 <p>Зв'язок знаходить тип Numista (#Numista) і випуск монети. Потім програма завантажує тираж, характеристики типу та фото.</p>
+<div class="note">Монета не знаходиться або щось пішло не так? Див. [[page:numista-cases|Як пов'язати монету — типові випадки]].</div>
 <h2>Одна монета — Пов'язати вручну</h2>
 <p>Праве клацання по монеті → [[ui:Link manually|Пов'язати вручну]] (або меню <span class="ui">Numista</span>).</p>
 <ol>
@@ -638,6 +639,7 @@ T['numista-catalog', 'uk'] = u"""
 # =====================================================================
 T['faq', 'en'] = u"""
 <h3>A coin is not found on Numista or the wrong types are offered</h3>
+<p>All typical cases with solutions: [[page:numista-cases|How to link a coin — typical cases]].</p>
 <p>Edit the search phrase in the type list and search again — [[page:numista-link|Numista: linking coins]].
 Check the catalogue number in the coin card (KM#, Y#, C#). Coins with a uCoin number (UC#) are searched by phrase — fill in the subject.</p>
 <h3>A coin is linked with the wrong type</h3>
@@ -659,6 +661,7 @@ Keep it on another disk or in the cloud. The program reminds you if there was no
 """
 T['faq', 'uk'] = u"""
 <h3>Монета не знаходиться на Numista або пропонуються не ті типи</h3>
+<p>Усі типові випадки з рішеннями: [[page:numista-cases|Як пов'язати монету — типові випадки]].</p>
 <p>Змініть фразу пошуку у списку типів і шукайте знову — [[page:numista-link|Numista: зв'язок монет]].
 Перевірте номер у каталозі в картці монети (KM#, Y#, C#). Монети з номером uCoin (UC#) шукаються за фразою — заповніть сюжет.</p>
 <h3>Монету пов'язано з неправильним типом</h3>
@@ -677,6 +680,278 @@ T['faq', 'uk'] = u"""
 <p>[[ui:File → Restore from backup|Файл → Відновити з копії]] замінює колекцію й фото копією. Поточні дані зберігаються
 (<code>Db\\…before-restore-&lt;час&gt;.bak</code>, <code>Photos\\_before-restore-&lt;час&gt;\\</code>). Налаштування цього комп'ютера не змінюються.</p>
 <p>Крім того, програма робить автоматичні копії бази (<code>Db\\*.bak</code>) перед кожним оновленням бази та кожним імпортом.</p>
+"""
+
+# =====================================================================
+T['start', 'en'] = u"""
+<p>Choose the line that describes you. Each way ends with the same result: your collection in the program, linked with
+the Numista catalogue, with mintage, details and pictures.</p>
+<h2>1. My collection is on uCoin</h2>
+<ol>
+<li>On the uCoin website export your collection to Excel (<code>.xlsx</code>) and import the file:
+[[page:import|Import from uCoin]].</li>
+<li>That is enough to keep your collection: countries, years, conditions, prices, your photos.</li>
+<li>Want mintage, details and catalogue pictures? Register on Numista and get a free API key:
+[[page:numista-register|Numista: registration and API key]]. Then [[ui:Auto-link|Автозв'язок]] — [[page:numista-link|linking coins]].</li>
+<li>Your uCoin collection changed? Export and import it again — Numista links and photos are kept.</li>
+</ol>
+<h2>2. My collection is on Numista (ancient, Roman, Celtic coins…)</h2>
+<p>uCoin has no catalogue of ancient coins; Numista has. If you add your coins on Numista:</p>
+<ol>
+<li>[[page:numista-register|Register on Numista and get your API key]], enter it in
+[[ui:Numista → Connect / Settings|Numista → Підключення / налаштування]].</li>
+<li>[[ui:Numista → Import from my Numista collection|Numista → Імпорт з моєї колекції Numista]] — choose the issuer
+(for example Roman Empire), check the items and import: [[page:import|Import]] (section <i>Import from your Numista collection</i>).</li>
+<li>The coins come already linked, with catalogue pictures; year ranges (<code>164–180</code>) and BC years are kept.</li>
+<li>Add your own photos in the [[page:coin-card|coin card]] — next to the catalogue pictures.</li>
+</ol>
+[[shot:11-numista-import.png|Import from your Numista collection: items of the chosen issuer.]]
+<h2>Roman denarii (and other ancient coins) without uCoin</h2>
+<p>You find or collect Roman denarii, and you have no uCoin account? This is way 2, step by step:</p>
+<ol>
+<li><b>Numista account and API key</b> — [[page:numista-register|Numista: registration and API key]] (about 5 minutes).</li>
+<li><b>Add your denarii on the Numista website.</b> Find the type in the Numista catalogue (emperor, reverse legend),
+press <i>Add to my collection</i>, choose the grade. You can upload your own photos of the coin there — the program takes them too.</li>
+<li><b>Rarity index.</b> The type page on Numista shows its rarity index (0–100). Write it into the private comment
+of your item: just the number, for example <code>97</code> (or <code>97;my note</code>).</li>
+<li><b>Import into the program:</b> [[ui:Numista → Import from my Numista collection|Numista → Імпорт з моєї колекції Numista]],
+issuer <i>Roman Empire</i>, check the items, [[ui:Import|Імпортувати]]. New denarii added on Numista later — import again,
+only the new ones are offered.</li>
+</ol>
+<p>What you get in the program:</p>
+<ul>
+<li><b>Your photo next to the catalogue picture</b> in the [[page:coin-card|coin card]] — easy to compare a worn coin with
+a good catalogue specimen; in the coin details the button <b>⇄</b> switches between them.</li>
+<li><b>The rarest coins at the top:</b> click the [[ui:Rarity|Рідкість]] column header — the list is sorted by the rarity index.
+Numista cannot sort a collection by rarity.</li>
+<li>Emperors as periods in the tree on the left, year ranges (<code>164–180</code>), weight, size, references (RIC) in the details;
+backup of the whole collection in one file.</li>
+</ul>
+<h2>3. Both: modern coins on uCoin, ancient on Numista</h2>
+<ol>
+<li>First import from uCoin (way 1).</li>
+<li>Then import from your Numista collection (way 2). Coins that are in both are linked, not duplicated.</li>
+<li>Later imports from uCoin keep the coins that came from Numista.</li>
+</ol>
+<h2>4. Neither uCoin nor Numista</h2>
+<p>Add coins yourself: [[ui:Collection → Add|Колекція → Додати]], and for the next years of the same coin —
+[[ui:Add from sample|Додати за зразком]] (Ctrl+Ins): only change the year. Periods and currencies are added to the
+reference lists as you type them. Numista is still useful later: [[ui:Link manually|Пов'язати вручну]] finds the coin
+in the catalogue and loads its details and pictures.</p>
+"""
+T['start', 'uk'] = u"""
+<p>Виберіть рядок, що описує вас. Кожен шлях веде до одного результату: ваша колекція в програмі, пов'язана
+з каталогом Numista, з тиражем, характеристиками й зображеннями.</p>
+<h2>1. Моя колекція на uCoin</h2>
+<ol>
+<li>На сайті uCoin експортуйте колекцію в Excel (<code>.xlsx</code>) та імпортуйте файл:
+[[page:import|Імпорт з uCoin]].</li>
+<li>Цього досить, щоб вести облік: країни, роки, стан, ціни, ваші фото.</li>
+<li>Потрібні тираж, характеристики й зображення з каталогу? Зареєструйтеся на Numista й отримайте безкоштовний ключ API:
+[[page:numista-register|Numista: реєстрація та ключ API]]. Далі [[ui:Auto-link|Автозв'язок]] — [[page:numista-link|зв'язок монет]].</li>
+<li>Колекція на uCoin змінилася? Експортуйте й імпортуйте її знову — зв'язки з Numista і фото зберігаються.</li>
+</ol>
+<h2>2. Моя колекція на Numista (античні, римські, кельтські монети…)</h2>
+<p>На uCoin немає каталогу античних монет, на Numista є. Якщо ви додаєте свої монети на Numista:</p>
+<ol>
+<li>[[page:numista-register|Зареєструйтеся на Numista й отримайте ключ API]], введіть його в
+[[ui:Numista → Connect / Settings|Numista → Підключення / налаштування]].</li>
+<li>[[ui:Numista → Import from my Numista collection|Numista → Імпорт з моєї колекції Numista]] — виберіть емітента
+(наприклад Roman Empire), позначте предмети й імпортуйте: [[page:import|Імпорт]] (розділ <i>Імпорт з вашої колекції Numista</i>).</li>
+<li>Монети приходять уже пов'язаними, із зображеннями з каталогу; діапазони років (<code>164–180</code>) і роки до н. е. зберігаються.</li>
+<li>Додайте власні фото в [[page:coin-card|картці монети]] — поруч із зображеннями з каталогу.</li>
+</ol>
+[[shot:11-numista-import.png|Імпорт з вашої колекції Numista: предмети вибраного емітента.]]
+<h2>Римські денарії (та інші античні монети) без uCoin</h2>
+<p>Ви знаходите чи збираєте римські денарії, а акаунта на uCoin немає? Це шлях 2, крок за кроком:</p>
+<ol>
+<li><b>Акаунт Numista і ключ API</b> — [[page:numista-register|Numista: реєстрація та ключ API]] (близько 5 хвилин).</li>
+<li><b>Додайте свої денарії на сайті Numista.</b> Знайдіть тип у каталозі Numista (імператор, напис реверсу),
+натисніть <i>Add to my collection</i>, виберіть стан. Там же можна завантажити власні фото монети — програма їх теж забере.</li>
+<li><b>Індекс рідкісності.</b> На сторінці типу на Numista вказано його індекс рідкісності (0–100). Запишіть його в приватний
+коментар свого примірника: просто число, наприклад <code>97</code> (або <code>97;моя примітка</code>).</li>
+<li><b>Імпорт у програму:</b> [[ui:Numista → Import from my Numista collection|Numista → Імпорт з моєї колекції Numista]],
+емітент <i>Roman Empire</i>, позначте предмети, [[ui:Import|Імпортувати]]. Нові денарії, додані на Numista пізніше, —
+імпортуйте ще раз, пропонуються лише нові.</li>
+</ol>
+<p>Що ви отримуєте в програмі:</p>
+<ul>
+<li><b>Ваше фото поруч із зображенням з каталогу</b> в [[page:coin-card|картці монети]] — легко порівняти стерту монету
+з гарним каталожним екземпляром; у подробицях монети кнопка <b>⇄</b> перемикає між ними.</li>
+<li><b>Найрідкісніші монети — вгорі:</b> клацніть заголовок колонки [[ui:Rarity|Рідкість]] — список відсортується за індексом рідкісності.
+На Numista відсортувати колекцію за рідкісністю неможливо.</li>
+<li>Імператори як періоди в дереві ліворуч, діапазони років (<code>164–180</code>), вага, розмір, посилання на каталоги (RIC)
+у подробицях; резервна копія всієї колекції одним файлом.</li>
+</ul>
+<h2>3. І там, і там: сучасні монети на uCoin, античні на Numista</h2>
+<ol>
+<li>Спершу імпорт з uCoin (шлях 1).</li>
+<li>Потім імпорт з вашої колекції Numista (шлях 2). Монети, що є і там, і там, зв'язуються, а не дублюються.</li>
+<li>Наступні імпорти з uCoin зберігають монети, що прийшли з Numista.</li>
+</ol>
+<h2>4. Ні uCoin, ні Numista</h2>
+<p>Додавайте монети самі: [[ui:Collection → Add|Колекція → Додати]], а для наступних років тієї ж монети —
+[[ui:Add from sample|Додати за зразком]] (Ctrl+Ins): лише змініть рік. Періоди й валюти додаються до довідників,
+коли ви їх вводите. Numista знадобиться й потім: [[ui:Link manually|Пов'язати вручну]] знайде монету в каталозі
+й завантажить її характеристики та зображення.</p>
+"""
+
+# =====================================================================
+T['numista-register', 'en'] = u"""
+<p>Numista is free. The program works with Numista through the official Numista API: each user has their own free key
+(2000 requests per month — enough for a collection of several hundred coins). Registration takes about 5 minutes.</p>
+<h2>1. Register on Numista</h2>
+<ol>
+<li>Open <a href="https://en.numista.com/">en.numista.com</a> and press <b>Sign up</b>.</li>
+<li>Enter a user name, your e-mail and a password.</li>
+<li>Confirm your e-mail: open the letter from Numista and follow the link.</li>
+</ol>
+[[shot:12-numista-signup.png|Numista: the registration form.]]
+<h2>2. Get your API key</h2>
+<ol>
+<li>Signed in to Numista, open <a href="https://en.numista.com/api/api_key.php">en.numista.com/api/api_key.php</a>.</li>
+<li>Fill in the short form. In the description of use you can write: <i>personal management of my coin collection
+with the Coins Collection program</i>.</li>
+<li>Copy the key that Numista gives you. Keep it private, like a password.</li>
+</ol>
+[[shot:13-numista-api-key.png|Numista: the API key page (the key is hidden on the picture).]]
+<h2>3. Enter the key in the program</h2>
+<ol>
+<li>[[ui:Numista → Connect / Settings|Numista → Підключення / налаштування]], paste the key.</li>
+<li>Press [[ui:Check connection|Перевірити підключення]]: the program checks the key and loads the lists of Numista
+issuers and catalogues (once).</li>
+</ol>
+[[shot:05-numista-settings.png|Numista → Connect / Settings.]]
+<p>Done. Next: [[page:start|Where to start]] — import your Numista collection or link your uCoin coins.
+About requests and the monthly quota: [[page:numista-connect|Numista: connection and requests]].</p>
+"""
+T['numista-register', 'uk'] = u"""
+<p>Numista безкоштовна. Програма працює з Numista через офіційний API Numista: кожен користувач має власний безкоштовний ключ
+(2000 запитів на місяць — досить для колекції з кількох сотень монет). Реєстрація займає близько 5 хвилин.</p>
+<h2>1. Зареєструйтеся на Numista</h2>
+<ol>
+<li>Відкрийте <a href="https://en.numista.com/">en.numista.com</a> і натисніть <b>Sign up</b> (сайт можна перемкнути на іншу мову внизу сторінки).</li>
+<li>Введіть ім'я користувача, e-mail і пароль.</li>
+<li>Підтвердіть e-mail: відкрийте лист від Numista й перейдіть за посиланням.</li>
+</ol>
+[[shot:12-numista-signup.png|Numista: форма реєстрації.]]
+<h2>2. Отримайте ключ API</h2>
+<ol>
+<li>Увійшовши на Numista, відкрийте <a href="https://en.numista.com/api/api_key.php">en.numista.com/api/api_key.php</a>.</li>
+<li>Заповніть коротку форму (англійською). В описі використання можна написати: <i>personal management of my coin collection
+with the Coins Collection program</i>.</li>
+<li>Скопіюйте ключ, який видасть Numista. Нікому його не показуйте — як пароль.</li>
+</ol>
+[[shot:13-numista-api-key.png|Numista: сторінка ключа API (ключ на зображенні закрито).]]
+<h2>3. Введіть ключ у програмі</h2>
+<ol>
+<li>[[ui:Numista → Connect / Settings|Numista → Підключення / налаштування]], вставте ключ.</li>
+<li>Натисніть [[ui:Check connection|Перевірити підключення]]: програма перевірить ключ і завантажить списки емітентів
+і каталогів Numista (один раз).</li>
+</ol>
+[[shot:05-numista-settings.png|Numista → Підключення / налаштування.]]
+<p>Готово. Далі: [[page:start|З чого почати]] — імпортуйте свою колекцію Numista або пов'яжіть монети з uCoin.
+Про запити й місячну квоту: [[page:numista-connect|Numista: підключення та запити]].</p>
+"""
+
+# =====================================================================
+T['numista-cases', 'en'] = u"""
+<p>Find the case that looks like yours: what you see — what to do — where to read more.</p>
+<h2>1. The coin has a KM#, Y# or C# number</h2>
+<p><b>You see:</b> the number in the [[ui:uCoin number|Номер uCoin]] row of the details.<br>
+<b>Do:</b> check the coins and press [[ui:Auto-link|Автозв'язок]]. Most such coins are linked at once.<br>
+<b>More:</b> [[page:numista-link|Numista: linking coins]].</p>
+<h2>2. uCoin number (UC#), commemorative coin</h2>
+<p><b>You see:</b> <code>UC# 428</code> instead of KM#. Numista does not know uCoin numbers.<br>
+<b>Do:</b> auto-link searches by the phrase <i>country + year + subject</i>. Commemorative coins of one year differ only
+by the subject — make sure the [[ui:Subject|Сюжет]] field is filled in the coin card.<br>
+<b>More:</b> [[page:numista-link|Numista: linking coins]], section <i>Coins with a uCoin number</i>.</p>
+<h2>3. Nothing is found</h2>
+<p><b>You see:</b> auto-link counts the coin as <i>not found</i>; the type list is empty.<br>
+<b>Why:</b> sometimes Numista keeps the catalogue number not at the type but at its issues (example: Russian Empire
+2 kopecks <code>Y# 10</code> — on Numista it is one type <i>2 Kopecks — Alexander II / III / Nicholas II</i>), or names
+differ (uCoin <i>kopeks</i>, Numista <i>Kopecks</i>).<br>
+<b>Do:</b></p>
+<ol>
+<li>Find the coin on the Numista website: search by country and denomination, compare the pictures.</li>
+<li>Copy the type title from its page (for example <code>2 Kopecks - Alexander II / III / Nicholas II</code>).</li>
+<li>In the program: [[ui:Link manually|Пов'язати вручну]], paste the title into [[ui:Search phrase|Фраза пошуку]],
+press [[ui:Search|Пошук]] and choose the type. The phrase is saved in the coin card.</li>
+</ol>
+[[shot:14-numista-type-page.png|Numista: the type title to copy.]]
+[[shot:15-choose-type-phrase.png|The type list after searching by the copied title.]]
+<h2>4. Many years of one coin</h2>
+<p><b>You see:</b> the same coin of different years (1 kopiyka 2005, 2006…), all with the same number.<br>
+<b>Do:</b> link one coin. The program offers to link the other years at once (if they fit the years of the type);
+auto-link also takes the type from the linked coin — without new requests. Each coin gets the issue of its own year.<br>
+<b>More:</b> [[page:numista-link|Numista: linking coins]], section <i>Coins of one number from different years</i>.</p>
+[[shot:16-same-number-offer.png|After linking one coin: the offer to link the other years.]]
+<h2>5. Historical state</h2>
+<p><b>You see:</b> the coin is found only under another issuer (Poland 1766 → <i>Polish–Lithuanian Commonwealth</i>).<br>
+<b>Do:</b> confirm the type in the list. The issuer is remembered for the period, the next coins of the period are found at once.<br>
+<b>More:</b> [[page:numista-link|Numista: linking coins]], section <i>Historical states</i>.</p>
+<h2>6. The issue is not identified</h2>
+<p><b>You see:</b> #Numista is grey, no mintage. Numista has several issues for the year (different mints, Proof).<br>
+<b>Do:</b> fill in the mint in [[ui:Variety|Різновид]] (for example <code>SPB</code>, <code>EM</code>) and link again, or
+choose it yourself: [[ui:Choose issue|Вибрати випуск]].</p>
+[[shot:17-choose-issue.png|Choosing the issue: year, mint, mintage, note.]]
+<h2>7. Linked with the wrong type</h2>
+<p><b>Do:</b> [[ui:Unlink from Numista|Відв'язати від Numista]] or simply [[ui:Link manually|Пов'язати вручну]] again.
+If the coin is already uploaded to your Numista collection, the program asks whether to change the item there too.<br>
+<b>More:</b> [[page:numista-link|Numista: linking coins]], section <i>Wrong link</i>.</p>
+<h2>8. Ancient coins and coins that uCoin does not have</h2>
+<p><b>Do:</b> add them on the Numista website to your collection, then
+[[ui:Numista → Import from my Numista collection|Numista → Імпорт з моєї колекції Numista]].
+See [[page:start|Where to start]], way 2.</p>
+"""
+T['numista-cases', 'uk'] = u"""
+<p>Знайдіть випадок, схожий на ваш: що ви бачите — що робити — де читати докладніше.</p>
+<h2>1. У монети є номер KM#, Y# або C#</h2>
+<p><b>Ви бачите:</b> номер у рядку [[ui:uCoin number|Номер uCoin]] у подробицях.<br>
+<b>Що робити:</b> позначте монети й натисніть [[ui:Auto-link|Автозв'язок]]. Більшість таких монет зв'язуються одразу.<br>
+<b>Докладніше:</b> [[page:numista-link|Numista: зв'язок монет]].</p>
+<h2>2. Номер uCoin (UC#), пам'ятна монета</h2>
+<p><b>Ви бачите:</b> <code>UC# 428</code> замість KM#. Numista не знає номерів uCoin.<br>
+<b>Що робити:</b> автозв'язок шукає за фразою <i>країна + рік + сюжет</i>. Пам'ятні монети одного року відрізняються лише
+сюжетом — перевірте, що в картці монети заповнено [[ui:Subject|Сюжет]].<br>
+<b>Докладніше:</b> [[page:numista-link|Numista: зв'язок монет]], розділ <i>Монети з номером uCoin</i>.</p>
+<h2>3. Нічого не знайдено</h2>
+<p><b>Ви бачите:</b> автозв'язок рахує монету як <i>не знайдено</i>; список типів порожній.<br>
+<b>Чому:</b> іноді Numista зберігає номер у каталозі не в типу, а в його випусків (приклад: Російська імперія,
+2 копійки <code>Y# 10</code> — на Numista це один тип <i>2 Kopecks — Alexander II / III / Nicholas II</i>), або назви
+різняться (uCoin <i>kopeks</i>, Numista <i>Kopecks</i>).<br>
+<b>Що робити:</b></p>
+<ol>
+<li>Знайдіть монету на сайті Numista: пошук за країною й номіналом, порівняйте зображення.</li>
+<li>Скопіюйте назву типу з його сторінки (наприклад <code>2 Kopecks - Alexander II / III / Nicholas II</code>).</li>
+<li>У програмі: [[ui:Link manually|Пов'язати вручну]], вставте назву у [[ui:Search phrase|Фраза пошуку]],
+натисніть [[ui:Search|Пошук]] і виберіть тип. Фраза зберігається в картці монети.</li>
+</ol>
+[[shot:14-numista-type-page.png|Numista: назва типу, яку треба скопіювати.]]
+[[shot:15-choose-type-phrase.png|Список типів після пошуку за скопійованою назвою.]]
+<h2>4. Багато років однієї монети</h2>
+<p><b>Ви бачите:</b> та сама монета різних років (1 копійка 2005, 2006…), усі з тим самим номером.<br>
+<b>Що робити:</b> пов'яжіть одну монету. Програма одразу запропонує пов'язати інші роки (якщо вони входять у роки типу);
+автозв'язок теж бере тип від пов'язаної монети — без нових запитів. Кожна монета отримує випуск свого року.<br>
+<b>Докладніше:</b> [[page:numista-link|Numista: зв'язок монет]], розділ <i>Монети одного номера різних років</i>.</p>
+[[shot:16-same-number-offer.png|Після зв'язку однієї монети: пропозиція пов'язати інші роки.]]
+<h2>5. Історична держава</h2>
+<p><b>Ви бачите:</b> монета знаходиться лише в іншого емітента (Poland 1766 → <i>Polish–Lithuanian Commonwealth</i>).<br>
+<b>Що робити:</b> підтвердьте тип у списку. Емітента запам'ятовується для періоду, наступні монети періоду знаходяться одразу.<br>
+<b>Докладніше:</b> [[page:numista-link|Numista: зв'язок монет]], розділ <i>Історичні держави</i>.</p>
+<h2>6. Випуск не визначився</h2>
+<p><b>Ви бачите:</b> #Numista сірим, тиражу немає. На Numista за рік кілька випусків (різні двори, Proof).<br>
+<b>Що робити:</b> заповніть двір у полі [[ui:Variety|Різновид]] (наприклад <code>SPB</code>, <code>EM</code>) і пов'яжіть знову
+або виберіть самі: [[ui:Choose issue|Вибрати випуск]].</p>
+[[shot:17-choose-issue.png|Вибір випуску: рік, двір, тираж, примітка.]]
+<h2>7. Пов'язано з неправильним типом</h2>
+<p><b>Що робити:</b> [[ui:Unlink from Numista|Відв'язати від Numista]] або просто ще раз [[ui:Link manually|Пов'язати вручну]].
+Якщо монету вже вивантажено у вашу колекцію Numista, програма запитає, чи змінити примірник і там.<br>
+<b>Докладніше:</b> [[page:numista-link|Numista: зв'язок монет]], розділ <i>Помилковий зв'язок</i>.</p>
+<h2>8. Античні монети та монети, яких немає на uCoin</h2>
+<p><b>Що робити:</b> додайте їх на сайті Numista до своєї колекції, потім
+[[ui:Numista → Import from my Numista collection|Numista → Імпорт з моєї колекції Numista]].
+Див. [[page:start|З чого почати]], шлях 2.</p>
 """
 
 # =====================================================================
