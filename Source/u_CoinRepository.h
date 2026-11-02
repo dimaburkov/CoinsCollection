@@ -6,6 +6,7 @@
 #define u_CoinRepositoryH
 //---------------------------------------------------------------------------
 #include <vector>
+#include <map>
 #include "u_CoinTypes.h"
 #include "u_LookupRepository.h"
 //---------------------------------------------------------------------------
@@ -77,6 +78,10 @@ public:
 	void SaveNumistaType(const TNumistaTypeInfo &AType);
 	// false — тип не загружен.
 	bool LoadNumistaType(int ATypeId, TNumistaTypeInfo &AType);
+	// Оценки цен выпуска (getPrices) в numista_prices — вставка или замена по (выпуск, валюта); задача 34.
+	void SaveNumistaPrices(const TNumistaPrices &APrices);
+	// Все оценки в валюте ACurrency: выпуск -> цены.
+	std::map<int, TNumistaPrices> LoadNumistaPrices(const String &ACurrency);
 
 	TLookupRepository &Lookups() { return FLookups; }
 

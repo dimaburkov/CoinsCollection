@@ -152,6 +152,68 @@ object fmNumistaSettings: TfmNumistaSettings
         Caption = 'Type &photos (catalogue pictures)'
         TabOrder = 1
       end
+      object chkLoadPrices: TCheckBox
+        Left = 12
+        Top = 128
+        Width = 508
+        Height = 17
+        Caption = 'Numista p&rices (estimate by condition)'
+        TabOrder = 2
+        OnClick = chkLoadPricesClick
+      end
+      object lblCurrency: TLabel
+        Left = 30
+        Top = 157
+        Width = 48
+        Height = 13
+        Caption = 'C&urrency:'
+        FocusControl = cbCurrency
+      end
+      object cbCurrency: TComboBox
+        Left = 250
+        Top = 154
+        Width = 80
+        Height = 21
+        Style = csDropDownList
+        TabOrder = 3
+        Items.Strings = (
+          'UAH'
+          'USD'
+          'EUR')
+      end
+      object lblPriceDays: TLabel
+        Left = 30
+        Top = 185
+        Width = 160
+        Height = 13
+        Caption = 'Update prices older than (&days):'
+        FocusControl = edPriceDays
+      end
+      object edPriceDays: TEdit
+        Left = 250
+        Top = 182
+        Width = 80
+        Height = 21
+        NumbersOnly = True
+        TabOrder = 4
+      end
+      object lblPricesHint: TLabel
+        Left = 30
+        Top = 210
+        Width = 490
+        Height = 30
+        AutoSize = False
+        Caption =
+          'Loaded by the command Load Numista prices (Numista menu): 1 request p' +
+          'er issue; coins of one issue cost one request.'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clGrayText
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        ParentFont = False
+        WordWrap = True
+      end
     end
     object tsUpload: TTabSheet
       Caption = 'What to upload to Numista'

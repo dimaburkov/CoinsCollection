@@ -35,6 +35,12 @@ void TfmNumistaSettings::LoadOptions()
 	const TAppConfig &config = AppConfig();
 	chkLoadDetails->Checked   = config.NumistaAutoLinkDetails;
 	chkLoadPhotos->Checked    = config.NumistaLoadTypePhotos;
+	chkLoadPrices->Checked    = config.NumistaLoadPrices;
+	cbCurrency->ItemIndex     = cbCurrency->Items->IndexOf(config.NumistaPriceCurrency);
+	if (cbCurrency->ItemIndex < 0)
+		cbCurrency->ItemIndex = 0;
+	edPriceDays->Text         = IntToStr(config.NumistaPriceDays);
+	chkLoadPricesClick(nullptr);
 	chkUploadGrade->Checked   = config.NumistaUploadGrade;
 	chkUploadPrice->Checked   = config.NumistaUploadPrice;
 	chkUploadDate->Checked    = config.NumistaUploadDate;
@@ -53,6 +59,15 @@ bool TfmNumistaSettings::ApplyOptions()
 			Caption.c_str(), MB_OK | MB_ICONWARNING);
 		return false;
 	}
+	const int days = StrToIntDef(edPriceDays->Text.Trim(), -1);
+	if (chkLoadPrices->Checked && (days < 1 || days > 3650))
+	{
+		pcSettings->ActivePage = tsLoad;
+		edPriceDays->SetFocus();
+		Application->MessageBox(Format(Tr(L"NumistaSettings.BadNumber"), ARRAYOFCONST((1, 3650))).c_str(),
+			Caption.c_str(), MB_OK | MB_ICONWARNING);
+		return false;
+	}
 	const int counter = StrToIntDef(edCounter->Text.Trim(), -1);
 	if (counter < 0 || counter > quota)
 	{
@@ -67,6 +82,10 @@ bool TfmNumistaSettings::ApplyOptions()
 	TAppConfig &config = AppConfig();
 	config.NumistaAutoLinkDetails = chkLoadDetails->Checked;
 	config.NumistaLoadTypePhotos  = chkLoadPhotos->Checked;
+	config.NumistaLoadPrices      = chkLoadPrices->Checked;
+	config.NumistaPriceCurrency   = cbCurrency->Text;
+	if (days >= 1 && days <= 3650)
+		config.NumistaPriceDays   = days;
 	config.NumistaUploadGrade     = chkUploadGrade->Checked;
 	config.NumistaUploadPrice     = chkUploadPrice->Checked;
 	config.NumistaUploadDate      = chkUploadDate->Checked;
@@ -76,6 +95,15 @@ bool TfmNumistaSettings::ApplyOptions()
 		TNumistaClient::SetRequestsThisMonth(counter);
 	config.Save();
 	return true;
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmNumistaSettings::chkLoadPricesClick(TObject *Sender)
+{
+	const bool on = chkLoadPrices->Checked;
+	lblCurrency->Enabled  = on;
+	cbCurrency->Enabled   = on;
+	lblPriceDays->Enabled = on;
+	edPriceDays->Enabled  = on;
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmNumistaSettings::btnOKClick(TObject *Sender)

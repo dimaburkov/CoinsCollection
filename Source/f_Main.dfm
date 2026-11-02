@@ -354,6 +354,9 @@ object fmMain: TfmMain
     object miPopNumistaRefreshOne: TMenuItem
       Action = actNumistaRefreshOne
     end
+    object miPopNumistaPricesOne: TMenuItem
+      Action = actNumistaPricesOne
+    end
     object miPopNumistaUnlinkOne: TMenuItem
       Action = actNumistaUnlinkOne
     end
@@ -375,6 +378,9 @@ object fmMain: TfmMain
     end
     object miPopNumistaCatalog: TMenuItem
       Action = actNumistaCatalog
+    end
+    object miPopNumistaPrices: TMenuItem
+      Action = actNumistaPrices
     end
     object miPopNumistaUnlink: TMenuItem
       Action = actNumistaUnlink
@@ -559,6 +565,18 @@ object fmMain: TfmMain
       OnExecute = actNumistaUnlinkExecute
       OnUpdate = actNumistaUpdate
     end
+    object actNumistaPricesOne: TAction
+      Category = 'Numista'
+      Caption = 'Load Numista &prices'
+      OnExecute = actNumistaPricesExecute
+      OnUpdate = actNumistaUpdate
+    end
+    object actNumistaPrices: TAction
+      Category = 'Numista'
+      Caption = 'Numista p&rices...'
+      OnExecute = actNumistaPricesExecute
+      OnUpdate = actNumistaUpdate
+    end
     object actNumistaUnlink: TAction
       Category = 'Numista'
       Caption = '&Unlink...'
@@ -684,6 +702,9 @@ object fmMain: TfmMain
       object miNumistaRefreshOne: TMenuItem
         Action = actNumistaRefreshOne
       end
+      object miNumistaPricesOne: TMenuItem
+        Action = actNumistaPricesOne
+      end
       object miNumistaUnlinkOne: TMenuItem
         Action = actNumistaUnlinkOne
       end
@@ -705,6 +726,9 @@ object fmMain: TfmMain
       end
       object miNumistaCatalog: TMenuItem
         Action = actNumistaCatalog
+      end
+      object miNumistaPrices: TMenuItem
+        Action = actNumistaPrices
       end
       object miNumistaUnlink: TMenuItem
         Action = actNumistaUnlink

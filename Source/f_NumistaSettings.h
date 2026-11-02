@@ -25,6 +25,12 @@ __published:	// IDE-managed Components
 	TLabel *lblPhotosHint;
 	TCheckBox *chkLoadDetails;
 	TCheckBox *chkLoadPhotos;
+	TCheckBox *chkLoadPrices;
+	TLabel *lblCurrency;
+	TComboBox *cbCurrency;
+	TLabel *lblPriceDays;
+	TEdit *edPriceDays;
+	TLabel *lblPricesHint;
 	TLabel *lblUploadIntro;
 	TLabel *lblUploadAlways;
 	TLabel *lblUploadHint;
@@ -55,6 +61,7 @@ __published:	// IDE-managed Components
 	void __fastcall btnRefreshListsClick(TObject *Sender);
 	void __fastcall lblDocsClick(TObject *Sender);
 	void __fastcall btnOKClick(TObject *Sender);
+	void __fastcall chkLoadPricesClick(TObject *Sender);
 private:	// User declarations
 	int  FCounterShown;	// счётчик, показанный в поле: изменён пользователем — записать
 	void LoadOptions();	// настройки -> вкладки

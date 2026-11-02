@@ -25,6 +25,22 @@ commemorated topic, years, mints, demonetization (coin details, right column);</
 so a repeated run usually needs 0 requests.</p>
 <p>One coin: right-click → <span class="ui">Update catalogue data (no cache)</span> — requests the data again
 (2 requests), for example when a mintage was added on Numista.</p>
+<h2>Numista prices</h2>
+<p>Numista estimates the price of an issue for each condition (G, VG, F, VF, XF, AU, UNC). The program can load these estimates:</p>
+<ol>
+<li>Turn them on: <a href="numista-connect.html">Numista settings</a>, tab <span class="ui">What to load from Numista</span>,
+<span class="ui">Numista prices (estimate by condition)</span>; choose the currency (UAH, USD or EUR).</li>
+<li>One coin: right-click → <span class="ui">Load Numista prices</span>. Many: check coins →
+<span class="ui">Numista prices...</span> — the confirmation shows how many requests are needed.</li>
+</ol>
+<ul>
+<li>The column <span class="ui">Numista, UAH</span> shows the estimate for the condition of your coin; empty — no estimate for this
+condition (or the issue is not chosen). The coin details show the estimates of all conditions, your condition in [brackets], and the date.</li>
+<li>1 request per issue; coins of one issue cost one request. Prices younger than the number of days in the settings (90 by default)
+are not requested again; for one coin — only prices loaded today are skipped.</li>
+<li>Only coins with a chosen issue get prices — <span class="ui">Choose issue</span>.</li>
+<li>Prices in another currency stay in the database: switching the currency back shows them again.</li>
+</ul>
 </main>
 <footer>Coins Collection</footer>
 </body>

@@ -557,6 +557,28 @@ TNumistaTypeInfo TNumistaMatcher::LoadType(int ATypeId, bool ARefresh)
 	return t;
 }
 //---------------------------------------------------------------------------
+// GET /types/{type_id}/issues/{issue_id}/prices: {"currency": "EUR", "prices": [{"grade": "f", "price": 180}, …]}.
+// Ответ пишется и в кэш файлов, но читается всегда заново: свежесть цен решает numista_prices.
+TNumistaPrices TNumistaMatcher::LoadPrices(int ATypeId, int AIssueId, const String &ACurrency)
+{
+	std::unique_ptr<TJSONValue> json = FClient.GetCached(L"/types/" + IntToStr(ATypeId) + L"/issues/" + IntToStr(AIssueId)
+		+ L"/prices?currency=" + ACurrency + L"&lang=en", nullptr, true);
+	TNumistaPrices p;
+	p.IssueId  = AIssueId;
+	p.Currency = JsonString(json.get(), L"currency");
+	if (p.Currency.IsEmpty())
+		p.Currency = ACurrency;
+	p.Updated  = Date();
+	TJSONArray *prices = dynamic_cast<TJSONArray *>(json->FindValue(L"prices"));
+	for (int i = 0; prices && i < prices->Count; ++i)
+	{
+		const int grade = TNumistaPrices::GradeIndex(JsonString(prices->Items[i], L"grade"));
+		if (grade >= 0)
+			p.Price[grade] = JsonFloat(prices->Items[i], L"price");
+	}
+	return p;
+}
+//---------------------------------------------------------------------------
 String TNumistaMatcher::IssuesPath(int ATypeId)
 {
 	return L"/types/" + IntToStr(ATypeId) + L"/issues?lang=en";
