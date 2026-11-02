@@ -113,7 +113,14 @@ T['getting-started', 'uk'] = u"""
 T['import', 'en'] = u"""
 [[shot:08-ucoin-export.png|uCoin: exporting the collection to an .xlsx file.]]
 <h2>Export from uCoin</h2>
-<p>On the uCoin website open your collection and export it to Excel (<code>.xlsx</code>). Save the file on your computer.</p>
+<ol>
+<li>On the uCoin website switch the site language to <b>English</b> (language selector at the top or bottom of the page).</li>
+<li>Open your collection and export it to Excel (<code>.xlsx</code>). Save the file on your computer.</li>
+</ol>
+<div class="note">The export must be in English. In an export made in another language (Russian, Ukrainian…) uCoin translates
+the column headers and the names of countries, periods, currencies and denominations — the program does not accept such a file:
+countries would not get into continents and Numista search would not work. The program recognizes such a file, explains
+how to fix it and does not change the collection.</div>
 <h2>Import</h2>
 <ol>
 <li>[[ui:File → Import from uCoin (.xlsx)|Файл → Імпорт з uCoin (.xlsx)]] (or the [[ui:Import|Імпорт]] button) and choose the file.</li>
@@ -146,7 +153,13 @@ A price in another currency than UAH is added to the comment.</p>
 T['import', 'uk'] = u"""
 [[shot:08-ucoin-export.png|uCoin: експорт колекції у файл .xlsx.]]
 <h2>Експорт з uCoin</h2>
-<p>На сайті uCoin відкрийте свою колекцію та експортуйте її в Excel (<code>.xlsx</code>). Збережіть файл на комп'ютері.</p>
+<ol>
+<li>На сайті uCoin перемкніть мову сайту на <b>English</b> (вибір мови вгорі або внизу сторінки).</li>
+<li>Відкрийте свою колекцію та експортуйте її в Excel (<code>.xlsx</code>). Збережіть файл на комп'ютері.</li>
+</ol>
+<div class="note">Експорт має бути англійською. В експорті іншою мовою (російською, українською…) uCoin перекладає заголовки
+колонок і назви країн, періодів, валют і номіналів — такий файл програма не приймає: країни не потрапили б у континенти,
+а пошук на Numista не працював би. Програма розпізнає такий файл, пояснює, як виправити, і колекцію не змінює.</div>
 <h2>Імпорт</h2>
 <ol>
 <li>[[ui:File → Import from uCoin (.xlsx)|Файл → Імпорт з uCoin (.xlsx)]] (або кнопка [[ui:Import|Імпорт]]) і виберіть файл.</li>
@@ -408,6 +421,8 @@ T['numista-connect', 'en'] = u"""
 <h2>Requests and quota</h2>
 <p>The free Numista key allows <b>2000 requests per month</b>. Every result window shows how many requests the operation used
 and how many are used this month.</p>
+<p>The quota is 2000 requests per calendar month; it is renewed on the 1st. The program counts only its own requests:
+requests made with the same key elsewhere (another computer, another program) are not counted.</p>
 <ul>
 <li>Answers are cached in <code>Numista\\</code>: the same type is never requested twice. Coins of one type from different
 years with the same catalogue number cost requests only once — the other years take the answers from the cache.
@@ -430,6 +445,8 @@ T['numista-connect', 'uk'] = u"""
 <h2>Запити та квота</h2>
 <p>Безкоштовний ключ Numista дає <b>2000 запитів на місяць</b>. Кожне вікно з підсумком показує, скільки запитів використала операція
 і скільки використано цього місяця.</p>
+<p>Квота — 2000 запитів за календарний місяць, оновлюється 1-го числа. Програма рахує лише власні запити:
+запити з тим самим ключем деінде (інший комп'ютер, інша програма) не враховуються.</p>
 <ul>
 <li>Відповіді зберігаються в <code>Numista\\</code>: той самий тип ніколи не запитується двічі. Монети одного типу різних
 років з тим самим номером у каталозі витрачають запити лише один раз — інші роки беруть відповіді з кешу.
@@ -648,6 +665,9 @@ Check the catalogue number in the coin card (KM#, Y#, C#). Coins with a uCoin nu
 <h3>The monthly request quota is almost used</h3>
 <p>Work with checked coins (one request per run for upload and rarity), turn off
 [[ui:Also load type details and photos|Також завантажити характеристики й фото]] in auto-link and load the details later.</p>
+<h3>Import: no column 'Country' / the file is not in English</h3>
+<p>The uCoin export was made in another language. Switch the uCoin site language to English, export the collection again
+and import the new file — [[page:import|Import from uCoin]].</p>
 <h3>“Unable to write … CoinsCollection.ini”</h3>
 <p>The file is open in an editor that locks it. Close the editor and repeat the command.</p>
 <h3>Photos from Numista were not loaded</h3>
@@ -670,6 +690,9 @@ T['faq', 'uk'] = u"""
 <h3>Місячну квоту запитів майже вичерпано</h3>
 <p>Працюйте з позначеними монетами (один запит на запуск для вивантаження та індексу рідкісності), вимкніть
 [[ui:Also load type details and photos|Також завантажити характеристики й фото]] в автозв'язку й завантажте характеристики пізніше.</p>
+<h3>Імпорт: немає колонки 'Country' / файл не англійською</h3>
+<p>Експорт uCoin зроблено іншою мовою. Перемкніть мову сайту uCoin на English, знову експортуйте колекцію
+й імпортуйте новий файл — [[page:import|Імпорт з uCoin]].</p>
 <h3>«Unable to write … CoinsCollection.ini»</h3>
 <p>Файл відкритий у редакторі, який його блокує. Закрийте редактор і повторіть команду.</p>
 <h3>Фото з Numista не завантажилися</h3>
@@ -688,8 +711,8 @@ T['start', 'en'] = u"""
 the Numista catalogue, with mintage, details and pictures.</p>
 <h2>1. My collection is on uCoin</h2>
 <ol>
-<li>On the uCoin website export your collection to Excel (<code>.xlsx</code>) and import the file:
-[[page:import|Import from uCoin]].</li>
+<li>On the uCoin website switch the language to <b>English</b>, export your collection to Excel (<code>.xlsx</code>)
+and import the file: [[page:import|Import from uCoin]].</li>
 <li>That is enough to keep your collection: countries, years, conditions, prices, your photos.</li>
 <li>Want mintage, details and catalogue pictures? Register on Numista and get a free API key:
 [[page:numista-register|Numista: registration and API key]]. Then [[ui:Auto-link|Автозв'язок]] — [[page:numista-link|linking coins]].</li>
@@ -744,8 +767,8 @@ T['start', 'uk'] = u"""
 з каталогом Numista, з тиражем, характеристиками й зображеннями.</p>
 <h2>1. Моя колекція на uCoin</h2>
 <ol>
-<li>На сайті uCoin експортуйте колекцію в Excel (<code>.xlsx</code>) та імпортуйте файл:
-[[page:import|Імпорт з uCoin]].</li>
+<li>На сайті uCoin перемкніть мову на <b>English</b>, експортуйте колекцію в Excel (<code>.xlsx</code>)
+та імпортуйте файл: [[page:import|Імпорт з uCoin]].</li>
 <li>Цього досить, щоб вести облік: країни, роки, стан, ціни, ваші фото.</li>
 <li>Потрібні тираж, характеристики й зображення з каталогу? Зареєструйтеся на Numista й отримайте безкоштовний ключ API:
 [[page:numista-register|Numista: реєстрація та ключ API]]. Далі [[ui:Auto-link|Автозв'язок]] — [[page:numista-link|зв'язок монет]].</li>
