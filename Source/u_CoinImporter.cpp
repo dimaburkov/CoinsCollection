@@ -39,6 +39,30 @@ namespace
 
 	const wchar_t *const cRequired[] = { cCountry, cDenomination };
 
+	// Колонки, которые uCoin не переводит, — признак экспорта uCoin на другом языке.
+	const wchar_t *const cUntranslated[] = { cVariety, cGradingCompany, cGradingNumber };
+	//-----------------------------------------------------------------------
+	// Язык заголовков неанглийского экспорта uCoin: ключ перевода названия языка.
+	String HeaderLanguage(const std::vector<String> &AHeader)
+	{
+		bool cyrillic = false;
+		for (size_t i = 0; i < AHeader.size(); ++i)
+		{
+			const String text = AHeader[i];
+			for (int c = 1; c <= text.Length(); ++c)
+			{
+				const wchar_t ch = text[c];
+				// і ї є ґ (и прописные) — только в украинском.
+				if (ch == 0x0456 || ch == 0x0457 || ch == 0x0454 || ch == 0x0491
+					|| ch == 0x0406 || ch == 0x0407 || ch == 0x0404 || ch == 0x0490)
+					return L"Import.Language.uk";
+				if (ch >= 0x0400 && ch <= 0x04FF)
+					cyrillic = true;
+			}
+		}
+		return cyrillic ? L"Import.Language.ru" : L"Import.Language.Other";
+	}
+
 	// Ошибка разбора ячейки — текст уже переведён.
 	class ERowError : public Exception
 	{
@@ -132,7 +156,21 @@ std::vector<TCoinRecord> TCoinImporter::Parse(TXlsxSource &ASource)
 	}
 	for (const wchar_t *required : cRequired)
 		if (Column(required) < 0)
+		{
+			// Экспорт uCoin не на английском: заголовки и данные (страны, периоды,
+			// валюты) переведены — такой файл не принимаем, объясняем, как получить английский.
+			bool ucoin = true;
+			for (const wchar_t *untranslated : cUntranslated)
+				ucoin = ucoin && Column(untranslated) >= 0;
+			if (ucoin)
+				throw Exception(Format(Tr(L"Import.Error.Language"), ARRAYOFCONST((Tr(HeaderLanguage(header)))))
+					+ L" " + Tr(L"Import.Error.Language.Why") + sLineBreak + sLineBreak
+					+ Tr(L"Import.Error.Language.Fix") + sLineBreak
+					+ L"1. " + Tr(L"Import.Error.Language.Step1") + sLineBreak
+					+ L"2. " + Tr(L"Import.Error.Language.Step2") + sLineBreak
+					+ L"3. " + Tr(L"Import.Error.Language.Step3"));
 			throw Exception(Format(Tr(L"Import.Error.NoColumn"), ARRAYOFCONST((String(required)))));
+		}
 
 	result.reserve(ASource.RowCount());
 	for (int i = 1; i < ASource.RowCount(); ++i)
