@@ -84,6 +84,8 @@ public:
 
 	// Запросов к API за текущий месяц (по счётчику программы).
 	static int RequestsThisMonth();
+	// Исправить счётчик текущего месяца вручную (настройки Numista, задача 33); не сохраняет ini.
+	static void SetRequestsThisMonth(int ACount);
 
 private:
 	// GET BaseUrl + APath; AWithToken — добавить Authorization: Bearer.

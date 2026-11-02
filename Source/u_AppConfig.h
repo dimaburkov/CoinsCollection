@@ -33,6 +33,12 @@ public:
 	int       NumistaRequestsCount;  // запросов к API за этот месяц
 	int       NumistaMonthlyQuota;   // квота ключа в месяц (по умолчанию 2000)
 	bool      NumistaAutoLinkDetails; // автосвязь сразу загружает характеристики и фото типа (задача 17c)
+	bool      NumistaLoadTypePhotos;  // загружать фото типа из Numista (задача 33)
+	// Поля примірника, отправляемые на Numista при выгрузке (задача 33).
+	bool      NumistaUploadGrade;
+	bool      NumistaUploadPrice;
+	bool      NumistaUploadDate;
+	bool      NumistaUploadComment;
 
 	// Резервные копии ([Backup], задача 21): папка последней копии, дата последней копии и
 	// последнего напоминания (0 — не было).

@@ -418,11 +418,25 @@ T['numista-connect', 'en'] = u"""
 [[ui:Check connection|Перевірити підключення]].</li>
 </ol>
 <p>Each user uses their own key. The key is stored only in <code>CoinsCollection.ini</code> next to the program.</p>
+<h2>Settings tabs</h2>
+<ul>
+<li>[[ui:Connection|Підключення]] — the key, connection check, Numista lists.</li>
+<li>[[ui:What to load from Numista|Що завантажувати з Numista]] — type details on auto-link (the same check box as in the
+auto-link confirmation) and type photos (catalogue pictures). With photos off, linking and updating catalogue data load
+only the details; photos already loaded stay.</li>
+<li>[[ui:What to upload to Numista|Що вивантажувати на Numista]] — which fields of an item are sent on upload: condition,
+my price, purchase date, comment and swap. Type, issue and quantity are always sent. Items already on Numista are not changed.</li>
+<li>[[ui:Requests|Запити]] — requests used this month, the monthly quota (change it if you have a paid Numista plan) and the
+counter (correct it if the same key was used elsewhere).</li>
+</ul>
+[[shot:05b-numista-upload.png|The tab “What to upload to Numista”.]]
 <h2>Requests and quota</h2>
 <p>The free Numista key allows <b>2000 requests per month</b>. Every result window shows how many requests the operation used
 and how many are used this month.</p>
 <p>The quota is 2000 requests per calendar month; it is renewed on the 1st. The program counts only its own requests:
-requests made with the same key elsewhere (another computer, another program) are not counted.</p>
+requests made with the same key elsewhere (another computer, another program) are not counted — correct the counter
+on the tab [[ui:Requests|Запити]].</p>
+[[shot:05c-numista-requests.png|The tab “Requests”.]]
 <ul>
 <li>Answers are cached in <code>Numista\\</code>: the same type is never requested twice. Coins of one type from different
 years with the same catalogue number cost requests only once — the other years take the answers from the cache.
@@ -442,11 +456,25 @@ T['numista-connect', 'uk'] = u"""
 [[ui:Check connection|Перевірити підключення]].</li>
 </ol>
 <p>Кожен користувач використовує власний ключ. Ключ зберігається лише в <code>CoinsCollection.ini</code> поруч із програмою.</p>
+<h2>Вкладки налаштувань</h2>
+<ul>
+<li>[[ui:Connection|Підключення]] — ключ, перевірка підключення, списки Numista.</li>
+<li>[[ui:What to load from Numista|Що завантажувати з Numista]] — характеристики типу при автозв'язку (та сама позначка, що й
+у підтвердженні автозв'язку) і фото типу (зображення з каталогу). Якщо фото вимкнено, зв'язок і оновлення даних каталогу
+завантажують лише характеристики; вже завантажені фото залишаються.</li>
+<li>[[ui:What to upload to Numista|Що вивантажувати на Numista]] — які поля примірника надсилати при вивантаженні: стан,
+моя ціна, дата покупки, коментар і обмін. Тип, випуск і кількість надсилаються завжди. Примірники, вже вивантажені на Numista, не змінюються.</li>
+<li>[[ui:Requests|Запити]] — використано цього місяця, місячна квота (змініть, якщо у вас платний тариф Numista) і
+лічильник (виправте, якщо той самий ключ використовувався деінде).</li>
+</ul>
+[[shot:05b-numista-upload.png|Вкладка «Що вивантажувати на Numista».]]
 <h2>Запити та квота</h2>
 <p>Безкоштовний ключ Numista дає <b>2000 запитів на місяць</b>. Кожне вікно з підсумком показує, скільки запитів використала операція
 і скільки використано цього місяця.</p>
 <p>Квота — 2000 запитів за календарний місяць, оновлюється 1-го числа. Програма рахує лише власні запити:
-запити з тим самим ключем деінде (інший комп'ютер, інша програма) не враховуються.</p>
+запити з тим самим ключем деінде (інший комп'ютер, інша програма) не враховуються — виправте лічильник
+на вкладці [[ui:Requests|Запити]].</p>
+[[shot:05c-numista-requests.png|Вкладка «Запити».]]
 <ul>
 <li>Відповіді зберігаються в <code>Numista\\</code>: той самий тип ніколи не запитується двічі. Монети одного типу різних
 років з тим самим номером у каталозі витрачають запити лише один раз — інші роки беруть відповіді з кешу.
@@ -582,7 +610,8 @@ T['numista-upload', 'en'] = u"""
 [[shot:09-numista-comment.png|Numista: the private comment of a collection item with the rarity index.]]
 <h2>Upload to your Numista collection</h2>
 <p>One coin: right-click → [[ui:Upload to Numista|Вивантажити в Numista]]. Many: check items → [[ui:Upload|Вивантажити]].
-Only items linked with Numista (#Numista) are uploaded: condition, price, purchase date and comment. Photos are not uploaded.</p>
+Only items linked with Numista (#Numista) are uploaded: condition, price, purchase date and comment. Photos are not uploaded.
+Which of these fields are sent — [[page:numista-connect|Numista settings]], tab [[ui:What to upload to Numista|Що вивантажувати на Numista]].</p>
 <ul>
 <li>Uploaded items get ✓ and are not sent again.</li>
 <li>An item that you have already added on the Numista website is not duplicated: it is linked with that item and gets ✓.</li>
@@ -604,7 +633,8 @@ T['numista-upload', 'uk'] = u"""
 [[shot:09-numista-comment.png|Numista: приватний коментар предмета колекції з індексом рідкісності.]]
 <h2>Вивантаження у вашу колекцію на Numista</h2>
 <p>Одна монета: праве клацання → [[ui:Upload to Numista|Вивантажити в Numista]]. Багато: позначте примірники → [[ui:Upload|Вивантажити]].
-Вивантажуються лише примірники, пов'язані з Numista (#Numista): стан, ціна, дата купівлі та коментар. Фото не вивантажуються.</p>
+Вивантажуються лише примірники, пов'язані з Numista (#Numista): стан, ціна, дата купівлі та коментар. Фото не вивантажуються.
+Які з цих полів надсилати — [[page:numista-connect|налаштування Numista]], вкладка [[ui:What to upload to Numista|Що вивантажувати на Numista]].</p>
 <ul>
 <li>Вивантажені примірники отримують ✓ і повторно не надсилаються.</li>
 <li>Примірник, який ви вже додали на сайті Numista, не дублюється: його пов'язано з тим предметом, і він отримує ✓.</li>
@@ -664,7 +694,8 @@ Check the catalogue number in the coin card (KM#, Y#, C#). Coins with a uCoin nu
 [[page:numista-link|Numista: linking coins]], section “Wrong link”.</p>
 <h3>The monthly request quota is almost used</h3>
 <p>Work with checked coins (one request per run for upload and rarity), turn off
-[[ui:Also load type details and photos|Також завантажити характеристики й фото]] in auto-link and load the details later.</p>
+[[ui:Also load type details and photos|Також завантажити характеристики й фото]] in auto-link and load the details later.
+The counter and the quota are on the tab [[ui:Requests|Запити]] of [[page:numista-connect|Numista settings]].</p>
 <h3>Import: no column 'Country' / the file is not in English</h3>
 <p>The uCoin export was made in another language. Switch the uCoin site language to English, export the collection again
 and import the new file — [[page:import|Import from uCoin]].</p>
@@ -689,7 +720,8 @@ T['faq', 'uk'] = u"""
 [[page:numista-link|Numista: зв'язок монет]], розділ «Помилковий зв'язок».</p>
 <h3>Місячну квоту запитів майже вичерпано</h3>
 <p>Працюйте з позначеними монетами (один запит на запуск для вивантаження та індексу рідкісності), вимкніть
-[[ui:Also load type details and photos|Також завантажити характеристики й фото]] в автозв'язку й завантажте характеристики пізніше.</p>
+[[ui:Also load type details and photos|Також завантажити характеристики й фото]] в автозв'язку й завантажте характеристики пізніше.
+Лічильник і квота — на вкладці [[ui:Requests|Запити]] [[page:numista-connect|налаштувань Numista]].</p>
 <h3>Імпорт: немає колонки 'Country' / файл не англійською</h3>
 <p>Експорт uCoin зроблено іншою мовою. Перемкніть мову сайту uCoin на English, знову експортуйте колекцію
 й імпортуйте новий файл — [[page:import|Імпорт з uCoin]].</p>

@@ -56,6 +56,11 @@ TAppConfig::TAppConfig()
 	  NumistaRequestsCount(0),
 	  NumistaMonthlyQuota(cDefaultQuota),
 	  NumistaAutoLinkDetails(true),
+	  NumistaLoadTypePhotos(true),
+	  NumistaUploadGrade(true),
+	  NumistaUploadPrice(true),
+	  NumistaUploadDate(true),
+	  NumistaUploadComment(true),
 	  BackupLast(0.0),
 	  BackupAsked(0.0)
 {
@@ -109,6 +114,11 @@ void TAppConfig::Load()
 	NumistaRequestsCount = ini->ReadInteger(cNumistaSection, L"RequestsCount", 0);
 	NumistaMonthlyQuota  = ini->ReadInteger(cNumistaSection, L"MonthlyQuota", cDefaultQuota);
 	NumistaAutoLinkDetails = ini->ReadBool(cNumistaSection, L"AutoLinkDetails", true);
+	NumistaLoadTypePhotos  = ini->ReadBool(cNumistaSection, L"LoadTypePhotos", true);
+	NumistaUploadGrade     = ini->ReadBool(cNumistaSection, L"UploadGrade", true);
+	NumistaUploadPrice     = ini->ReadBool(cNumistaSection, L"UploadPrice", true);
+	NumistaUploadDate      = ini->ReadBool(cNumistaSection, L"UploadDate", true);
+	NumistaUploadComment   = ini->ReadBool(cNumistaSection, L"UploadComment", true);
 
 	BackupFolder = ini->ReadString(L"Backup", L"Folder", L"").Trim();
 	BackupLast   = ParseDateTime(ini->ReadString(L"Backup", L"Last", L""));
@@ -157,6 +167,11 @@ void TAppConfig::Save()
 		ini->WriteInteger(cNumistaSection, L"RequestsCount", NumistaRequestsCount);
 		ini->WriteInteger(cNumistaSection, L"MonthlyQuota", NumistaMonthlyQuota);
 		ini->WriteBool(cNumistaSection, L"AutoLinkDetails", NumistaAutoLinkDetails);
+		ini->WriteBool(cNumistaSection, L"LoadTypePhotos", NumistaLoadTypePhotos);
+		ini->WriteBool(cNumistaSection, L"UploadGrade", NumistaUploadGrade);
+		ini->WriteBool(cNumistaSection, L"UploadPrice", NumistaUploadPrice);
+		ini->WriteBool(cNumistaSection, L"UploadDate", NumistaUploadDate);
+		ini->WriteBool(cNumistaSection, L"UploadComment", NumistaUploadComment);
 	}
 }
 //---------------------------------------------------------------------------

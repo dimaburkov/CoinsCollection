@@ -3281,6 +3281,8 @@ int TfmMain::DownloadTypePhotos(TNumistaClient &AClient, const TNumistaTypeInfo 
 	bool AReplaceNumista, int &AFailed)
 {
 	int result = 0;
+	if (!AppConfig().NumistaLoadTypePhotos)	// выключено в настройках Numista (задача 33)
+		return result;
 	for (int s = 0; s < 2; ++s)
 	{
 		const TPhotoSide side = (TPhotoSide)s;

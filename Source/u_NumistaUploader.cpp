@@ -6,6 +6,7 @@
 #include <set>
 #include "u_NumistaUploader.h"
 #include "u_NumistaComment.h"
+#include "u_AppConfig.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 //---------------------------------------------------------------------------
@@ -96,23 +97,25 @@ String TNumistaUploader::ItemJson(const TCoinRecord &AItem)
 		json->AddPair(L"issue", new TJSONNumber(AItem.NumistaIssueId));
 	json->AddPair(L"quantity", new TJSONNumber(AItem.Quantity > 0 ? AItem.Quantity : 1));
 
-	const String grade = Grade(AItem.Condition);
+	// Какие поля отправлять — настройки Numista, вкладка «Що вивантажувати» (задача 33).
+	const TAppConfig &config = AppConfig();
+	const String grade = config.NumistaUploadGrade ? Grade(AItem.Condition) : String();
 	if (!grade.IsEmpty())
 		json->AddPair(L"grade", grade);
 
 	// Цена — только своя (My value); Catalog value — оценка uCoin, а не цена покупки.
-	if (AItem.MyValueUah > 0.0)
+	if (config.NumistaUploadPrice && AItem.MyValueUah > 0.0)
 	{
 		TJSONObject *price = new TJSONObject();
 		price->AddPair(L"value", new TJSONNumber(AItem.MyValueUah));
 		price->AddPair(L"currency", L"UAH");
 		json->AddPair(L"price", price);
 	}
-	if ((double)AItem.PurchaseDate != 0.0)
+	if (config.NumistaUploadDate && (double)AItem.PurchaseDate != 0.0)
 		json->AddPair(L"acquisition_date", FormatDateTime(L"yyyy-mm-dd", AItem.PurchaseDate));
 
 	// Атрибуты: S — обмен, C — комментарий (R — индекс редкости — пишет пользователь на сайте).
-	const String comment = TNumistaComment::Build(AItem.SwapInfo, AItem.Comment);
+	const String comment = config.NumistaUploadComment ? TNumistaComment::Build(AItem.SwapInfo, AItem.Comment) : String();
 	if (!comment.IsEmpty())
 		json->AddPair(L"private_comment", comment);
 
