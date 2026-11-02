@@ -15,7 +15,7 @@
 TfmNumistaSettings *fmNumistaSettings;
 //---------------------------------------------------------------------------
 __fastcall TfmNumistaSettings::TfmNumistaSettings(TComponent* Owner)
-	: TForm(Owner)
+	: TForm(Owner), FCounterShown(-1)
 {
 	Translator().TranslateForm(this);
 	InstallHelpKey(this, L"numista-connect");
@@ -25,9 +25,63 @@ void TfmNumistaSettings::Execute(TComponent *AOwner)
 {
 	std::unique_ptr<TfmNumistaSettings> form(new TfmNumistaSettings(AOwner));
 	form->edApiKey->Text = AppConfig().NumistaApiKey;
+	form->LoadOptions();
 	form->UpdateInfo();
-	if (form->ShowModal() == mrOk)
-		form->ApplyKey();
+	form->ShowModal();	// OK сохраняет сам (btnOKClick)
+}
+//---------------------------------------------------------------------------
+void TfmNumistaSettings::LoadOptions()
+{
+	const TAppConfig &config = AppConfig();
+	chkLoadDetails->Checked   = config.NumistaAutoLinkDetails;
+	chkLoadPhotos->Checked    = config.NumistaLoadTypePhotos;
+	chkUploadGrade->Checked   = config.NumistaUploadGrade;
+	chkUploadPrice->Checked   = config.NumistaUploadPrice;
+	chkUploadDate->Checked    = config.NumistaUploadDate;
+	chkUploadComment->Checked = config.NumistaUploadComment;
+	edQuota->Text = IntToStr(config.NumistaMonthlyQuota);
+}
+//---------------------------------------------------------------------------
+bool TfmNumistaSettings::ApplyOptions()
+{
+	const int quota = StrToIntDef(edQuota->Text.Trim(), -1);
+	if (quota < 100 || quota > 100000)
+	{
+		pcSettings->ActivePage = tsRequests;
+		edQuota->SetFocus();
+		Application->MessageBox(Format(Tr(L"NumistaSettings.BadNumber"), ARRAYOFCONST((100, 100000))).c_str(),
+			Caption.c_str(), MB_OK | MB_ICONWARNING);
+		return false;
+	}
+	const int counter = StrToIntDef(edCounter->Text.Trim(), -1);
+	if (counter < 0 || counter > quota)
+	{
+		pcSettings->ActivePage = tsRequests;
+		edCounter->SetFocus();
+		Application->MessageBox(Format(Tr(L"NumistaSettings.BadNumber"), ARRAYOFCONST((0, quota))).c_str(),
+			Caption.c_str(), MB_OK | MB_ICONWARNING);
+		return false;
+	}
+
+	ApplyKey();
+	TAppConfig &config = AppConfig();
+	config.NumistaAutoLinkDetails = chkLoadDetails->Checked;
+	config.NumistaLoadTypePhotos  = chkLoadPhotos->Checked;
+	config.NumistaUploadGrade     = chkUploadGrade->Checked;
+	config.NumistaUploadPrice     = chkUploadPrice->Checked;
+	config.NumistaUploadDate      = chkUploadDate->Checked;
+	config.NumistaUploadComment   = chkUploadComment->Checked;
+	config.NumistaMonthlyQuota    = quota;
+	if (counter != FCounterShown)	// исправлен вручную
+		TNumistaClient::SetRequestsThisMonth(counter);
+	config.Save();
+	return true;
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmNumistaSettings::btnOKClick(TObject *Sender)
+{
+	if (ApplyOptions())
+		ModalResult = mrOk;
 }
 //---------------------------------------------------------------------------
 void TfmNumistaSettings::ApplyKey()
@@ -52,8 +106,16 @@ void TfmNumistaSettings::UpdateInfo()
 			FormatDateTime(L"dd.mm.yyyy", config.NumistaTokenExpires))))
 		: Tr(L"NumistaSettings.NotConnected");
 
+	const int requests = TNumistaClient::RequestsThisMonth();
 	lblRequests->Caption = Format(Tr(L"NumistaSettings.Requests"),
-		ARRAYOFCONST((TNumistaClient::RequestsThisMonth(), config.NumistaMonthlyQuota)));
+		ARRAYOFCONST((requests, config.NumistaMonthlyQuota)));
+	lblUsed->Caption = Format(Tr(L"NumistaSettings.Used"), ARRAYOFCONST((requests, config.NumistaMonthlyQuota)));
+	// Поле счётчика — новое значение после «Перевірити підключення», если пользователь его не правил.
+	if (FCounterShown < 0 || StrToIntDef(edCounter->Text.Trim(), -1) == FCounterShown)
+	{
+		edCounter->Text = IntToStr(requests);
+		FCounterShown = requests;
+	}
 
 	const int issuers = TNumistaClient::CachedCount(L"issuers");
 	const int catalogues = TNumistaClient::CachedCount(L"catalogues");

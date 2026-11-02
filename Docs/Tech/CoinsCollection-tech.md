@@ -95,8 +95,10 @@
 | `[UI] Language` | `en` (по умолчанию) / `uk` |
 | `[Numista] ApiKey` | Ключ API пользователя |
 | `[Numista] AccessToken`, `TokenExpires`, `UserId` | OAuth (client credentials) |
-| `[Numista] RequestsMonth`, `RequestsCount`, `MonthlyQuota` | Счётчик запросов за месяц, квота (2000) |
-| `[Numista] AutoLinkDetails` | Автосвязь сразу загружает характеристики и фото |
+| `[Numista] RequestsMonth`, `RequestsCount`, `MonthlyQuota` | Счётчик запросов за месяц, квота (2000); квоту и счётчик можно изменить в настройках Numista, вкладка «Запити» |
+| `[Numista] AutoLinkDetails` | Автосвязь сразу загружает характеристики (и фото, если `LoadTypePhotos`) |
+| `[Numista] LoadTypePhotos` | Загружать фото типа из Numista (1 по умолчанию) |
+| `[Numista] UploadGrade`, `UploadPrice`, `UploadDate`, `UploadComment` | Какие поля примірника отправлять при выгрузке (`grade`, `price`, `acquisition_date`, `private_comment`; все 1 по умолчанию) |
 | `[Backup] Folder`, `Last`, `Asked` | Папка последней копии, дата копии, дата напоминания |
 
 ---

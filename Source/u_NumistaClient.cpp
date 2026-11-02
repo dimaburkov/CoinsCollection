@@ -72,6 +72,13 @@ int TNumistaClient::RequestsThisMonth()
 	return config.NumistaRequestsMonth == CurrentMonth() ? config.NumistaRequestsCount : 0;
 }
 //---------------------------------------------------------------------------
+void TNumistaClient::SetRequestsThisMonth(int ACount)
+{
+	TAppConfig &config = AppConfig();
+	config.NumistaRequestsMonth = CurrentMonth();
+	config.NumistaRequestsCount = ACount < 0 ? 0 : ACount;
+}
+//---------------------------------------------------------------------------
 std::unique_ptr<TJSONValue> TNumistaClient::ParseJson(const String &AText)
 {
 	std::unique_ptr<TJSONValue> json(TJSONObject::ParseJSONValue(AText));
