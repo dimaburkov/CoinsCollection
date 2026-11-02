@@ -48,7 +48,7 @@ namespace
 		L"", L"Main.Column.Country", L"Main.Column.Period", L"Main.Column.Currency", L"Main.Column.Denomination",
 		L"Main.Column.Subject", L"Main.Column.Numista", L"Main.Column.Uploaded", L"Main.Column.Rarity", L"Main.Column.Mintage",
 		L"Main.Column.Composition",
-		L"Main.Column.Year", L"Main.Column.Condition", L"Main.Column.Value"
+		L"Main.Column.Year", L"Main.Column.Condition", L"Main.Column.Value", L"Main.Column.NumistaPrice"
 	};
 	//-----------------------------------------------------------------------
 	// Строки — «как в Проводнике»: без учёта регистра, числа внутри по значению
@@ -68,7 +68,7 @@ namespace
 	// Ширина колонок по умолчанию (порядок = TItemColumn).
 	// Auto-link checked: больше стольких монет — подтверждение.
 	const int cConfirmCheckCoins = 10;
-	const int cDefaultWidths[] = { 22, 130, 160, 120, 130, 200, 70, 24, 70, 85, 120, 50, 65, 85 };
+	const int cDefaultWidths[] = { 22, 130, 160, 120, 130, 200, 70, 24, 70, 85, 120, 50, 65, 85, 95 };
 	// Наименьшая ширина колонки «Сюжет», растянутой на свободное место (задача 27).
 	const int cMinSubjectWidth = 150;
 	// Подписи строк панели подробностей (порядок = TDetailRowIndex).
@@ -76,7 +76,7 @@ namespace
 	{
 		L"Main.Details.Period", L"Main.Details.Currency", L"Main.Details.Ruler", L"Main.Details.Subject",
 		L"Main.Details.Number", L"Main.Details.Numista", L"Main.Details.NumistaItem", L"Main.Details.IssueComment",
-		L"Main.Details.Weight", L"Main.Details.Size", L"Main.Details.Shape", L"Main.Details.Technique",
+		L"Main.Details.Prices", L"Main.Details.Weight", L"Main.Details.Size", L"Main.Details.Shape", L"Main.Details.Technique",
 		L"Main.Details.Series", L"Main.Details.Commemorated", L"Main.Details.TypeYears", L"Main.Details.Mints",
 		L"Main.Details.Category", L"Main.Details.Demonetized"
 	};
@@ -691,6 +691,166 @@ void __fastcall TfmMain::actReferenceExecute(TObject *Sender)
 void __fastcall TfmMain::actNumistaSettingsExecute(TObject *Sender)
 {
 	TfmNumistaSettings::Execute(this);
+	LoadItems();	// цены (валюта, вкл/выкл) и колонка «Оцінка Numista» — задача 34
+}
+//---------------------------------------------------------------------------
+// Оценка Numista для состояния монеты в валюте настроек (задача 34); 0 — нет выпуска / цены / оценки.
+double TfmMain::NumistaPrice(const TCoinRecord &ARecord) const
+{
+	if (ARecord.NumistaIssueId == 0)
+		return 0.0;
+	std::map<int, TNumistaPrices>::const_iterator it = FPrices.find(ARecord.NumistaIssueId);
+	return it == FPrices.end() ? 0.0 : it->second.ForCondition(ARecord.Condition);
+}
+//---------------------------------------------------------------------------
+// «G 50 · F 180 · [VF 220] · XF 380 UAH (02.11.2026)» — состояние монеты в скобках.
+String TfmMain::NumistaPricesText(const TCoinRecord &ARecord) const
+{
+	if (ARecord.NumistaIssueId == 0)
+		return Tr(ARecord.NumistaTypeId == 0 ? L"Main.Details.PricesNoLink" : L"Main.Details.PricesNoIssue");
+	std::map<int, TNumistaPrices>::const_iterator it = FPrices.find(ARecord.NumistaIssueId);
+	if (it == FPrices.end())
+		return Tr(L"Main.Details.PricesNotLoaded");
+	const TNumistaPrices &p = it->second;
+	const String date = FormatDateTime(L"dd.mm.yyyy", p.Updated);
+	if (p.Empty())
+		return Format(Tr(L"Main.Details.PricesNone"), ARRAYOFCONST((date)));
+	const int own = TNumistaPrices::GradeIndex(ARecord.Condition);
+	String text;
+	for (int i = 0; i < TNumistaPrices::GradeCount; ++i)
+	{
+		if (p.Price[i] <= 0.0)
+			continue;
+		String part = TNumistaPrices::GradeCode(i).UpperCase() + L" " + FormatFloat(L"#,##0.##", p.Price[i]);
+		if (i == own)
+			part = L"[" + part + L"]";
+		text += (text.IsEmpty() ? String() : String(L" \u00B7 ")) + part;
+	}
+	return text + L" " + p.Currency + L" (" + date + L")";
+}
+//---------------------------------------------------------------------------
+// Загрузка цен Numista (getPrices, задача 34) для монет ACoins: 1 запрос на выпуск. Выпуск с ценой
+// моложе PriceDays дней (AOne — с сегодняшней) не запрашивается. Монеты без выпуска пропускаются.
+void TfmMain::LoadNumistaPrices(const std::vector<TCoinRecord> &ACoins, bool AOne)
+{
+	const String caption = StripHotkey((AOne ? actNumistaPricesOne : actNumistaPrices)->Caption);
+	const String currency = AppConfig().NumistaPriceCurrency;
+	const TDateTime freshFrom = Date() - (AOne ? 0 : AppConfig().NumistaPriceDays - 1);
+
+	std::map<int, int> issueTypes;		// выпуск -> тип
+	std::map<int, String> issueNames;	// выпуск -> монета для окна хода
+	std::set<int> coins, noIssueCoins, freshIssues;
+	for (size_t i = 0; i < ACoins.size(); ++i)
+	{
+		const TCoinRecord &r = ACoins[i];
+		coins.insert(r.CoinId);
+		if (r.NumistaIssueId == 0)
+		{
+			noIssueCoins.insert(r.CoinId);
+			continue;
+		}
+		std::map<int, TNumistaPrices>::const_iterator p = FPrices.find(r.NumistaIssueId);
+		if (p != FPrices.end() && p->second.Updated >= freshFrom)
+		{
+			freshIssues.insert(r.NumistaIssueId);
+			continue;
+		}
+		issueTypes[r.NumistaIssueId] = r.NumistaTypeId;
+		if (!issueNames.count(r.NumistaIssueId))
+			issueNames[r.NumistaIssueId] = CoinText(r);
+	}
+	const int needed = (int)issueTypes.size();
+	if (needed == 0)
+	{
+		Application->MessageBox(Format(Tr(L"Numista.Prices.Nothing"), ARRAYOFCONST(((int)freshIssues.size(),
+			(int)noIssueCoins.size()))).c_str(), caption.c_str(), MB_OK | MB_ICONINFORMATION);
+		return;
+	}
+	const int left = AppConfig().NumistaMonthlyQuota - TNumistaClient::RequestsThisMonth();
+	if (needed > left)
+	{
+		Application->MessageBox(Format(Tr(L"Numista.Prices.Quota"), ARRAYOFCONST((needed, left))).c_str(),
+			caption.c_str(), MB_OK | MB_ICONWARNING);
+		return;
+	}
+	const String nl = L"\r\n";
+	if (!AOne && !Confirm(Tr(L"Numista.Prices.Confirm") + nl + nl
+		+ Format(Tr(L"Numista.Prices.ConfirmCoins"), ARRAYOFCONST(((int)coins.size(), (int)(issueTypes.size() + freshIssues.size())))) + nl
+		+ Format(Tr(L"Numista.Prices.ConfirmRequests"), ARRAYOFCONST((needed, (int)freshIssues.size()))) + nl
+		+ Format(Tr(L"Numista.Prices.ConfirmNoIssue"), ARRAYOFCONST(((int)noIssueCoins.size()))) + nl
+		+ Format(Tr(L"Numista.Prices.ConfirmCurrency"), ARRAYOFCONST((currency))) + nl + nl
+		+ Format(Tr(L"Numista.Prices.ConfirmUsed"), ARRAYOFCONST((TNumistaClient::RequestsThisMonth(),
+			AppConfig().NumistaMonthlyQuota))), caption))
+		return;
+
+	TNumistaClient client;
+	TNumistaMatcher matcher(client);
+	int loaded = 0, empty = 0, failed = 0, done = 0;
+	String stopReason;
+	std::unique_ptr<TProgress> progress;
+	if (!AOne)
+		progress.reset(new TProgress(this, caption, needed, &client));
+	const TCursor saved = Screen->Cursor;
+	if (AOne)
+		Screen->Cursor = crHourGlass;
+	for (std::map<int, int>::const_iterator it = issueTypes.begin(); it != issueTypes.end(); ++it, ++done)
+	{
+		if (progress && !progress->Step(done, issueNames[it->first]))
+		{
+			stopReason = Tr(L"Progress.Stopped");
+			break;
+		}
+		try
+		{
+			const TNumistaPrices prices = matcher.LoadPrices(it->second, it->first, currency);
+			FRepository->SaveNumistaPrices(prices);
+			if (prices.Empty())
+				++empty;
+			else
+				++loaded;
+		}
+		catch (ENumistaError &e)
+		{
+			// 404 — выпуск удалён на Numista: дальше; 400 — валюта не принята, 429 и прочее — стоп.
+			if (e.StatusCode == 404)
+			{
+				++failed;
+				continue;
+			}
+			stopReason = e.StatusCode == 400 ? Format(Tr(L"Numista.Prices.BadCurrency"), ARRAYOFCONST((currency))) : e.Message;
+			break;
+		}
+		catch (Exception &e)
+		{
+			stopReason = e.Message;
+			break;
+		}
+	}
+	progress.reset();
+	Screen->Cursor = saved;
+
+	LoadItems();
+	String report = Format(Tr(L"Numista.Prices.Done"), ARRAYOFCONST((loaded, empty, (int)freshIssues.size(),
+		(int)noIssueCoins.size()))) + L"\r\n" + NumistaRequestsText(client.RequestsMade);
+	if (failed > 0)
+		report += L"\r\n" + Format(Tr(L"Numista.Prices.Failed"), ARRAYOFCONST((failed)));
+	if (!stopReason.IsEmpty())
+		report += L"\r\n\r\n" + stopReason;
+	Application->MessageBox(report.c_str(), caption.c_str(),
+		MB_OK | (stopReason.IsEmpty() ? MB_ICONINFORMATION : MB_ICONWARNING));
+}
+//---------------------------------------------------------------------------
+// Numista → «Завантажити ціни Numista» (одна монета) / «Ціни Numista…» (отмеченные); задача 34.
+void __fastcall TfmMain::actNumistaPricesExecute(TObject *Sender)
+{
+	if (Sender == actNumistaPricesOne)
+	{
+		const int index = CurrentIndex();
+		if (index >= 0)
+			LoadNumistaPrices(std::vector<TCoinRecord>(1, FItems[index]), true);
+	}
+	else
+		LoadNumistaPrices(CheckedRecords(), false);
 }
 //---------------------------------------------------------------------------
 // Коды эмитентов Numista по странам (после EnsureCountryIssuers).
@@ -1541,6 +1701,11 @@ void __fastcall TfmMain::actNumistaUpdate(TObject *Sender)
 	actNumistaRarityOne->Enabled  = coinUploaded;
 	actNumistaRefreshOne->Enabled = coin && coin->NumistaTypeId != 0;
 	actNumistaUnlinkOne->Enabled  = coin && coin->NumistaTypeId != 0;
+	// Цены Numista (задача 34) — команды видны, только если цены включены в настройках.
+	actNumistaPricesOne->Visible  = AppConfig().NumistaLoadPrices;
+	actNumistaPrices->Visible     = AppConfig().NumistaLoadPrices;
+	actNumistaPricesOne->Enabled  = coin && coin->NumistaIssueId != 0;
+	actNumistaPrices->Enabled     = linked;
 
 	actNumistaCheck->Enabled   = noType;
 	actNumistaUpload->Enabled  = toUpload;
@@ -2445,6 +2610,7 @@ void TfmMain::LoadItems()
 		FConditionOrder[conditions[i].Code] = conditions[i].SortOrder;
 
 	FAll = FRepository->LoadAll();
+	FPrices = FRepository->LoadNumistaPrices(AppConfig().NumistaPriceCurrency);
 
 	// Отметки — только у существующих экземпляров (удаление, импорт).
 	std::set<int> ids;
@@ -2658,9 +2824,10 @@ void TfmMain::UpdateColumns()
 {
 	const TNavNode *node = CurrentNode();
 	const bool showCountry = !node || node->Kind != nkCountry;
+	const bool showPrice = AppConfig().NumistaLoadPrices;	// задача 34
 	std::vector<int> columns;
 	for (int c = 0; c < icCount; ++c)
-		if ((c != icCountry || showCountry) && (c != icSubject || !showCountry))
+		if ((c != icCountry || showCountry) && (c != icSubject || !showCountry) && (c != icNumistaPrice || showPrice))
 			columns.push_back(c);
 	if (columns == FColumns && dgItems->ColCount == (int)columns.size())
 		return;
@@ -2767,6 +2934,7 @@ int TfmMain::CompareItems(const TCoinRecord &A, const TCoinRecord &B, int AColum
 		case icSubject:      return CompareStrings(A.Subject, B.Subject);
 		case icYear:         return A.Year != B.Year ? CompareValues(A.Year, B.Year) : CompareValues(A.YearTo, B.YearTo);
 		case icValue:        return CompareValues(A.CatalogValueUah, B.CatalogValueUah);
+		case icNumistaPrice: return CompareValues(NumistaPrice(A), NumistaPrice(B));
 		case icCondition:
 		{
 			std::map<String, int>::const_iterator a = FConditionOrder.find(A.Condition);
@@ -2814,6 +2982,11 @@ String TfmMain::CellText(const TCoinRecord &R, int AColumn) const
 		case icYear:         return YearText(R.Year, R.YearTo);
 		case icCondition:    return R.Condition;
 		case icValue:        return R.CatalogValueUah == 0.0 ? String() : FormatFloat(L"#,##0.00", R.CatalogValueUah);
+		case icNumistaPrice:
+		{
+			const double price = NumistaPrice(R);
+			return price == 0.0 ? String() : FormatFloat(L"#,##0.00", price);
+		}
 	}
 	return String();
 }
@@ -2878,7 +3051,8 @@ void __fastcall TfmMain::dgItemsDrawCell(TObject *Sender, int ACol, int ARow,
 
 	String text;
 	if (ARow == 0)
-		text = Tr(cColumnKeys[column]);
+		text = column == icNumistaPrice ? Format(Tr(cColumnKeys[column]), ARRAYOFCONST((AppConfig().NumistaPriceCurrency)))
+			: Tr(cColumnKeys[column]);
 	else if (ARow - 1 < (int)FItems.size())
 		text = CellText(FItems[ARow - 1], column);
 
@@ -2907,7 +3081,7 @@ void __fastcall TfmMain::dgItemsDrawCell(TObject *Sender, int ACol, int ARow,
 
 	UINT flags = DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX;
 	if (ARow > 0 && (column == icYear || column == icValue || column == icNumista || column == icRarity
-		|| column == icMintage))
+		|| column == icMintage || column == icNumistaPrice))
 		flags |= DT_RIGHT;
 	if (column == icUploaded)
 		flags = (flags & ~DT_END_ELLIPSIS) | DT_CENTER;
@@ -3196,6 +3370,7 @@ void TfmMain::ShowDetails(int AIndex)
 		FDetailRows[drNumistaItem].Value->Caption = r.NumistaItemId == 0 ? String(L"\u2014")
 			: L"#" + IntToStr(r.NumistaItemId);
 		FDetailRows[drIssueComment].Value->Caption = value(r.NumistaIssueComment);
+		FDetailRows[drPrices].Value->Caption = NumistaPricesText(r);
 		ShowTypeDetails(r.NumistaTypeLoaded ? r.NumistaTypeId : 0);
 	}
 	else
@@ -3213,7 +3388,8 @@ void TfmMain::ShowDetails(int AIndex)
 	for (size_t i = 0; i < FDetailRows.size(); ++i)
 	{
 		// Характеристики типа — только непустые.
-		const bool visible = has && ((int)i < drWeight || !FDetailRows[i].Value->Caption.IsEmpty());
+		const bool visible = has && ((int)i < drWeight || !FDetailRows[i].Value->Caption.IsEmpty())
+			&& ((int)i != drPrices || AppConfig().NumistaLoadPrices);
 		FDetailRows[i].Caption->Visible = visible;
 		FDetailRows[i].Value->Visible   = visible;
 	}

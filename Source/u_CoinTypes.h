@@ -160,6 +160,31 @@ struct TNumistaTypeInfo
 };
 
 //---------------------------------------------------------------------------
+// Оценка цен выпуска Numista по состояниям (getPrices; таблица numista_prices — задача 34).
+// Price[i] — для состояния GradeCode(i) (g, vg, f, vf, xf, au, unc); 0 — нет оценки.
+//---------------------------------------------------------------------------
+struct TNumistaPrices
+{
+	static const int GradeCount = 7;
+	int       IssueId;
+	String    Currency;
+	double    Price[GradeCount];
+	TDateTime Updated;          // 0 — не загружались
+	TNumistaPrices() : IssueId(0), Updated(0.0)
+	{
+		for (int i = 0; i < GradeCount; ++i)
+			Price[i] = 0.0;
+	}
+	// Код состояния Numista: "g" … "unc".
+	static String GradeCode(int AIndex);
+	// Индекс состояния Numista для кода состояния программы (G … UNC); -1 — нет в шкале (P, FR, PRF, пусто).
+	static int GradeIndex(const String &ACondition);
+	// Оценка для состояния программы (0 — нет).
+	double ForCondition(const String &ACondition) const;
+	bool   Empty() const;
+};
+
+//---------------------------------------------------------------------------
 // Год / диапазон для показа (задача 20): "1996", "174–179", до н. э. — "44 BC" / "44 до н. е.".
 String YearText(int AYear, int AYearTo = 0);
 

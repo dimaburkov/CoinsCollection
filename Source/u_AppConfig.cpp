@@ -57,6 +57,9 @@ TAppConfig::TAppConfig()
 	  NumistaMonthlyQuota(cDefaultQuota),
 	  NumistaAutoLinkDetails(true),
 	  NumistaLoadTypePhotos(true),
+	  NumistaLoadPrices(false),
+	  NumistaPriceCurrency(L"UAH"),
+	  NumistaPriceDays(90),
 	  NumistaUploadGrade(true),
 	  NumistaUploadPrice(true),
 	  NumistaUploadDate(true),
@@ -115,6 +118,13 @@ void TAppConfig::Load()
 	NumistaMonthlyQuota  = ini->ReadInteger(cNumistaSection, L"MonthlyQuota", cDefaultQuota);
 	NumistaAutoLinkDetails = ini->ReadBool(cNumistaSection, L"AutoLinkDetails", true);
 	NumistaLoadTypePhotos  = ini->ReadBool(cNumistaSection, L"LoadTypePhotos", true);
+	NumistaLoadPrices      = ini->ReadBool(cNumistaSection, L"LoadPrices", false);
+	NumistaPriceCurrency   = ini->ReadString(cNumistaSection, L"PriceCurrency", L"UAH").Trim().UpperCase();
+	if (NumistaPriceCurrency.Length() != 3)
+		NumistaPriceCurrency = L"UAH";
+	NumistaPriceDays       = ini->ReadInteger(cNumistaSection, L"PriceDays", 90);
+	if (NumistaPriceDays < 1 || NumistaPriceDays > 3650)
+		NumistaPriceDays = 90;
 	NumistaUploadGrade     = ini->ReadBool(cNumistaSection, L"UploadGrade", true);
 	NumistaUploadPrice     = ini->ReadBool(cNumistaSection, L"UploadPrice", true);
 	NumistaUploadDate      = ini->ReadBool(cNumistaSection, L"UploadDate", true);
@@ -168,6 +178,9 @@ void TAppConfig::Save()
 		ini->WriteInteger(cNumistaSection, L"MonthlyQuota", NumistaMonthlyQuota);
 		ini->WriteBool(cNumistaSection, L"AutoLinkDetails", NumistaAutoLinkDetails);
 		ini->WriteBool(cNumistaSection, L"LoadTypePhotos", NumistaLoadTypePhotos);
+		ini->WriteBool(cNumistaSection, L"LoadPrices", NumistaLoadPrices);
+		ini->WriteString(cNumistaSection, L"PriceCurrency", NumistaPriceCurrency);
+		ini->WriteInteger(cNumistaSection, L"PriceDays", NumistaPriceDays);
 		ini->WriteBool(cNumistaSection, L"UploadGrade", NumistaUploadGrade);
 		ini->WriteBool(cNumistaSection, L"UploadPrice", NumistaUploadPrice);
 		ini->WriteBool(cNumistaSection, L"UploadDate", NumistaUploadDate);

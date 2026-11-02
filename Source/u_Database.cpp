@@ -72,7 +72,8 @@ void TDatabase::EnsureSchema()
 		if (version < 8) { MigrateTo8(); version = 8; }
 		if (version < 9) { MigrateTo9(); version = 9; }
 		if (version < 10) { MigrateTo10(); version = 10; }
-		// if (version < 11) { MigrateTo11(); version = 11; }
+		if (version < 11) { MigrateTo11(); version = 11; }
+		// if (version < 12) { MigrateTo12(); version = 12; }
 
 		// PRAGMA не принимает параметры; version — целое из кода.
 		FConnection->ExecSQL(L"PRAGMA user_version = " + IntToStr(version));
@@ -316,6 +317,26 @@ void TDatabase::MigrateTo10()
 {
 	FConnection->ExecSQL(L"ALTER TABLE coins ADD COLUMN year_to INTEGER");
 	FConnection->ExecSQL(L"ALTER TABLE coin_items ADD COLUMN origin TEXT");
+}
+//---------------------------------------------------------------------------
+// v11: оценки цен Numista по состояниям (задача 34, getPrices) — строка на выпуск и валюту;
+// NULL — нет оценки для состояния; строка со всеми NULL — выпуск проверен, оценки нет.
+void TDatabase::MigrateTo11()
+{
+	FConnection->ExecSQL(
+		L"CREATE TABLE numista_prices ("
+		L"  issue_id   INTEGER NOT NULL,"
+		L"  currency   TEXT NOT NULL,"
+		L"  g          REAL,"
+		L"  vg         REAL,"
+		L"  f          REAL,"
+		L"  vf         REAL,"
+		L"  xf         REAL,"
+		L"  au         REAL,"
+		L"  unc        REAL,"
+		L"  updated_at TEXT NOT NULL,"
+		L"  PRIMARY KEY (issue_id, currency)"
+		L")");
 }
 //---------------------------------------------------------------------------
 // Справочники с начальным составом (u_SeedData). «Extinct states» — не континент:

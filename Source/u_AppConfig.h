@@ -34,6 +34,10 @@ public:
 	int       NumistaMonthlyQuota;   // квота ключа в месяц (по умолчанию 2000)
 	bool      NumistaAutoLinkDetails; // автосвязь сразу загружает характеристики и фото типа (задача 17c)
 	bool      NumistaLoadTypePhotos;  // загружать фото типа из Numista (задача 33)
+	// Цены Numista (задача 34): включены, валюта (UAH / USD / EUR), обновлять старше N дней.
+	bool      NumistaLoadPrices;
+	String    NumistaPriceCurrency;
+	int       NumistaPriceDays;
 	// Поля примірника, отправляемые на Numista при выгрузке (задача 33).
 	bool      NumistaUploadGrade;
 	bool      NumistaUploadPrice;

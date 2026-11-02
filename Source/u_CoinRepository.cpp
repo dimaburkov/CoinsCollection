@@ -837,6 +837,38 @@ void TCoinRepository::SaveNumistaType(const TNumistaTypeInfo &AType)
 	q->ExecSQL();
 }
 //---------------------------------------------------------------------------
+void TCoinRepository::SaveNumistaPrices(const TNumistaPrices &APrices)
+{
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
+		L"INSERT OR REPLACE INTO numista_prices (issue_id, currency, g, vg, f, vf, xf, au, unc, updated_at)"
+		L" VALUES (:issue_id, :currency, :g, :vg, :f, :vf, :xf, :au, :unc, :updated_at)");
+	q->ParamByName(L"issue_id")->AsInteger = APrices.IssueId;
+	q->ParamByName(L"currency")->AsWideString = APrices.Currency.UpperCase();
+	for (int i = 0; i < TNumistaPrices::GradeCount; ++i)
+		SetFloatOrNull(q->ParamByName(TNumistaPrices::GradeCode(i)), APrices.Price[i]);
+	q->ParamByName(L"updated_at")->AsWideString = DateToDb((double)APrices.Updated != 0.0 ? APrices.Updated : Date());
+	q->ExecSQL();
+}
+//---------------------------------------------------------------------------
+std::map<int, TNumistaPrices> TCoinRepository::LoadNumistaPrices(const String &ACurrency)
+{
+	std::map<int, TNumistaPrices> result;
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, L"SELECT * FROM numista_prices WHERE currency = :currency");
+	q->ParamByName(L"currency")->AsWideString = ACurrency.UpperCase();
+	q->Open();
+	for (; !q->Eof; q->Next())
+	{
+		TNumistaPrices p;
+		p.IssueId  = FieldInt(q.get(), L"issue_id");
+		p.Currency = FieldText(q.get(), L"currency");
+		for (int i = 0; i < TNumistaPrices::GradeCount; ++i)
+			p.Price[i] = FieldFloat(q.get(), TNumistaPrices::GradeCode(i));
+		p.Updated  = DateFromDb(FieldText(q.get(), L"updated_at"));
+		result[p.IssueId] = p;
+	}
+	return result;
+}
+//---------------------------------------------------------------------------
 bool TCoinRepository::LoadNumistaType(int ATypeId, TNumistaTypeInfo &AType)
 {
 	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, L"SELECT * FROM numista_types WHERE id = :id");

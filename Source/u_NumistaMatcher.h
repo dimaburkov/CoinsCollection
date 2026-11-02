@@ -91,6 +91,9 @@ public:
 	// Характеристики типа (getType, с кэшем; ARefresh — мимо кэша). Задача 13d.
 	TNumistaTypeInfo LoadType(int ATypeId, bool ARefresh = false);
 	static String TypePath(int ATypeId);
+	// Оценка цен выпуска по состояниям (getPrices, всегда запрос — 1 из квоты; задача 34).
+	// ACurrency — код ISO 4217 (UAH, USD, EUR). Updated — сегодня.
+	TNumistaPrices LoadPrices(int ATypeId, int AIssueId, const String &ACurrency);
 
 	static String TypeUrl(int ATypeId);
 	// Знак двора для сравнения: заглавные, без точек / пробелов / дефисов, кириллица латиницей.

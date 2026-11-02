@@ -68,6 +68,12 @@ __published:	// IDE-managed Components
 	TAction *actNumistaRefreshOne;
 	TAction *actNumistaUnlinkOne;
 	TAction *actNumistaUnlink;
+	TAction *actNumistaPricesOne;
+	TAction *actNumistaPrices;
+	TMenuItem *miNumistaPricesOne;
+	TMenuItem *miNumistaPrices;
+	TMenuItem *miPopNumistaPricesOne;
+	TMenuItem *miPopNumistaPrices;
 	TAction *actSettings;
 	TAction *actAbout;
 	TMainMenu *MainMenu;
@@ -206,6 +212,7 @@ __published:	// IDE-managed Components
 	void __fastcall dgItemsContextPopup(TObject *Sender, const TPoint &MousePos, bool &Handled);
 	void __fastcall actNumistaRarityExecute(TObject *Sender);
 	void __fastcall actNumistaCatalogExecute(TObject *Sender);
+	void __fastcall actNumistaPricesExecute(TObject *Sender);
 	void __fastcall actHelpContentsExecute(TObject *Sender);
 	void __fastcall actNumistaImportExecute(TObject *Sender);
 	void __fastcall actCheckAllExecute(TObject *Sender);
@@ -216,10 +223,10 @@ private:	// User declarations
 	// Колонки списка (логические; видимые и их порядок — FColumns).
 	// icCheck — флажок отметки, icNumista — N# (задача 12a), icUploaded — выгружен в коллекцию Numista (задача 13),
 	// icRarity — индекс редкости (задача 13a), icMintage — тираж выпуска (задача 13c),
-	// icComposition — металл типа (задача 13d).
+	// icComposition — металл типа (задача 13d), icNumistaPrice — оценка Numista для состояния (задача 34).
 	enum TItemColumn { icCheck, icCountry, icPeriod, icCurrency, icDenomination, icSubject, icNumista, icUploaded, icRarity,
 		icMintage,
-		icComposition, icYear, icCondition, icValue, icCount };
+		icComposition, icYear, icCondition, icValue, icNumistaPrice, icCount };
 
 	// Строка панели подробностей: подпись и значение (создаются в коде, см. CreateDetailRows).
 	struct TDetailRow
@@ -230,8 +237,9 @@ private:	// User declarations
 	};
 	// Две колонки: drPeriod … drIssueComment — всегда («—», если пусто); со drWeight — характеристики
 	// типа Numista (задача 13d), пустые не показываются. Металл — только в таблице.
+	// drPrices — цены Numista (задача 34), только если цены включены.
 	enum TDetailRowIndex { drPeriod, drCurrency, drRuler, drSubject, drNumber, drNumista, drNumistaItem, drIssueComment,
-		drWeight, drSize, drShape, drTechnique, drSeries, drCommemorated, drTypeYears, drMints, drCategory,
+		drPrices, drWeight, drSize, drShape, drTechnique, drSeries, drCommemorated, drTypeYears, drMints, drCategory,
 		drDemonetized, drCount };
 
 	// Узел дерева навигации: что он отбирает.
@@ -248,6 +256,7 @@ private:	// User declarations
 	std::unique_ptr<TCoinRepository> FRepository;
 	std::unique_ptr<TPhotoRepository> FPhotos;
 	std::vector<TCoinRecord>         FAll;             // вся коллекция из БД
+	std::map<int, TNumistaPrices>    FPrices;          // цены Numista в валюте настроек: выпуск -> оценки (задача 34)
 	std::vector<String>              FSearchTexts;     // текст для поиска по FAll[i] (в верхнем регистре)
 	std::vector<TCoinRecord>         FItems;           // показанные (после фильтров), в порядке показа (строка сетки = индекс + 1)
 	std::map<String, TCountry>       FCountryByName;   // имя страны (AnsiUpperCase) -> страна
@@ -330,6 +339,10 @@ private:	// User declarations
 	void ShowDetailPhotos(const TCoinRecord *ARecord);
 	int  DownloadTypePhotos(TNumistaClient &AClient, const TNumistaTypeInfo &AType, int ACoinId,
 		bool AReplaceNumista, int &AFailed);
+	// Цены Numista (задача 34): оценка для состояния монеты (0 — нет), строка всех состояний.
+	double NumistaPrice(const TCoinRecord &ARecord) const;
+	String NumistaPricesText(const TCoinRecord &ARecord) const;
+	void   LoadNumistaPrices(const std::vector<TCoinRecord> &ACoins, bool AOne);
 	// Импорт из своей коллекции Numista (задача 20).
 	String ImportCountry(const TNumistaTypeInfo &AType, TNumistaMatcher &AMatcher, bool &ACreated);
 	int  FindExistingItem(TJSONValue *AItem, const TNumistaTypeInfo &AType, TNumistaMatcher &AMatcher);
