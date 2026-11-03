@@ -162,9 +162,9 @@
 
 **Номер версии** — `a.b.c` (в exe — `a.b.c.0`). Меняется в трёх местах, одинаково:
 
-- `Source/versionConfig.cpp` — `AppInfo::Version` (`L"0.2.0.0"`); там же `AppInfo::Email` и `AppInfo::SupportUrl` (группа поддержки, задача 37: «Про програму», «Повідомити про проблему»);
+- `Source/versionConfig.cpp` — `AppInfo::Version` (`L"0.3.0.0"`); там же `AppInfo::Email` и `AppInfo::SupportUrl` (группа поддержки, задача 37: «Про програму», «Повідомити про проблему»);
 - `Source/_CoinsCollection.cbproj` — `VerInfo_MajorVer` / `VerInfo_MinorVer` / `VerInfo_Release`, `FileVersion` и `ProductVersion` в `VerInfo_Keys`;
-- `Setup/CoinsCollection.iss` — `#define AppVersion "0.2.0"`.
+- `Setup/CoinsCollection.iss` — `#define AppVersion "0.3.0"`.
 
 **Порядок выпуска**
 

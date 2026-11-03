@@ -6,7 +6,7 @@
 ; Данные (Db, Photos, CoinsCollection.ini, кэш Numista) не устанавливаются и не удаляются.
 
 #define AppName      "Coins Collection"
-#define AppVersion   "0.2.0"
+#define AppVersion   "0.3.0"
 #define AppExe       "CoinsCollection.exe"
 #define BuildDir     "Build"
 
