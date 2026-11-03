@@ -135,6 +135,10 @@ void __fastcall TfmNumistaChoose::dgTypesDrawCell(TObject *Sender, int ACol, int
 		}
 	}
 	TCanvas *canvas = dgTypes->Canvas;
+	// Годы типа не включают год монеты (задача 36) — красным.
+	if (ACol == ccYears && ARow > 0 && ARow - 1 < (int)FTypes.size() && FTypes[ARow - 1].YearMismatch
+		&& !State.Contains(gdSelected))
+		canvas->Font->Color = clRed;
 	RECT r = { Rect.Left + 4, Rect.Top, Rect.Right - 4, Rect.Bottom };
 	canvas->Brush->Style = bsClear;
 	DrawTextW(canvas->Handle, text.c_str(), -1, &r, DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX);

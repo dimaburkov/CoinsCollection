@@ -1022,19 +1022,18 @@ void __fastcall TfmMain::actNumistaFindExecute(TObject *Sender)
 			Screen->Cursor = saved;
 		}
 
-		// Другой эмитент (задача 15a) или автофраза (15b) — всегда через окно выбора; ничего не
-		// найдено — тоже окно: фразу поиска можно исправить и искать снова. Изменённая фраза
-		// сохраняется у монеты при Link.
-		int typeId = 0;
+		// Ручная связь — всегда через окно выбора (задача 36), и при одном найденном типе: фразу
+		// поиска можно исправить и искать снова. Изменённая фраза сохраняется у монеты при Link.
+		// Тип не по году монеты — с пометкой в названии (годы — красным в окне).
+		for (TNumistaType &t : types)
+			if (t.YearMismatch)
+				t.Title += L"  " + Format(Tr(L"NumistaChoose.YearMismatch"), ARRAYOFCONST((coin.Year)));
 		const String autoQuery = TNumistaMatcher::AutoQuery(coin);
 		const String startQuery = coin.NumistaQuery.IsEmpty() ? autoQuery : coin.NumistaQuery;
 		String query = startQuery;
-		if (types.size() == 1 && !types[0].OtherIssuer && !types[0].ByAutoQuery)
-			typeId = types[0].Id;
-		else
-			typeId = TfmNumistaChoose::Execute(this,
-				Format(Tr(L"NumistaChoose.Found"), ARRAYOFCONST(((int)types.size(), CoinText(coin)))), types,
-				matcher, query);
+		int typeId = TfmNumistaChoose::Execute(this,
+			Format(Tr(L"NumistaChoose.Found"), ARRAYOFCONST(((int)types.size(), CoinText(coin)))), types,
+			matcher, query);
 		// Выпуск не определился однозначно — выбор вручную (Cancel — только тип).
 		int issueId = 0;
 		if (typeId != 0)
@@ -1347,7 +1346,7 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 	FPricesLoaded = 0;
 
 	int linked = 0, withIssue = 0, ambiguous = 0, notFound = 0, otherIssuer = 0, processed = 0;
-	int linkedByPhrase = 0, linkedBySame = 0, phraseCheck = 0;
+	int linkedByPhrase = 0, linkedBySame = 0, phraseCheck = 0, yearMismatch = 0;
 	int typesLoaded = 0, typesFailed = 0, photos = 0, photosFailed = 0;
 	std::set<int> linkedCoins;
 	String stopReason;
@@ -1391,6 +1390,8 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 				}
 				else if (types.size() == 1 && types[0].OtherIssuer)
 					++otherIssuer;	// другой эмитент — только вручную, с подтверждением
+				else if (types.size() == 1 && types[0].YearMismatch)
+					++yearMismatch;	// годы типа не те (задача 36) — только вручную
 				else if (types.size() == 1)
 				{
 					int issueId = 0;
@@ -1462,6 +1463,7 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 			linkedBySame))) + L"\r\n"
 		+ Format(Tr(L"Numista.Match.Ambiguous"), ARRAYOFCONST((ambiguous))) + L"\r\n"
 		+ Format(Tr(L"Numista.Match.PhraseCheck"), ARRAYOFCONST((phraseCheck))) + L"\r\n"
+		+ Format(Tr(L"Numista.Match.YearMismatch"), ARRAYOFCONST((yearMismatch))) + L"\r\n"
 		+ Format(Tr(L"Numista.Match.NotFound"), ARRAYOFCONST((notFound))) + L"\r\n"
 		+ Format(Tr(L"Numista.Match.OtherIssuer"), ARRAYOFCONST((otherIssuer))) + L"\r\n"
 		+ Format(Tr(L"Numista.Match.NotProcessed"), ARRAYOFCONST(((int)coins.size() - processed))) + L"\r\n"

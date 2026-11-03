@@ -363,7 +363,14 @@ std::vector<TNumistaType> TNumistaMatcher::Search(const TCoinRecord &ACoin, cons
 		if (t.MinYear != 0 && t.MinYear <= ACoin.Year && ACoin.Year <= maxYear)
 			result.push_back(t);
 	}
-	return result.empty() ? all : result;
+	if (!result.empty())
+		return result;
+	// Под год не подошёл ни один тип — показываются все, но типы с известными годами
+	// помечаются: связь — только с подтверждением (задача 36; пример: KM# 865 1917 —
+	// пробная монета 1914, нужен KM# 865a).
+	for (TNumistaType &t : all)
+		t.YearMismatch = t.MinYear != 0;
+	return all;
 }
 //---------------------------------------------------------------------------
 std::vector<TNumistaType> TNumistaMatcher::SearchAll(const TCoinRecord &ACoin, const String &AIssuer,
