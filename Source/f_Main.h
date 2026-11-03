@@ -257,6 +257,8 @@ private:	// User declarations
 	std::unique_ptr<TPhotoRepository> FPhotos;
 	std::vector<TCoinRecord>         FAll;             // вся коллекция из БД
 	std::map<int, TNumistaPrices>    FPrices;          // цены Numista в валюте настроек: выпуск -> оценки (задача 34)
+	int                              FPricesLoaded;    // цен загружено вместе с характеристиками за операцию (задача 34a)
+	bool                             FPricesBlocked;   // Numista не приняла валюту — до смены настроек цены не запрашивать
 	std::vector<String>              FSearchTexts;     // текст для поиска по FAll[i] (в верхнем регистре)
 	std::vector<TCoinRecord>         FItems;           // показанные (после фильтров), в порядке показа (строка сетки = индекс + 1)
 	std::map<String, TCountry>       FCountryByName;   // имя страны (AnsiUpperCase) -> страна
@@ -264,10 +266,11 @@ private:	// User declarations
 	bool                             FBuildingTree;    // перестройка дерева — не фильтровать на каждом OnChange
 	TTreeNode                       *FCheckedNode;     // узел «Отмеченные» (счётчик меняется без перестройки дерева)
 	std::vector<int>                 FColumns;         // видимые колонки сетки (TItemColumn)
+	// Ширины колонок (задачи 27, 34a): FColWidths — естественная (по умолчанию или заданная мышью),
+	// FUserWidth — задана мышью (программа её не меняет), FFitWidth — последняя, заданная подгонкой (0 — нет).
 	int                              FColWidths[icCount];
-	// Колонка «Сюжет» (задача 27) занимает свободное место, пока её ширину не задали мышью.
-	bool                             FSubjectAuto;
-	int                              FSubjectAutoWidth;	// последняя ширина, заданная программой
+	bool                             FUserWidth[icCount];
+	int                              FFitWidth[icCount];
 	std::vector<TDetailRow>          FDetailRows;      // порядок = TDetailRowIndex
 	std::map<String, int>            FConditionOrder;  // код состояния -> sort_order
 	int                              FSortColumn;
@@ -296,8 +299,16 @@ private:	// User declarations
 	bool MatchNode(const TCoinRecord &ARecord, const TNavNode &ANode) const;
 	void ApplyFilter();
 	void UpdateColumns();
-	void FitSubjectColumn();
+	void SyncUserWidths();
+	void FitColumns(int ARetry = 0);	// ARetry — повтор после появления / исчезновения прокрутки
+	// Наименьшая ширина текстовой колонки при подгонке под окно (задача 34a); 0 — колонка не сужается.
+	static int MinFitWidth(int AColumn);
 	void __fastcall pnlRightResize(TObject *Sender);	// назначается в конструкторе
+	// Размер самой сетки (WM_SIZE) — подгонка колонок (задача 34a): OnResize панели приходит
+	// раньше, чем сетка получает свой размер (при старте последняя колонка оставалась обрезанной).
+	TWndMethod FGridWndProc;
+	bool       FFitting;
+	void __fastcall GridWndProc(TMessage &AMessage);
 	int  Column(int AGridCol) const;	// колонка сетки -> TItemColumn, -1 — нет
 	bool Confirm(const String &AText, const String &ACaption);
 	void ApplyPhotoEdits(const TPhotoEdits &AEdits, const TCoinRecord &ARecord);
@@ -343,6 +354,15 @@ private:	// User declarations
 	double NumistaPrice(const TCoinRecord &ARecord) const;
 	String NumistaPricesText(const TCoinRecord &ARecord) const;
 	void   LoadNumistaPrices(const std::vector<TCoinRecord> &ACoins, bool AOne);
+	// Снять отметку с экземпляров, у которых выпуск из AIssues (цены загружены или свежие).
+	void   UncheckIssues(const std::set<int> &AIssues);
+	// Цены вместе с характеристиками (задача 34a): включено ли, свежа ли цена выпуска,
+	// загрузить (true — запрос был; ошибки, кроме 401 / 429 и сети, не прерывают операцию),
+	// примечание для итога операции («цін завантажено: N»; "" — цены не вместе с характеристиками).
+	static bool PricesWithDetails();
+	bool   PriceFresh(int AIssueId) const;
+	bool   PriceWithDetails(TNumistaMatcher &AMatcher, int ATypeId, int AIssueId, bool AForce = false);
+	String PricesNote() const;
 	// Импорт из своей коллекции Numista (задача 20).
 	String ImportCountry(const TNumistaTypeInfo &AType, TNumistaMatcher &AMatcher, bool &ACreated);
 	int  FindExistingItem(TJSONValue *AItem, const TNumistaTypeInfo &AType, TNumistaMatcher &AMatcher);

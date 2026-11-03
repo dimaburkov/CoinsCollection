@@ -38,6 +38,7 @@ public:
 	bool      NumistaLoadPrices;
 	String    NumistaPriceCurrency;
 	int       NumistaPriceDays;
+	bool      NumistaPricesWithDetails; // загружать цены вместе с характеристиками (задача 34a; ini PriceMode = 1)
 	// Поля примірника, отправляемые на Numista при выгрузке (задача 33).
 	bool      NumistaUploadGrade;
 	bool      NumistaUploadPrice;

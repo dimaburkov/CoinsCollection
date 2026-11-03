@@ -323,6 +323,9 @@ object fmMain: TfmMain
       end
       item
         Width = 230
+      end
+      item
+        Width = 360
       end>
   end
   object pmItems: TPopupMenu

@@ -216,13 +216,17 @@ after you change its width with the mouse, it keeps your width.</td></tr>
 ([[page:numista-catalog|Numista catalogue data]]).</td></tr>
 </table>
 <p>Click a column header to sort, click it again to reverse. By default the list is sorted by year, then by denomination.</p>
+<p>All columns fit into the window: if they do not, the text columns (country, period, currency, denomination, subject, composition)
+get narrower, long text ends with “…” (the full text is in the coin details). A column whose width you changed with the mouse
+keeps your width.</p>
 <h2>Coin details</h2>
 <p>Under the list: obverse and reverse photos (double-click — [[page:photos|photo viewer]]) and the coin data in two columns.
 The #Numista value is a link to the type page on Numista. The right column shows the type details loaded from Numista
 (weight, size, shape, ruler, series, years, mints, demonetization). With Numista prices on — the row
 [[ui:Numista prices|Ціни Numista]].</p>
 <h2>Status bar</h2>
-<p>Number of shown items, their quantity and value, and the number of checked items.</p>
+<p>Number of shown items, their quantity and value, and the number of checked items. With Numista prices on — the Numista
+estimate of the shown coins (estimate × quantity) and how many of them have no estimate.</p>
 """
 T['main-window', 'uk'] = u"""
 [[shot:01-main-window.png|Головне вікно.]]
@@ -249,13 +253,16 @@ T['main-window', 'uk'] = u"""
 ([[page:numista-catalog|Дані каталогу Numista]]).</td></tr>
 </table>
 <p>Клацніть заголовок колонки, щоб відсортувати, ще раз — у зворотному порядку. Типово — за роком, потім за номіналом.</p>
+<p>Усі колонки вміщуються у вікно: якщо ні, текстові колонки (країна, період, валюта, номінал, сюжет, метал) звужуються,
+довгий текст закінчується «…» (повний текст — у подробицях монети). Колонка, ширину якої ви змінили мишею, зберігає вашу ширину.</p>
 <h2>Подробиці про монету</h2>
 <p>Під списком: фото аверсу й реверсу (подвійне клацання — [[page:photos|перегляд фото]]) і дані монети у дві колонки.
 Значення #Numista — посилання на сторінку типу на Numista. У правій колонці — характеристики типу з Numista
 (вага, розмір, форма, правитель, серія, роки, монетні двори, демонетизація). Якщо ціни Numista увімкнено — рядок
 [[ui:Numista prices|Ціни Numista]].</p>
 <h2>Рядок стану</h2>
-<p>Кількість показаних примірників, їх кількість і вартість, кількість позначених.</p>
+<p>Кількість показаних примірників, їх кількість і вартість, кількість позначених. Якщо ціни Numista увімкнено — оцінка Numista
+показаних монет (оцінка × кількість) і скільки з них без оцінки.</p>
 """
 
 # =====================================================================
@@ -429,7 +436,7 @@ T['numista-connect', 'en'] = u"""
 <li>[[ui:Connection|Підключення]] — the key, connection check, Numista lists.</li>
 <li>[[ui:What to load from Numista|Що завантажувати з Numista]] — type details on auto-link (the same check box as in the
 auto-link confirmation) and type photos (catalogue pictures). With photos off, linking and updating catalogue data load
-only the details; photos already loaded stay. Numista prices: on / off, currency, after how many days to update them —
+only the details; photos already loaded stay. Numista prices: on / off, currency, whether to load them together with type details, after how many days to update them —
 [[page:numista-catalog|Numista catalogue data]].</li>
 <li>[[ui:What to upload to Numista|Що вивантажувати на Numista]] — which fields of an item are sent on upload: condition,
 my price, purchase date, comment and swap. Type, issue and quantity are always sent. Items already on Numista are not changed.</li>
@@ -468,8 +475,8 @@ T['numista-connect', 'uk'] = u"""
 <li>[[ui:Connection|Підключення]] — ключ, перевірка підключення, списки Numista.</li>
 <li>[[ui:What to load from Numista|Що завантажувати з Numista]] — характеристики типу при автозв'язку (та сама позначка, що й
 у підтвердженні автозв'язку) і фото типу (зображення з каталогу). Якщо фото вимкнено, зв'язок і оновлення даних каталогу
-завантажують лише характеристики; вже завантажені фото залишаються. Ціни Numista: увімк. / вимк., валюта, через скільки днів
-оновлювати — [[page:numista-catalog|Дані каталогу Numista]].</li>
+завантажують лише характеристики; вже завантажені фото залишаються. Ціни Numista: увімк. / вимк., валюта, чи завантажувати разом з характеристиками,
+через скільки днів оновлювати — [[page:numista-catalog|Дані каталогу Numista]].</li>
 <li>[[ui:What to upload to Numista|Що вивантажувати на Numista]] — які поля примірника надсилати при вивантаженні: стан,
 моя ціна, дата покупки, коментар і обмін. Тип, випуск і кількість надсилаються завжди. Примірники, вже вивантажені на Numista, не змінюються.</li>
 <li>[[ui:Requests|Запити]] — використано цього місяця, місячна квота (змініть, якщо у вас платний тариф Numista) і
@@ -540,7 +547,10 @@ its year and country; otherwise it is counted as <i>needs checking</i> — link 
 If another coin of the same country with exactly the same number (for example <code>KM# 6b</code> or <code>UC# 1</code>)
 is already linked, the coin takes its type without a search — when the coin's year is within the years of that type.
 The issue and mintage are found by the coin's own year.
-The check box [[ui:Also load type details and photos|Також завантажити характеристики й фото]] adds 1 request per coin.</p>
+In the confirmation choose what to load together with the link: [[ui:Only link|Лише зв'язати]],
+[[ui:Link + type details and photos|Зв'язати + характеристики й фото]] (+1 request per coin) or, when Numista prices are on,
+[[ui:Link + type details and photos and Numista prices|Зв'язати + характеристики й фото і ціни Numista]] (+1 more per issue).
+The choice is remembered — it is the same setting as on the tab [[ui:What to load from Numista|Що завантажувати з Numista]].</p>
 [[shot:07-progress.png|Progress of a mass operation. Stop — stops after the current coin.]]
 <h2>Coins of one number from different years</h2>
 <p>When you link a coin manually, the program looks for other coins of the same country with the same number that are not linked yet
@@ -599,7 +609,10 @@ T['numista-link', 'uk'] = u"""
 відповідає рівно один тип; інакше вона рахується як <i>потрібна перевірка</i> — пов'яжіть її вручну.
 Якщо вже пов'язана інша монета тієї ж країни з точно таким самим номером (наприклад <code>KM# 6b</code> або <code>UC# 1</code>),
 монета бере її тип без пошуку — якщо рік монети входить у роки цього типу. Випуск і тираж визначаються за власним роком монети.
-Позначка [[ui:Also load type details and photos|Також завантажити характеристики й фото]] додає 1 запит на монету.</p>
+У підтвердженні виберіть, що завантажити разом зі зв'язком: [[ui:Only link|Лише зв'язати]],
+[[ui:Link + type details and photos|Зв'язати + характеристики й фото]] (+1 запит на монету) або, якщо ціни Numista увімкнено,
+[[ui:Link + type details and photos and Numista prices|Зв'язати + характеристики й фото і ціни Numista]] (ще +1 на випуск).
+Вибір запам'ятовується — це те саме налаштування, що й на вкладці [[ui:What to load from Numista|Що завантажувати з Numista]].</p>
 [[shot:07-progress.png|Хід масової операції. Зупинити — після поточної монети.]]
 <h2>Монети одного номера різних років</h2>
 <p>Коли ви пов'язуєте монету вручну, програма шукає інші ще не пов'язані монети тієї ж країни з тим самим номером,
@@ -681,7 +694,13 @@ so a repeated run usually needs 0 requests.</p>
 <li>Turn them on: [[page:numista-connect|Numista settings]], tab [[ui:What to load from Numista|Що завантажувати з Numista]],
 [[ui:Numista prices (estimate by condition)|Ціни Numista (оцінка за станом)]]; choose the currency (UAH, USD or EUR).</li>
 <li>One coin: right-click → [[ui:Load Numista prices|Завантажити ціни Numista]]. Many: check coins →
-[[ui:Numista prices...|Ціни Numista...]] — the confirmation shows how many requests are needed.</li>
+[[ui:Numista prices...|Ціни Numista...]] — the confirmation shows how many requests are needed; afterwards the check marks
+are removed from the coins that got prices (coins without an issue stay checked).</li>
+<li>Or without a separate command: [[ui:Load together with type details|Завантажувати разом з характеристиками]] (or the third
+choice in the auto-link confirmation).
+Then auto-link (with details), [[ui:Link manually|Пов'язати вручну]], [[ui:Choose issue|Вибрати випуск]],
+[[ui:Update catalogue data|Оновити дані каталогу]] and the import from your Numista collection load the price of the issue too
+(+1 request per issue without a fresh price); the result window shows how many prices were loaded.</li>
 </ol>
 <ul>
 <li>The column [[ui:Numista, UAH|Numista, UAH]] shows the estimate for the condition of your coin; empty — no estimate for this
@@ -711,7 +730,13 @@ T['numista-catalog', 'uk'] = u"""
 <li>Увімкніть їх: [[page:numista-connect|налаштування Numista]], вкладка [[ui:What to load from Numista|Що завантажувати з Numista]],
 [[ui:Numista prices (estimate by condition)|Ціни Numista (оцінка за станом)]]; виберіть валюту (UAH, USD або EUR).</li>
 <li>Одна монета: праве клацання → [[ui:Load Numista prices|Завантажити ціни Numista]]. Багато: позначте монети →
-[[ui:Numista prices...|Ціни Numista...]] — підтвердження показує, скільки потрібно запитів.</li>
+[[ui:Numista prices...|Ціни Numista...]] — підтвердження показує, скільки потрібно запитів; після цього з монет, що отримали
+ціни, позначки знімаються (монети без випуску залишаються позначеними).</li>
+<li>Або без окремої команди: [[ui:Load together with type details|Завантажувати разом з характеристиками]] (або третій
+варіант у підтвердженні автозв'язку).
+Тоді автозв'язок (з характеристиками), [[ui:Link manually|Пов'язати вручну]], [[ui:Choose issue|Вибрати випуск]],
+[[ui:Update catalogue data|Оновити дані каталогу]] та імпорт з вашої колекції Numista завантажують і ціну випуску
+(+1 запит на випуск без свіжої ціни); вікно з підсумком показує, скільки цін завантажено.</li>
 </ol>
 <ul>
 <li>Колонка [[ui:Numista, UAH|Numista, UAH]] показує оцінку для стану вашої монети; порожньо — для цього стану оцінки немає
@@ -733,8 +758,8 @@ Check the catalogue number in the coin card (KM#, Y#, C#). Coins with a uCoin nu
 <p>[[ui:Unlink from Numista|Відв'язати від Numista]] or [[ui:Link manually|Пов'язати вручну]] again —
 [[page:numista-link|Numista: linking coins]], section “Wrong link”.</p>
 <h3>The monthly request quota is almost used</h3>
-<p>Work with checked coins (one request per run for upload and rarity), turn off
-[[ui:Also load type details and photos|Також завантажити характеристики й фото]] in auto-link and load the details later.
+<p>Work with checked coins (one request per run for upload and rarity),
+choose [[ui:Only link|Лише зв'язати]] in auto-link and load the details later.
 The counter and the quota are on the tab [[ui:Requests|Запити]] of [[page:numista-connect|Numista settings]].</p>
 <h3>Import: no column 'Country' / the file is not in English</h3>
 <p>The uCoin export was made in another language. Switch the uCoin site language to English, export the collection again
@@ -759,8 +784,8 @@ T['faq', 'uk'] = u"""
 <p>[[ui:Unlink from Numista|Відв'язати від Numista]] або ще раз [[ui:Link manually|Пов'язати вручну]] —
 [[page:numista-link|Numista: зв'язок монет]], розділ «Помилковий зв'язок».</p>
 <h3>Місячну квоту запитів майже вичерпано</h3>
-<p>Працюйте з позначеними монетами (один запит на запуск для вивантаження та індексу рідкісності), вимкніть
-[[ui:Also load type details and photos|Також завантажити характеристики й фото]] в автозв'язку й завантажте характеристики пізніше.
+<p>Працюйте з позначеними монетами (один запит на запуск для вивантаження та індексу рідкісності),
+в автозв'язку виберіть [[ui:Only link|Лише зв'язати]] й завантажте характеристики пізніше.
 Лічильник і квота — на вкладці [[ui:Requests|Запити]] [[page:numista-connect|налаштувань Numista]].</p>
 <h3>Імпорт: немає колонки 'Country' / файл не англійською</h3>
 <p>Експорт uCoin зроблено іншою мовою. Перемкніть мову сайту uCoin на English, знову експортуйте колекцію

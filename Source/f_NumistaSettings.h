@@ -28,6 +28,7 @@ __published:	// IDE-managed Components
 	TCheckBox *chkLoadPrices;
 	TLabel *lblCurrency;
 	TComboBox *cbCurrency;
+	TCheckBox *chkPricesWithDetails;
 	TLabel *lblPriceDays;
 	TEdit *edPriceDays;
 	TLabel *lblPricesHint;

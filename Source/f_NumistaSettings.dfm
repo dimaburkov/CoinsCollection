@@ -3,7 +3,7 @@ object fmNumistaSettings: TfmNumistaSettings
   Top = 0
   BorderStyle = bsDialog
   Caption = 'Numista'
-  ClientHeight = 330
+  ClientHeight = 360
   ClientWidth = 560
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -19,7 +19,7 @@ object fmNumistaSettings: TfmNumistaSettings
     Left = 8
     Top = 8
     Width = 544
-    Height = 278
+    Height = 308
     ActivePage = tsConnect
     TabOrder = 0
     object tsConnect: TTabSheet
@@ -181,9 +181,17 @@ object fmNumistaSettings: TfmNumistaSettings
           'USD'
           'EUR')
       end
+      object chkPricesWithDetails: TCheckBox
+        Left = 30
+        Top = 184
+        Width = 490
+        Height = 17
+        Caption = 'Load &together with type details (auto-link, linking, choosing an issue)'
+        TabOrder = 4
+      end
       object lblPriceDays: TLabel
         Left = 30
-        Top = 185
+        Top = 213
         Width = 160
         Height = 13
         Caption = 'Update prices older than (&days):'
@@ -191,21 +199,21 @@ object fmNumistaSettings: TfmNumistaSettings
       end
       object edPriceDays: TEdit
         Left = 250
-        Top = 182
+        Top = 210
         Width = 80
         Height = 21
         NumbersOnly = True
-        TabOrder = 4
+        TabOrder = 5
       end
       object lblPricesHint: TLabel
         Left = 30
-        Top = 210
+        Top = 238
         Width = 490
-        Height = 30
+        Height = 44
         AutoSize = False
         Caption =
-          'Loaded by the command Load Numista prices (Numista menu): 1 request p' +
-          'er issue; coins of one issue cost one request.'
+          'Command Load Numista prices (Numista menu) or together with type de' +
+          'tails: 1 request per issue; coins of one issue cost one request.'
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clGrayText
         Font.Height = -11
@@ -365,7 +373,7 @@ object fmNumistaSettings: TfmNumistaSettings
   end
   object btnOK: TButton
     Left = 396
-    Top = 296
+    Top = 326
     Width = 75
     Height = 25
     Caption = 'OK'
@@ -375,7 +383,7 @@ object fmNumistaSettings: TfmNumistaSettings
   end
   object btnCancel: TButton
     Left = 477
-    Top = 296
+    Top = 326
     Width = 75
     Height = 25
     Cancel = True
