@@ -8,6 +8,7 @@
 #include <set>
 #include <shlwapi.h>
 #include <shellapi.h>
+#include <Vcl.Clipbrd.hpp>
 #include <Vcl.Dialogs.hpp>
 #include <Vcl.Themes.hpp>
 #include "f_Main.h"
@@ -2735,6 +2736,49 @@ void __fastcall TfmMain::actAboutExecute(TObject *Sender)
 {
 	// Окно «О программе» (задача 22).
 	TfmAbout::Execute(this, AppConfig().DbPath, FDatabase->SchemaVersion());
+}
+//---------------------------------------------------------------------------
+namespace
+{
+	// Для mailto: (RFC 6068) — UTF-8, всё кроме незарезервированных символов — %XX.
+	String MailtoEncode(const String &AText)
+	{
+		const UTF8String utf8 = UTF8String(AText);
+		String result;
+		for (int i = 1; i <= utf8.Length(); ++i)
+		{
+			const unsigned char ch = (unsigned char)utf8[i];
+			if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9')
+				|| ch == '-' || ch == '.' || ch == '_' || ch == '~')
+				result += (wchar_t)ch;
+			else
+				result += L"%" + IntToHex((int)ch, 2);
+		}
+		return result;
+	}
+}
+//---------------------------------------------------------------------------
+// Довідка → «Повідомити про проблему» (задача 37): письмо автору с версией программы,
+// Windows, языком и размером коллекции; нет почтовой программы — текст письма в буфер обмена.
+void __fastcall TfmMain::actReportProblemExecute(TObject *Sender)
+{
+	const String nl = L"\r\n";
+	const String subject = Format(Tr(L"Report.Subject"), ARRAYOFCONST((AppInfo::Version)));
+	const String body = Tr(L"Report.What") + nl + nl + nl
+		+ Tr(L"Report.Did") + nl + nl + nl
+		+ Tr(L"Report.Expected") + nl + nl + nl
+		+ Tr(L"Report.Attach") + nl + nl
+		+ L"-----" + nl
+		+ L"Coins Collection " + AppInfo::Version + nl
+		+ TOSVersion::ToString() + nl
+		+ Format(Tr(L"Report.Language"), ARRAYOFCONST((AppConfig().Language))) + nl
+		+ Format(Tr(L"Report.Coins"), ARRAYOFCONST(((int)FAll.size())));
+	const String url = L"mailto:" + AppInfo::Email + L"?subject=" + MailtoEncode(subject) + L"&body=" + MailtoEncode(body);
+	if ((INT_PTR)ShellExecuteW(Handle, L"open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL) > 32)
+		return;
+	Clipboard()->AsText = subject + nl + nl + body;
+	Application->MessageBox(Format(Tr(L"Report.NoMail"), ARRAYOFCONST((AppInfo::Email))).c_str(),
+		StripHotkey(actReportProblem->Caption).c_str(), MB_OK | MB_ICONINFORMATION);
 }
 //---------------------------------------------------------------------------
 // Перечитать коллекцию из БД; текущая запись сохраняется по Id.

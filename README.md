@@ -14,7 +14,8 @@ Your coin collection on your computer — and an easy way to move it from **uCoi
 - **Loads catalogue data from Numista** — mintage, composition, weight, size, ruler, demonetization and the obverse / reverse pictures.
 - **Imports coins you added on Numista yourself** (for example ancient coins that are not on uCoin), with year ranges and BC years.
 - **Rarity index** — read from the private comment of your Numista items (`R:97` or simply `97`), sortable in the list.
-- **Your own photos** of each coin, a photo viewer, search, filters, a tree of continents and countries.
+- **Your own photos next to the catalogue pictures** — in the coin card and in the details (⇄ switches them), a photo viewer, search, filters, a tree of continents and countries.
+- **Numista prices** (optional) — the Numista estimate for the condition of each coin (UAH, USD or EUR) and the total of the collection.
 - **Backup and restore** of the whole collection (database and photos) in one `.zip` file.
 - English and Ukrainian interface, built-in help (F1).
 
@@ -32,7 +33,7 @@ You can check the downloaded file with its SHA-256 checksum from the release pag
 
 ## First steps
 
-1. **uCoin:** export your collection to Excel (`.xlsx`) and import it: **File → Import from uCoin (.xlsx)**.
+1. **uCoin:** switch the uCoin site to **English**, export your collection to Excel (`.xlsx`) and import it: **File → Import from uCoin (.xlsx)**.
 2. **Numista:** register on [numista.com](https://en.numista.com/), get your free API key at [en.numista.com/api/api_key.php](https://en.numista.com/api/api_key.php) and enter it in **Numista → Connect / Settings**.
 3. Link your coins with the catalogue (**Auto-link** for checked coins, **Link manually** for one coin) and **Upload** them to your Numista collection.
 
@@ -44,7 +45,7 @@ Catalogue data, mintages, type details and pictures: [**Numista**](https://en.nu
 
 ## Contact
 
-Questions and suggestions: **progua@ukr.net** · or open an [issue](https://github.com/dimaburkov/CoinsCollection/issues).
+Questions and suggestions: support group in Telegram [t.me/CoinsCol](https://t.me/CoinsCol) · **progua@ukr.net** · in the program **Help → Report a problem** (the letter already contains the version and Windows) · or open an [issue](https://github.com/dimaburkov/CoinsCollection/issues).
 
 Licensed under the [MIT License](LICENSE).
 
@@ -64,7 +65,8 @@ Licensed under the [MIT License](LICENSE).
 - **Завантажує дані каталогу Numista** — тираж, метал, вага, розмір, правитель, демонетизація, фото аверсу й реверсу.
 - **Імпортує монети, які ви самі додали на Numista** (наприклад античні), з діапазонами років і роками до н. е.
 - **Індекс рідкісності** з приватного коментаря ваших предметів на Numista (`R:97` або просто `97`).
-- **Власні фото** монет, перегляд фото, пошук, фільтри, дерево континентів і країн.
+- **Власні фото поруч із зображеннями з каталогу** — у картці монети й у подробицях (⇄ перемикає), перегляд фото, пошук, фільтри, дерево континентів і країн.
+- **Ціни Numista** (за бажанням) — оцінка Numista для стану кожної монети (UAH, USD або EUR) і сума по колекції.
 - **Резервна копія та відновлення** всієї колекції (база й фото) одним файлом `.zip`.
 - Інтерфейс англійською та українською, вбудована довідка (F1).
 
@@ -78,10 +80,10 @@ Licensed under the [MIT License](LICENSE).
 
 **Перші кроки**
 
-1. **uCoin:** експортуйте колекцію в Excel (`.xlsx`) та імпортуйте: **File → Import from uCoin (.xlsx)** / **Файл → Імпорт з uCoin (.xlsx)**.
+1. **uCoin:** перемкніть сайт uCoin на **English**, експортуйте колекцію в Excel (`.xlsx`) та імпортуйте: **File → Import from uCoin (.xlsx)** / **Файл → Імпорт з uCoin (.xlsx)**.
 2. **Numista:** зареєструйтеся на [numista.com](https://en.numista.com/), отримайте безкоштовний ключ API на [en.numista.com/api/api_key.php](https://en.numista.com/api/api_key.php) і введіть його в **Numista → Connect / Settings** / **Numista → Підключення / налаштування**.
 3. Пов'яжіть монети з каталогом (**Автозв'язок** для позначених, **Пов'язати вручну** для однієї) і **вивантажте** їх у свою колекцію на Numista.
 
 Кожен користувач використовує власний безкоштовний ключ Numista (2000 запитів на місяць). Докладніше — у довідці програми (F1).
 
-**Питання та пропозиції:** **progua@ukr.net**
+**Питання та пропозиції:** група підтримки в Telegram [t.me/CoinsCol](https://t.me/CoinsCol) · **progua@ukr.net** · у програмі **Довідка → Повідомити про проблему** (у листі вже є версія та Windows).
