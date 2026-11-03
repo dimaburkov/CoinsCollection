@@ -214,10 +214,12 @@ String TNumistaMatcher::RootOf(const String &AIssuer) const
 	return code;
 }
 //---------------------------------------------------------------------------
-std::vector<TNumistaType> TNumistaMatcher::QueryTypes(const String &APath)
+std::vector<TNumistaType> TNumistaMatcher::QueryTypes(const String &APath, int *ACount)
 {
 	std::vector<TNumistaType> result;
 	std::unique_ptr<TJSONValue> json = FClient.GetCached(APath);
+	if (ACount)
+		*ACount = JsonInt(json.get(), L"count");
 	TJSONArray *types = dynamic_cast<TJSONArray *>(json->FindValue(L"types"));
 	for (int i = 0; types && i < types->Count; ++i)
 	{
@@ -278,9 +280,10 @@ String TNumistaMatcher::FirstSearchPath(const TCoinRecord &ACoin, const String &
 	if (ParseCatalogNumber(ACoin.CatalogNumber, catalogueId, number))
 	{
 		const String path = NumberPath(catalogueId, number);
+		const String date = ACoin.Year > 0 ? L"&date=" + IntToStr(ACoin.Year) : String();
 		if (!AIssuer.IsEmpty())
-			return path + L"&issuer=" + UrlParam(AIssuer);
-		return path + (ACoin.Year > 0 ? L"&date=" + IntToStr(ACoin.Year) : String());
+			return path + L"&issuer=" + UrlParam(AIssuer) + date;	// шаг 1 SearchAll (задача 35)
+		return path + date;
 	}
 	return DenominationPath(ACoin, AIssuer);
 }
@@ -371,11 +374,23 @@ std::vector<TNumistaType> TNumistaMatcher::SearchAll(const TCoinRecord &ACoin, c
 	if (ParseCatalogNumber(ACoin.CatalogNumber, catalogueId, number))
 	{
 		const String path = NumberPath(catalogueId, number);
+		const String date = ACoin.Year > 0 ? L"&date=" + IntToStr(ACoin.Year) : String();
 		if (!AIssuer.IsEmpty())
 		{
-			std::vector<TNumistaType> found = QueryTypes(path + L"&issuer=" + UrlParam(AIssuer));
+			// Эмитент страны может быть группой государств (germany — империя, ГДР, Пруссия …),
+			// у каждого своя нумерация KM: без года — десятки чужих «KM# 24» (задача 35).
+			// 1) с годом выпуска; 2) пусто (год у uCoin и Numista разошёлся) — без года,
+			// но только полный ответ (одна страница): неполный не годится, дальше — шаг 3.
+			std::vector<TNumistaType> found = QueryTypes(path + L"&issuer=" + UrlParam(AIssuer) + date);
 			if (!found.empty())
 				return found;
+			if (!date.IsEmpty())
+			{
+				int count = 0;
+				found = QueryTypes(path + L"&issuer=" + UrlParam(AIssuer), &count);
+				if (!found.empty() && count <= (int)found.size())
+					return found;
+			}
 		}
 
 		// Эмитенты Numista иерархичны: монета может числиться у соседнего эмитента
@@ -383,7 +398,7 @@ std::vector<TNumistaType> TNumistaMatcher::SearchAll(const TCoinRecord &ACoin, c
 		// номером со всего мира, а читается одна страница) и отбор по ветке эмитента.
 		// Из ветки нет — монеты других эмитентов (историческое государство) с пометкой
 		// OtherIssuer: связываются только с подтверждением (задача 15a).
-		std::vector<TNumistaType> all = QueryTypes(path + (ACoin.Year > 0 ? L"&date=" + IntToStr(ACoin.Year) : String()));
+		std::vector<TNumistaType> all = QueryTypes(path + date);
 		if (AIssuer.IsEmpty())
 			return all;
 		std::vector<TNumistaType> result;

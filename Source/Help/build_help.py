@@ -507,7 +507,10 @@ T['numista-link', 'en'] = u"""
 <h2>One coin — Link manually</h2>
 <p>Right-click a coin → [[ui:Link manually|Пов'язати вручну]] (or the [[ui:Numista|Numista]] menu).</p>
 <ol>
-<li>The program searches by the catalogue number (KM#, Y#, C#), then by number and year, then by the search phrase.</li>
+<li>The program searches by the catalogue number (KM#, Y#, C#) of the country together with the coin's year; nothing found —
+by the number without the year; then by number and year in all countries; then by the search phrase. The year matters
+for countries that Numista builds from many states: Germany includes the German Empire, Prussia, Bavaria, the GDR…,
+each with its own KM numbering — <i>Germany KM# 24</i> without a year gives dozens of types, with 1917 exactly one.</li>
 <li>If there is one exact result, the coin is linked at once. Otherwise the type list opens.</li>
 <li>Choose the issue (year, mint) if it is not found automatically: [[ui:Choose issue|Вибрати випуск]].</li>
 </ol>
@@ -570,7 +573,10 @@ T['numista-link', 'uk'] = u"""
 <h2>Одна монета — Пов'язати вручну</h2>
 <p>Праве клацання по монеті → [[ui:Link manually|Пов'язати вручну]] (або меню <span class="ui">Numista</span>).</p>
 <ol>
-<li>Програма шукає за номером у каталозі (KM#, Y#, C#), потім за номером і роком, потім за фразою пошуку.</li>
+<li>Програма шукає за номером у каталозі (KM#, Y#, C#) країни разом із роком монети; нічого — за номером без року;
+далі за номером і роком у всіх країнах; потім за фразою пошуку. Рік важливий для країн, які на Numista складаються з багатьох
+держав: Germany — це Німецька імперія, Пруссія, Баварія, НДР…, у кожної своя нумерація KM — <i>Germany KM# 24</i>
+без року дає десятки типів, з 1917 — рівно один.</li>
 <li>Якщо результат один і точний — монету пов'язано одразу. Інакше відкривається список типів.</li>
 <li>Виберіть випуск (рік, двір), якщо його не знайдено автоматично: [[ui:Choose issue|Вибрати випуск]].</li>
 </ol>
@@ -979,7 +985,8 @@ T['numista-cases', 'en'] = u"""
 <p>Find the case that looks like yours: what you see — what to do — where to read more.</p>
 <h2>1. The coin has a KM#, Y# or C# number</h2>
 <p><b>You see:</b> the number in the [[ui:uCoin number|Номер uCoin]] row of the details.<br>
-<b>Do:</b> check the coins and press [[ui:Auto-link|Автозв'язок]]. Most such coins are linked at once.<br>
+<b>Do:</b> check the coins and press [[ui:Auto-link|Автозв'язок]]. Most such coins are linked at once — the program searches
+by the number together with the year, so coins of the German Empire, Italian or Indian states are found too.<br>
 <b>More:</b> [[page:numista-link|Numista: linking coins]].</p>
 <h2>2. uCoin number (UC#), commemorative coin</h2>
 <p><b>You see:</b> <code>UC# 428</code> instead of KM#. Numista does not know uCoin numbers.<br>
@@ -1028,7 +1035,8 @@ T['numista-cases', 'uk'] = u"""
 <p>Знайдіть випадок, схожий на ваш: що ви бачите — що робити — де читати докладніше.</p>
 <h2>1. У монети є номер KM#, Y# або C#</h2>
 <p><b>Ви бачите:</b> номер у рядку [[ui:uCoin number|Номер uCoin]] у подробицях.<br>
-<b>Що робити:</b> позначте монети й натисніть [[ui:Auto-link|Автозв'язок]]. Більшість таких монет зв'язуються одразу.<br>
+<b>Що робити:</b> позначте монети й натисніть [[ui:Auto-link|Автозв'язок]]. Більшість таких монет зв'язуються одразу — програма шукає
+за номером разом із роком, тож монети Німецької імперії, італійських чи індійських держав теж знаходяться.<br>
 <b>Докладніше:</b> [[page:numista-link|Numista: зв'язок монет]].</p>
 <h2>2. Номер uCoin (UC#), пам'ятна монета</h2>
 <p><b>Ви бачите:</b> <code>UC# 428</code> замість KM#. Numista не знає номерів uCoin.<br>
