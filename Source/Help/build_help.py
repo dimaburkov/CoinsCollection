@@ -511,7 +511,10 @@ T['numista-link', 'en'] = u"""
 by the number without the year; then by number and year in all countries; then by the search phrase. The year matters
 for countries that Numista builds from many states: Germany includes the German Empire, Prussia, Bavaria, the GDR…,
 each with its own KM numbering — <i>Germany KM# 24</i> without a year gives dozens of types, with 1917 exactly one.</li>
-<li>If there is one exact result, the coin is linked at once. Otherwise the type list opens.</li>
+<li>The type list always opens, even with one result (it is selected — press [[ui:Link|Пов'язати]]). You can edit the search
+phrase and search again. A type whose years do not include the year of the coin has its years in red and the note
+“⚠ the type years do not include …” — usually a pattern or another catalogue number (case 9 in
+[[page:numista-cases|typical cases]]). Auto-link does not link such a type.</li>
 <li>Choose the issue (year, mint) if it is not found automatically: [[ui:Choose issue|Вибрати випуск]].</li>
 </ol>
 [[shot:06-choose-type.png|Choose Numista type: the search phrase can be changed and searched again.]]
@@ -577,7 +580,10 @@ T['numista-link', 'uk'] = u"""
 далі за номером і роком у всіх країнах; потім за фразою пошуку. Рік важливий для країн, які на Numista складаються з багатьох
 держав: Germany — це Німецька імперія, Пруссія, Баварія, НДР…, у кожної своя нумерація KM — <i>Germany KM# 24</i>
 без року дає десятки типів, з 1917 — рівно один.</li>
-<li>Якщо результат один і точний — монету пов'язано одразу. Інакше відкривається список типів.</li>
+<li>Список типів відкривається завжди, навіть з одним результатом (його виділено — натисніть [[ui:Link|Пов'язати]]). Фразу пошуку
+можна змінити й шукати знову. Тип, роки якого не включають рік монети, має роки червоним і примітку
+«⚠ роки типу не включають …» — зазвичай це пробна монета або інший номер у каталозі (випадок 9 у
+[[page:numista-cases|типових випадках]]). Автозв'язок такий тип не пов'язує.</li>
 <li>Виберіть випуск (рік, двір), якщо його не знайдено автоматично: [[ui:Choose issue|Вибрати випуск]].</li>
 </ol>
 [[shot:06-choose-type.png|Вибір типу Numista: фразу пошуку можна змінити й шукати знову.]]
@@ -1030,6 +1036,14 @@ If the coin is already uploaded to your Numista collection, the program asks whe
 <p><b>Do:</b> add them on the Numista website to your collection, then
 [[ui:Numista → Import from my Numista collection|Numista → Імпорт з моєї колекції Numista]].
 See [[page:start|Where to start]], way 2.</p>
+<h2>9. The number in uCoin differs from Numista (KM# 865 / 865a)</h2>
+<p><b>You see:</b> auto-link reports <i>found type is of other years</i>; in [[ui:Link manually|Пов'язати вручну]] the only type found
+has its years in red — for example France 5 centimes 1917 <code>KM# 865</code> finds a 1914 pattern (N# 147473).
+On Numista the coin of 1917 has the number <code>KM# 865a</code>.<br>
+<b>Do:</b> [[ui:Link manually|Пов'язати вручну]] → in the search phrase write the country, denomination, year and the Numista number:
+<code>France 5 centimes 1917 KM# 865a</code> → [[ui:Search|Пошук]] → choose the type (N# 700) → [[ui:Link|Пов'язати]].
+The phrase is saved with the coin. Not sure about the number — search the type on the Numista website first and copy the phrase that finds it.<br>
+<b>More:</b> [[page:numista-link|Numista: linking coins]].</p>
 """
 T['numista-cases', 'uk'] = u"""
 <p>Знайдіть випадок, схожий на ваш: що ви бачите — що робити — де читати докладніше.</p>
@@ -1080,6 +1094,14 @@ T['numista-cases', 'uk'] = u"""
 <p><b>Що робити:</b> додайте їх на сайті Numista до своєї колекції, потім
 [[ui:Numista → Import from my Numista collection|Numista → Імпорт з моєї колекції Numista]].
 Див. [[page:start|З чого почати]], шлях 2.</p>
+<h2>9. Номер в uCoin не збігається з Numista (KM# 865 / 865a)</h2>
+<p><b>Ви бачите:</b> автозв'язок повідомляє <i>знайдено тип інших років</i>; у [[ui:Link manually|Пов'язати вручну]] єдиний знайдений тип
+має роки червоним — наприклад France 5 centimes 1917 <code>KM# 865</code> знаходить пробну монету 1914 року (N# 147473).
+На Numista монета 1917 року має номер <code>KM# 865a</code>.<br>
+<b>Що робити:</b> [[ui:Link manually|Пов'язати вручну]] → у фразі пошуку напишіть країну, номінал, рік і номер Numista:
+<code>France 5 centimes 1917 KM# 865a</code> → [[ui:Search|Пошук]] → виберіть тип (N# 700) → [[ui:Link|Пов'язати]].
+Фраза зберігається в монети. Не впевнені в номері — спершу знайдіть тип на сайті Numista і скопіюйте фразу, яка його знаходить.<br>
+<b>Докладніше:</b> [[page:numista-link|Numista: зв'язок монет]].</p>
 """
 
 # =====================================================================

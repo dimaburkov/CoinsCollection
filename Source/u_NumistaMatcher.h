@@ -27,7 +27,8 @@ struct TNumistaType
 	int    MaxYear;
 	bool   OtherIssuer;     // эмитент вне ветки страны / периода (задача 15a) — только с подтверждением
 	bool   ByAutoQuery;     // найден по автофразе (задача 15b) — только с подтверждением
-	TNumistaType() : Id(0), MinYear(0), MaxYear(0), OtherIssuer(false), ByAutoQuery(false) {}
+	bool   YearMismatch;    // годы типа не включают год монеты (задача 36) — только с подтверждением
+	TNumistaType() : Id(0), MinYear(0), MaxYear(0), OtherIssuer(false), ByAutoQuery(false), YearMismatch(false) {}
 };
 //---------------------------------------------------------------------------
 class TNumistaMatcher
