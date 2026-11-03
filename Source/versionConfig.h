@@ -12,6 +12,10 @@ namespace AppInfo
 	extern const String Name;
 	// Версия в формате a.b.c.d.
 	extern const String Version;
+	// Почта автора (вопросы, «Повідомити про проблему»; задачи 22, 37).
+	extern const String Email;
+	// Группа поддержки (Telegram; задача 37); "" — ещё нет, ссылка не показывается.
+	extern const String SupportUrl;
 }
 //---------------------------------------------------------------------------
 #endif

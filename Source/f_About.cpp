@@ -16,7 +16,6 @@
 //---------------------------------------------------------------------------
 namespace
 {
-	const wchar_t *const cEmail = L"progua@ukr.net";
 	const int cLeft   = 72;		// текст — правее иконки
 	const int cWidth  = 440;	// ширина текста
 }
@@ -96,13 +95,23 @@ void TfmAbout::Execute(TComponent *AOwner, const String &ADbFile, int ASchema)
 	// Контакт автора.
 	TLabel *contact = f->AddLabel(Tr(L"About.Contact"));
 	f->FTop += contact->Height + 4;
-	TLabel *email = f->AddLink(cEmail, String(L"mailto:") + cEmail, 0);
+	TLabel *email = f->AddLink(AppInfo::Email, L"mailto:" + AppInfo::Email, 0);
 	TButton *copy = new TButton(f);
 	copy->Parent  = f;
 	copy->Caption = Tr(L"About.Copy");
 	copy->SetBounds(cLeft + email->Width + 12, f->FTop - 4, 90, 23);
 	copy->OnClick = f->CopyEmailClick;
 	f->FTop += 30;
+	// Группа поддержки (задача 37) — когда адрес задан.
+	if (!AppInfo::SupportUrl.IsEmpty())
+	{
+		TLabel *support = f->AddLabel(Tr(L"About.Support"), 0, 140);
+		TLabel *supportLink = f->AddLink(AppInfo::SupportUrl, AppInfo::SupportUrl, 144);
+		supportLink->AutoSize = false;
+		supportLink->Width = cWidth - 144;
+		supportLink->EllipsisPosition = epEndEllipsis;
+		f->FTop += support->Height + 10;
+	}
 
 	// Источники данных.
 	TLabel *numista = f->AddLabel(Tr(L"About.Numista"), 0, 300);
@@ -143,7 +152,7 @@ void __fastcall TfmAbout::LinkClick(TObject *Sender)
 //---------------------------------------------------------------------------
 void __fastcall TfmAbout::CopyEmailClick(TObject *Sender)
 {
-	Clipboard()->AsText = cEmail;
+	Clipboard()->AsText = AppInfo::Email;
 	static_cast<TButton *>(Sender)->Caption = Tr(L"About.Copied");
 }
 //---------------------------------------------------------------------------

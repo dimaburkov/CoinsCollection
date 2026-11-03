@@ -612,6 +612,11 @@ object fmMain: TfmMain
       Caption = '&About'
       OnExecute = actAboutExecute
     end
+    object actReportProblem: TAction
+      Category = 'Help'
+      Caption = '&Report a problem...'
+      OnExecute = actReportProblemExecute
+    end
   end
   object MainMenu: TMainMenu
     Left = 424
@@ -750,6 +755,9 @@ object fmMain: TfmMain
       Caption = '&Help'
       object miHelpContents: TMenuItem
         Action = actHelpContents
+      end
+      object miReportProblem: TMenuItem
+        Action = actReportProblem
       end
       object miHelpSep1: TMenuItem
         Caption = '-'

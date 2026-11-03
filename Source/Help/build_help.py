@@ -16,6 +16,7 @@ PAGES = [
  # id, title_en, title_uk
  ('index', 'Contents', 'Зміст'),
  ('start', 'Where to start', 'З чого почати'),
+ ('testing', 'What to check (for testers)', 'Що перевірити (для тестувальників)'),
  ('getting-started', 'Installation and settings', 'Встановлення та налаштування'),
  ('import', 'Import from uCoin', 'Імпорт з uCoin'),
  ('main-window', 'Main window', 'Головне вікно'),
@@ -786,6 +787,10 @@ Keep it on another disk or in the cloud. The program reminds you if there was no
 <p>[[ui:File → Restore from backup|Файл → Відновити з копії]] replaces the collection and photos with the backup. The current data is kept
 (<code>Db\\…before-restore-&lt;time&gt;.bak</code>, <code>Photos\\_before-restore-&lt;time&gt;\\</code>). Settings of this computer are not changed.</p>
 <p>Besides, the program makes automatic copies of the database (<code>Db\\*.bak</code>) before every database upgrade and every import.</p>
+<h3>Questions, suggestions, problems</h3>
+<p>[[ui:Help → Report a problem|Довідка → Повідомити про проблему]] opens a letter to the author with the program version and
+Windows already filled in — describe what happened and attach a screenshot. Or write to <code>progua@ukr.net</code>.
+Questions to other users and the author — the support group in Telegram: <a href="https://t.me/CoinsCol">t.me/CoinsCol</a>.</p>
 """
 T['faq', 'uk'] = u"""
 <h3>Монета не знаходиться на Numista або пропонуються не ті типи</h3>
@@ -812,6 +817,10 @@ T['faq', 'uk'] = u"""
 <p>[[ui:File → Restore from backup|Файл → Відновити з копії]] замінює колекцію й фото копією. Поточні дані зберігаються
 (<code>Db\\…before-restore-&lt;час&gt;.bak</code>, <code>Photos\\_before-restore-&lt;час&gt;\\</code>). Налаштування цього комп'ютера не змінюються.</p>
 <p>Крім того, програма робить автоматичні копії бази (<code>Db\\*.bak</code>) перед кожним оновленням бази та кожним імпортом.</p>
+<h3>Питання, пропозиції, проблеми</h3>
+<p>[[ui:Help → Report a problem|Довідка → Повідомити про проблему]] відкриває лист автору з уже заповненими версією програми
+та Windows — опишіть, що сталося, і додайте знімок екрана. Або пишіть на <code>progua@ukr.net</code>.
+Питання іншим користувачам і автору — група підтримки в Telegram: <a href="https://t.me/CoinsCol">t.me/CoinsCol</a>.</p>
 """
 
 # =====================================================================
@@ -870,6 +879,10 @@ backup of the whole collection in one file.</li>
 [[ui:Add from sample|Додати за зразком]] (Ctrl+Ins): only change the year. Periods and currencies are added to the
 reference lists as you type them. Numista is still useful later: [[ui:Link manually|Пов'язати вручну]] finds the coin
 in the catalogue and loads its details and pictures.</p>
+<h2>Testing the program</h2>
+<p>You help test a new version? Step by step: [[page:testing|What to check]]. Problems and ideas —
+[[ui:Help → Report a problem|Довідка → Повідомити про проблему]] or the support group in Telegram
+<a href="https://t.me/CoinsCol">t.me/CoinsCol</a>.</p>
 """
 T['start', 'uk'] = u"""
 <p>Виберіть рядок, що описує вас. Кожен шлях веде до одного результату: ваша колекція в програмі, пов'язана
@@ -926,6 +939,132 @@ T['start', 'uk'] = u"""
 [[ui:Add from sample|Додати за зразком]] (Ctrl+Ins): лише змініть рік. Періоди й валюти додаються до довідників,
 коли ви їх вводите. Numista знадобиться й потім: [[ui:Link manually|Пов'язати вручну]] знайде монету в каталозі
 й завантажить її характеристики та зображення.</p>
+<h2>Тестування програми</h2>
+<p>Допомагаєте перевірити нову версію? Крок за кроком: [[page:testing|Що перевірити]]. Проблеми та ідеї —
+[[ui:Help → Report a problem|Довідка → Повідомити про проблему]] або група підтримки в Telegram
+<a href="https://t.me/CoinsCol">t.me/CoinsCol</a>.</p>
+"""
+
+# =====================================================================
+T['testing', 'en'] = u"""
+<p>Thank you for testing Coins Collection! Go through the parts that fit your collection — you do not need all of them.
+After each step it says what you should see. Something different — [[ui:Help → Report a problem|Довідка → Повідомити про проблему]]
+(the letter already contains the version and Windows; add a screenshot).</p>
+<h2>1. Installation and first start</h2>
+<ol>
+<li>Run <code>CoinsCollection-Setup-…exe</code>; the installer is not signed — in the browser <i>Keep</i>, in SmartScreen
+<i>More info → Run anyway</i>. <b>Expected:</b> installed without administrator rights.</li>
+<li>Start the program. <b>Expected:</b> an empty collection, the interface language as chosen in the installer
+([[ui:Settings → Language|Налаштування → Мова]] switches it).</li>
+</ol>
+<h2>2. Import from uCoin</h2>
+<ol>
+<li>On uCoin switch the site to English and export your collection to Excel ([[page:import|Import from uCoin]]).</li>
+<li>[[ui:File → Import from uCoin (.xlsx)|Файл → Імпорт з uCoin (.xlsx)]]. <b>Expected:</b> the number of rows and errors, then
+the countries in the tree on the left, the coins in the list.</li>
+<li>Try an export made in Russian or Ukrainian. <b>Expected:</b> a message that the file is not in English and how to fix it;
+the collection is not changed.</li>
+</ol>
+<h2>3. Numista: key and linking</h2>
+<ol>
+<li>Get a free API key and enter it ([[page:numista-register|Numista: registration and API key]]),
+[[ui:Check connection|Перевірити підключення]]. <b>Expected:</b> “Connected as Numista user …”.</li>
+<li>Check 10–20 coins of one country → [[ui:Auto-link|Автозв'язок]]. <b>Expected:</b> most coins get a #Numista number,
+the result window says how many are linked and how many need checking.</li>
+<li>A coin that was not linked → right-click → [[ui:Link manually|Пов'язати вручну]]. <b>Expected:</b> the type list
+with a search phrase; you can change the phrase, search again and link.</li>
+</ol>
+<h2>4. Your Numista collection (Roman denarii and other ancient coins)</h2>
+<ol>
+<li>[[ui:Numista → Import from my Numista collection|Numista → Імпорт з моєї колекції Numista]], choose the issuer
+(for example Roman Empire). <b>Expected:</b> your items with years and grades; after the import — coins with catalogue pictures.</li>
+<li>Write the rarity index into the private comment of an item on Numista, then
+[[ui:Read rarity index|Прочитати індекс рідкісності]]. <b>Expected:</b> the number in the [[ui:Rarity|Рідкість]] column;
+sorting by this column puts the rarest coins first.</li>
+</ol>
+<h2>5. Photos</h2>
+<ol>
+<li>Open a coin card (double-click) and drag your photos of the obverse and reverse into the right column.
+<b>Expected:</b> your photos next to the catalogue pictures.</li>
+<li>In the coin details press <b>⇄</b>. <b>Expected:</b> switching between your photo and the catalogue picture.</li>
+</ol>
+<h2>6. Numista prices</h2>
+<ol>
+<li>Numista settings → [[ui:What to load from Numista|Що завантажувати з Numista]] → [[ui:Numista prices (estimate by condition)|Ціни Numista (оцінка за станом)]].</li>
+<li>A coin with a chosen issue → right-click → [[ui:Load Numista prices|Завантажити ціни Numista]].
+<b>Expected:</b> the price for the condition of the coin in the column, all conditions in the details.</li>
+</ol>
+<h2>7. Backup</h2>
+<ol>
+<li>[[ui:File → Backup collection|Файл → Резервна копія колекції]]. <b>Expected:</b> one <code>.zip</code> file.</li>
+<li>(On a test copy only.) [[ui:File → Restore from backup|Файл → Відновити з копії]]. <b>Expected:</b> the collection and photos as in the backup.</li>
+</ol>
+<h2>What to send with a problem</h2>
+<ul>
+<li>What you did and what happened — step by step; a screenshot of the message.</li>
+<li>For an import error — the export file (it contains only your collection).</li>
+<li>For a Numista problem — the coin (country, denomination, year, number) and the #Numista you expected.</li>
+</ul>
+"""
+T['testing', 'uk'] = u"""
+<p>Дякуємо, що тестуєте Coins Collection! Пройдіть ті частини, які стосуються вашої колекції, — усі не обов'язково.
+Після кожного кроку написано, що ви маєте побачити. Щось інакше — [[ui:Help → Report a problem|Довідка → Повідомити про проблему]]
+(у листі вже є версія та Windows; додайте знімок екрана).</p>
+<h2>1. Встановлення та перший запуск</h2>
+<ol>
+<li>Запустіть <code>CoinsCollection-Setup-…exe</code>; інсталятор без підпису — у браузері <i>Зберегти</i>, у SmartScreen
+<i>Детальніше → Однаково запустити</i>. <b>Очікується:</b> встановлення без прав адміністратора.</li>
+<li>Запустіть програму. <b>Очікується:</b> порожня колекція, мова інтерфейсу — як вибрано в інсталяторі
+([[ui:Settings → Language|Налаштування → Мова]] перемикає її).</li>
+</ol>
+<h2>2. Імпорт з uCoin</h2>
+<ol>
+<li>На uCoin перемкніть сайт на English і експортуйте колекцію в Excel ([[page:import|Імпорт з uCoin]]).</li>
+<li>[[ui:File → Import from uCoin (.xlsx)|Файл → Імпорт з uCoin (.xlsx)]]. <b>Очікується:</b> кількість рядків і помилок, потім
+країни в дереві ліворуч, монети в списку.</li>
+<li>Спробуйте експорт російською чи українською. <b>Очікується:</b> повідомлення, що файл не англійською, і як це виправити;
+колекцію не змінено.</li>
+</ol>
+<h2>3. Numista: ключ і зв'язок</h2>
+<ol>
+<li>Отримайте безкоштовний ключ API і введіть його ([[page:numista-register|Numista: реєстрація та ключ API]]),
+[[ui:Check connection|Перевірити підключення]]. <b>Очікується:</b> «Підключено: користувач Numista …».</li>
+<li>Позначте 10–20 монет однієї країни → [[ui:Auto-link|Автозв'язок]]. <b>Очікується:</b> більшість монет отримують номер #Numista,
+у підсумку — скільки пов'язано і скільки потребують перевірки.</li>
+<li>Монета, яка не пов'язалася → праве клацання → [[ui:Link manually|Пов'язати вручну]]. <b>Очікується:</b> список типів
+із фразою пошуку; фразу можна змінити, шукати знову й пов'язати.</li>
+</ol>
+<h2>4. Ваша колекція на Numista (римські денарії та інші античні монети)</h2>
+<ol>
+<li>[[ui:Numista → Import from my Numista collection|Numista → Імпорт з моєї колекції Numista]], виберіть емітента
+(наприклад Roman Empire). <b>Очікується:</b> ваші предмети з роками та станом; після імпорту — монети з зображеннями з каталогу.</li>
+<li>Запишіть індекс рідкісності в приватний коментар предмета на Numista, потім
+[[ui:Read rarity index|Прочитати індекс рідкісності]]. <b>Очікується:</b> число в колонці [[ui:Rarity|Рідкість]];
+сортування за нею ставить найрідкісніші монети першими.</li>
+</ol>
+<h2>5. Фото</h2>
+<ol>
+<li>Відкрийте картку монети (подвійне клацання) і перетягніть свої фото аверсу й реверсу в праву колонку.
+<b>Очікується:</b> ваші фото поруч із зображеннями з каталогу.</li>
+<li>У подробицях монети натисніть <b>⇄</b>. <b>Очікується:</b> перемикання між вашим фото і зображенням з каталогу.</li>
+</ol>
+<h2>6. Ціни Numista</h2>
+<ol>
+<li>Налаштування Numista → [[ui:What to load from Numista|Що завантажувати з Numista]] → [[ui:Numista prices (estimate by condition)|Ціни Numista (оцінка за станом)]].</li>
+<li>Монета з вибраним випуском → праве клацання → [[ui:Load Numista prices|Завантажити ціни Numista]].
+<b>Очікується:</b> ціна для стану монети в колонці, усі стани — у подробицях.</li>
+</ol>
+<h2>7. Резервна копія</h2>
+<ol>
+<li>[[ui:File → Backup collection|Файл → Резервна копія колекції]]. <b>Очікується:</b> один файл <code>.zip</code>.</li>
+<li>(Лише на тестовій копії.) [[ui:File → Restore from backup|Файл → Відновити з копії]]. <b>Очікується:</b> колекція й фото — як у копії.</li>
+</ol>
+<h2>Що надіслати разом із проблемою</h2>
+<ul>
+<li>Що ви робили і що сталося — по кроках; знімок екрана з повідомленням.</li>
+<li>Для помилки імпорту — файл експорту (у ньому лише ваша колекція).</li>
+<li>Для проблеми з Numista — монету (країна, номінал, рік, номер) і #Numista, який ви очікували.</li>
+</ul>
 """
 
 # =====================================================================

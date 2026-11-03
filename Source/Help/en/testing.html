@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What to check (for testers) — Coins Collection — Help</title>
+<link rel="stylesheet" href="../help.css">
+</head>
+<body>
+<header>
+<span class="app">Coins Collection — Help</span>
+<nav><a href="index.html">Contents</a><a href="../uk/testing.html">Українською</a></nav>
+</header>
+<main>
+<h1>What to check (for testers)</h1>
+<p>Thank you for testing Coins Collection! Go through the parts that fit your collection — you do not need all of them.
+After each step it says what you should see. Something different — <span class="ui">Help → Report a problem</span>
+(the letter already contains the version and Windows; add a screenshot).</p>
+<h2>1. Installation and first start</h2>
+<ol>
+<li>Run <code>CoinsCollection-Setup-…exe</code>; the installer is not signed — in the browser <i>Keep</i>, in SmartScreen
+<i>More info → Run anyway</i>. <b>Expected:</b> installed without administrator rights.</li>
+<li>Start the program. <b>Expected:</b> an empty collection, the interface language as chosen in the installer
+(<span class="ui">Settings → Language</span> switches it).</li>
+</ol>
+<h2>2. Import from uCoin</h2>
+<ol>
+<li>On uCoin switch the site to English and export your collection to Excel (<a href="import.html">Import from uCoin</a>).</li>
+<li><span class="ui">File → Import from uCoin (.xlsx)</span>. <b>Expected:</b> the number of rows and errors, then
+the countries in the tree on the left, the coins in the list.</li>
+<li>Try an export made in Russian or Ukrainian. <b>Expected:</b> a message that the file is not in English and how to fix it;
+the collection is not changed.</li>
+</ol>
+<h2>3. Numista: key and linking</h2>
+<ol>
+<li>Get a free API key and enter it (<a href="numista-register.html">Numista: registration and API key</a>),
+<span class="ui">Check connection</span>. <b>Expected:</b> “Connected as Numista user …”.</li>
+<li>Check 10–20 coins of one country → <span class="ui">Auto-link</span>. <b>Expected:</b> most coins get a #Numista number,
+the result window says how many are linked and how many need checking.</li>
+<li>A coin that was not linked → right-click → <span class="ui">Link manually</span>. <b>Expected:</b> the type list
+with a search phrase; you can change the phrase, search again and link.</li>
+</ol>
+<h2>4. Your Numista collection (Roman denarii and other ancient coins)</h2>
+<ol>
+<li><span class="ui">Numista → Import from my Numista collection</span>, choose the issuer
+(for example Roman Empire). <b>Expected:</b> your items with years and grades; after the import — coins with catalogue pictures.</li>
+<li>Write the rarity index into the private comment of an item on Numista, then
+<span class="ui">Read rarity index</span>. <b>Expected:</b> the number in the <span class="ui">Rarity</span> column;
+sorting by this column puts the rarest coins first.</li>
+</ol>
+<h2>5. Photos</h2>
+<ol>
+<li>Open a coin card (double-click) and drag your photos of the obverse and reverse into the right column.
+<b>Expected:</b> your photos next to the catalogue pictures.</li>
+<li>In the coin details press <b>⇄</b>. <b>Expected:</b> switching between your photo and the catalogue picture.</li>
+</ol>
+<h2>6. Numista prices</h2>
+<ol>
+<li>Numista settings → <span class="ui">What to load from Numista</span> → <span class="ui">Numista prices (estimate by condition)</span>.</li>
+<li>A coin with a chosen issue → right-click → <span class="ui">Load Numista prices</span>.
+<b>Expected:</b> the price for the condition of the coin in the column, all conditions in the details.</li>
+</ol>
+<h2>7. Backup</h2>
+<ol>
+<li><span class="ui">File → Backup collection</span>. <b>Expected:</b> one <code>.zip</code> file.</li>
+<li>(On a test copy only.) <span class="ui">File → Restore from backup</span>. <b>Expected:</b> the collection and photos as in the backup.</li>
+</ol>
+<h2>What to send with a problem</h2>
+<ul>
+<li>What you did and what happened — step by step; a screenshot of the message.</li>
+<li>For an import error — the export file (it contains only your collection).</li>
+<li>For a Numista problem — the coin (country, denomination, year, number) and the #Numista you expected.</li>
+</ul>
+</main>
+<footer>Coins Collection</footer>
+</body>
+</html>
