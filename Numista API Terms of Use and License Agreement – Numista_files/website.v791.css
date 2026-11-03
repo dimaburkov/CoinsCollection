@@ -1,0 +1,471 @@
+/******************/
+/* TEAM           */
+/******************/
+.admin_list {
+    list-style-type: none;
+    margin: -0.7em 0 0.2em 0;
+}
+.admin_list li {
+    display: inline-block;
+    margin: 0 1em 0 0;
+    white-space: nowrap;
+    font-weight: bold;
+}
+.admin_list img {
+    max-height: 1.8em;
+    max-width: 1.8em;
+    border-radius: 1em;
+    box-shadow: inset 4px 4px 6px 6px rgba(0, 0, 0, 0.5);
+    vertical-align: middle;
+    margin: 0 0 0.3em 0;
+}
+.team_description {
+    max-width: 50em;
+}
+.referents {
+    margin-top: 0.5em;
+}
+.referents td {
+    padding: 0 2em 0.5em 0;
+    vertical-align: top;
+}
+
+#referee_issuers h3 {
+    color: #000000;
+    font-size: 1rem;
+}
+#referee_issuers .liste_pays {
+    list-style-type: none;
+}
+#referee_issuers .liste_pays li {
+    margin: 0;
+}
+#referee_issuers .liste_pays ul {
+    list-style-type: none;
+    padding-left: 0.5em;
+    margin-left: 0.5em;
+    border-left: 1px solid #AAAAAA;
+}
+@media (min-width: 800px) {
+    #referee_issuers .liste_pays {
+        column-count: 2;
+        -webkit-column-count: 2;
+        -moz-column-count: 2;
+    }
+    .former_team_list {
+        column-count: 3;
+    }
+}
+
+/*****************/
+/* CONTRIBUTORS */
+/*****************/
+.table-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+.table-container .top_contributors {
+    width: calc(33.33% - 0.8em);
+}
+.top_contributors table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1em;
+    table-layout: fixed;
+}
+.top_contributors th, .top_contributors td {
+    border: 1px solid #dfeefb;
+    padding: 0.2em 0.5em;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.top_contributors th {
+    background-color: #dfeefb;
+    padding: 0.5em;
+    border: none;
+}
+.top_contributors th:first-child {
+    border-radius: 1em 0 0 0;
+}
+.top_contributors th:last-child {
+    border-radius: 0 1em 0 0;
+}
+.top_contributors_caption {
+    font-weight: bold;
+    height: 3em;
+    display: flex;
+    align-items: end;
+    justify-content: center;
+    text-align: center;
+    padding-bottom: 0.3em;
+}
+@media (max-width: 830px) {
+    .table-container .top_contributors {
+        flex-basis: 100%;
+    }
+    .top_contributors_caption {
+        height: unset;
+    }
+    .top_contributors th, .top_contributors td {
+        white-space: unset;
+        overflow: unset;
+        text-overflow: unset;
+    }
+}
+
+/*****************/
+/* RELEASE NOTES */
+/*****************/
+#releases {
+    display: grid;
+    margin: 2em 0 0 0;
+}
+#releases .release_date {
+    grid-column-start: 1;
+    position: relative;
+    padding-right: 1em;
+    font-weight: bold;
+}
+#releases .release_message {
+    grid-column-start: 2;
+    padding: 0 0 1em 1em;
+    border-left: 1px solid black;
+}
+#releases .release_date:after {
+    content: url('data:image/svg+xml; utf8, <svg xmlns="http://www.w3.org/2000/svg" width="7" height="7"><circle cx="3.5" cy="3.5" r="3.5" fill="black"/></svg>');
+    position: absolute;
+    right: -4px;
+    top: 0;
+}
+#releases .release_date.major:after {
+    content: url('data:image/svg+xml; utf8, <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13"><circle cx="6.5" cy="6.5" r="6.5" fill="black"/></svg>');
+    right: -7px;
+}
+
+.button_panel {
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-gap: 0.5em;
+}
+.button_panel li {
+    margin: 0;
+}
+.button_panel img {
+    margin-bottom: -2px;
+}
+.button_panel a {
+    display: block;
+    padding: 0.5em 1em;
+    background-color: #dfeefb;
+    border-radius: 0.5em;
+}
+
+@media (max-width: 600px) {
+    #releases {
+        display: block;
+        border-left: 1px solid black;
+    }
+    #releases .release_date {
+        padding: 0 0 0 1em;
+        margin: 1em 0 0 0;
+    }
+    #releases .release_message {
+        padding: 0 0 0 1em;
+        margin: 0;
+        border: none;
+    }
+    #releases .release_date:before {
+        content: url('data:image/svg+xml; utf8, <svg xmlns="http://www.w3.org/2000/svg" width="7" height="7"><circle cx="3.5" cy="3.5" r="3.5" fill="black"/></svg>');
+        position: absolute;
+        left: -4px;
+        top: 0;
+    }
+    #releases .release_date.major:before {
+        content: url('data:image/svg+xml; utf8, <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13"><circle cx="6.5" cy="6.5" r="6.5" fill="black"/></svg>');
+        right: -7px;
+    }
+    #releases .release_date:after, #releases .release_date.major:after {
+        content: none;
+    }
+    .button_panel {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 420px) {
+    .button_panel {
+        grid-template-columns: 1fr;
+    }
+}
+
+/****************************/
+/* Swagger UI customization */
+/****************************/
+.swagger-ui .button {
+    color: #3b4151  !important;
+}
+.swagger-ui .information-container {
+    margin-top: 1em !important;
+}
+.swagger-ui .info {
+    display: none;
+}
+.swagger-ui .response-col_description__inner .renderedMarkdown p, .swagger-ui .parameters-col_description .renderedMarkdown p {
+    margin: 0;
+}
+.swagger-ui .response-control-media-type {
+    display: none;
+}
+.swagger-ui .response-col_links {
+    display: none;
+}
+
+
+/**************************/
+/* Translation statistics */
+/**************************/
+.translation_statistics {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.translation_statistics th,
+.translation_statistics td {
+    border: 1px solid #dfeefb;
+    padding: 0.5em;
+    text-align: center;
+}
+
+.translation_statistics th:first-child,
+.translation_statistics td:first-child {
+    width: 20%;
+}
+
+.translation_statistics thead th {
+    background-color: #dfeefb;
+    position: sticky;
+    top: 0;
+    border-top: none;
+}
+
+
+/*********************/
+/* Advertising offer */
+/*********************/
+/* Common */
+.a-block {
+    background: #f0f4f8;
+    border-radius: 1em;
+    padding: 1em;
+}
+.a-block h2 {
+    font-size: 1.2rem;
+    text-align: center;
+    margin: 0 0 1rem 0;
+}
+.a-block > ul > li {
+    background: #fff;
+    border-radius: 0.5em;
+    padding: 0.5em;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    margin: 1em 0 0 0;
+    list-style-type: none;
+    transition: all 0.2s ease;
+}
+.a-block > ul > li:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+}
+.a-block p {
+    margin-top: 1em;
+    font-size: 0.9em;
+    color: #666666;
+}
+.a-block-horizontal > ul {
+    display: flex;
+    align-items: stretch;
+    gap: 1em;
+}
+@media (max-width: 600px) {
+    .a-block-horizontal > ul {
+        flex-direction: column;
+    }
+}
+.a-block-horizontal > ul > li {
+    margin: 0;
+    flex: 1;
+}
+
+/* Header */
+.a-header {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+}
+
+.a-stat-badges {
+    margin: 0 0 2em 0;
+}
+.a-stat-badges > div {
+    font-size: 1.1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    padding: 0.2em 0.5em 0.2em 0.5em;
+    margin: 0 0.5em 0.5em 0;
+    display: inline-block;
+    border-radius: 0.5rem;
+}
+
+/* Logo marquee */
+.a-logos-marquee {
+    background: #fff;
+    margin: 3rem 0;
+    overflow: hidden;
+    position: relative;
+}
+.a-logos-marquee h2 {
+    font-size: 1.2rem;
+    text-align: center;
+    margin: 0;
+}
+.a-logos-inner {
+    display: flex;
+    width: max-content;
+    white-space: nowrap;
+    animation: a-marquee-scroll 60s linear infinite;
+    position: relative;
+    z-index: 1;
+}
+.a-logos-inner > div {
+    display: flex;
+    gap: 3rem;
+    align-items: center;
+    position: relative;
+    margin-right: 3rem;
+}
+.a-logos-marquee img {
+    height: 60px;
+    width: auto;
+    object-fit: contain;
+    opacity: 1;
+    filter: none;
+    transition: opacity .2s, transform .2s;
+}
+.a-logos-marquee img:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+.a-logos-marquee img::selection {
+    background: transparent;
+}
+@keyframes a-marquee-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+.a-logos-marquee:hover .a-logos-inner {
+    animation-play-state: paused;
+}
+
+/* Benefit and statistics */
+.a-two-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-gap: 1.5em;
+    margin: 1em 0 3em 0;
+}
+@media (max-width: 600px) {
+    .a-two-columns {
+        grid-template-columns: 1fr;
+    }
+}
+.a-icon {
+    color: #000088;
+    font-size: 1.2em;
+    line-height: 1.2em;
+    vertical-align: bottom;
+    margin: 0 0.3em -2px 0;
+    display: inline-block;
+}
+.a-countries {
+    list-style-type: none;
+    font-size: 0.9em;
+}
+.a-countries li {
+    margin: 0 0 0 0.1em;
+}
+
+/* Packages */
+.a-packages > ul > li {
+    padding: 1em;
+    text-align: center;
+}
+.a-packages h3 {
+    font-size: 1.1em;
+    margin: 0;
+}
+.a-price {
+    margin: 1em 0 0 0;
+    color: #666666;
+}
+.a-price strong {
+    font-size: 1.1rem;
+    color: #000000;
+}
+
+/* CTA button */
+.a-cta {
+    margin: 3rem 0 3rem 0;
+    line-height: 2.5rem;
+    text-align: center;
+}
+.a-cta .button {
+    font-size: 1.2rem;
+    margin-bottom: 1em;
+}
+
+/* Banner positions */
+.a-positions > ul > li {
+    display: grid;
+    grid-template-columns: 10em 1fr;
+    grid-gap: 1em;
+    padding: 1em;
+}
+.a-positions a {
+    text-align: center;
+}
+.a-positions img {
+    max-width: 10em;
+    max-height: 10em;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+.a-positions ul {
+    list-style-type: disc;
+    margin-top: 0.5em;
+}
+
+/* FAQ */
+.a-faq {
+    margin-top: 3em;
+}
+.a-faq h2 {
+    font-size: 1.2rem;
+    text-align: center;
+    margin: 0 0 1rem 0;
+}
+.a-faq-question {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    padding: 1em;
+    margin: 0.5em 0 1.5em 0;
+    border-radius: 0.5em;
+    transition: all 0.2s ease;
+}
+.a-faq-question:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+}
+.a-faq-question div:first-child {
+    font-weight: bold;
+    margin-bottom: 0.5em;
+}

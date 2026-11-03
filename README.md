@@ -29,7 +29,7 @@ Your coin collection on your computer — and an easy way to move it from **uCoi
 
 **Update:** install the new version over the old one — the collection stays, the database is upgraded automatically.
 
-You can check the downloaded file with its SHA-256 checksum from the release page (PowerShell: `Get-FileHash .\CoinsCollection-Setup-0.2.0.exe`).
+You can check the downloaded file with its SHA-256 checksum from the release page (PowerShell: `Get-FileHash .\CoinsCollection-Setup-0.3.0.exe`).
 
 ## First steps
 
