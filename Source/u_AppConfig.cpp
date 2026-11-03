@@ -60,6 +60,7 @@ TAppConfig::TAppConfig()
 	  NumistaLoadPrices(false),
 	  NumistaPriceCurrency(L"UAH"),
 	  NumistaPriceDays(90),
+	  NumistaPricesWithDetails(false),
 	  NumistaUploadGrade(true),
 	  NumistaUploadPrice(true),
 	  NumistaUploadDate(true),
@@ -125,6 +126,7 @@ void TAppConfig::Load()
 	NumistaPriceDays       = ini->ReadInteger(cNumistaSection, L"PriceDays", 90);
 	if (NumistaPriceDays < 1 || NumistaPriceDays > 3650)
 		NumistaPriceDays = 90;
+	NumistaPricesWithDetails = ini->ReadInteger(cNumistaSection, L"PriceMode", 0) == 1;
 	NumistaUploadGrade     = ini->ReadBool(cNumistaSection, L"UploadGrade", true);
 	NumistaUploadPrice     = ini->ReadBool(cNumistaSection, L"UploadPrice", true);
 	NumistaUploadDate      = ini->ReadBool(cNumistaSection, L"UploadDate", true);
@@ -181,6 +183,7 @@ void TAppConfig::Save()
 		ini->WriteBool(cNumistaSection, L"LoadPrices", NumistaLoadPrices);
 		ini->WriteString(cNumistaSection, L"PriceCurrency", NumistaPriceCurrency);
 		ini->WriteInteger(cNumistaSection, L"PriceDays", NumistaPriceDays);
+		ini->WriteInteger(cNumistaSection, L"PriceMode", NumistaPricesWithDetails ? 1 : 0);
 		ini->WriteBool(cNumistaSection, L"UploadGrade", NumistaUploadGrade);
 		ini->WriteBool(cNumistaSection, L"UploadPrice", NumistaUploadPrice);
 		ini->WriteBool(cNumistaSection, L"UploadDate", NumistaUploadDate);

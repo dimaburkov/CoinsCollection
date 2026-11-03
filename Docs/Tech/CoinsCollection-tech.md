@@ -99,6 +99,7 @@
 | `[Numista] AutoLinkDetails` | Автосвязь сразу загружает характеристики (и фото, если `LoadTypePhotos`) |
 | `[Numista] LoadTypePhotos` | Загружать фото типа из Numista (1 по умолчанию) |
 | `[Numista] LoadPrices`, `PriceCurrency`, `PriceDays` | Цены Numista (задача 34): включены (0 по умолчанию), валюта (UAH), обновлять старше N дней (90) |
+| `[Numista] PriceMode` | 0 — цены только командой, 1 — и вместе с характеристиками (задача 34a, `TfmMain::PriceWithDetails`) |
 | `[Numista] UploadGrade`, `UploadPrice`, `UploadDate`, `UploadComment` | Какие поля примірника отправлять при выгрузке (`grade`, `price`, `acquisition_date`, `private_comment`; все 1 по умолчанию) |
 | `[Backup] Folder`, `Last`, `Asked` | Папка последней копии, дата копии, дата напоминания |
 

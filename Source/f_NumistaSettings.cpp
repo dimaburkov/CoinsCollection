@@ -40,6 +40,7 @@ void TfmNumistaSettings::LoadOptions()
 	if (cbCurrency->ItemIndex < 0)
 		cbCurrency->ItemIndex = 0;
 	edPriceDays->Text         = IntToStr(config.NumistaPriceDays);
+	chkPricesWithDetails->Checked = config.NumistaPricesWithDetails;
 	chkLoadPricesClick(nullptr);
 	chkUploadGrade->Checked   = config.NumistaUploadGrade;
 	chkUploadPrice->Checked   = config.NumistaUploadPrice;
@@ -84,6 +85,7 @@ bool TfmNumistaSettings::ApplyOptions()
 	config.NumistaLoadTypePhotos  = chkLoadPhotos->Checked;
 	config.NumistaLoadPrices      = chkLoadPrices->Checked;
 	config.NumistaPriceCurrency   = cbCurrency->Text;
+	config.NumistaPricesWithDetails = chkPricesWithDetails->Checked;
 	if (days >= 1 && days <= 3650)
 		config.NumistaPriceDays   = days;
 	config.NumistaUploadGrade     = chkUploadGrade->Checked;
@@ -102,6 +104,7 @@ void __fastcall TfmNumistaSettings::chkLoadPricesClick(TObject *Sender)
 	const bool on = chkLoadPrices->Checked;
 	lblCurrency->Enabled  = on;
 	cbCurrency->Enabled   = on;
+	chkPricesWithDetails->Enabled = on;
 	lblPriceDays->Enabled = on;
 	edPriceDays->Enabled  = on;
 }
