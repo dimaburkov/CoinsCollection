@@ -111,7 +111,8 @@ private:
 
 	String RootOf(const String &AIssuer) const;
 	std::vector<TNumistaType> SearchAll(const TCoinRecord &ACoin, const String &AIssuer, const String &ACountryIssuer);
-	std::vector<TNumistaType> QueryTypes(const String &APath);
+	// ACount — сколько типов всего у Numista по запросу (поле count; в ответе — не больше cPageSize).
+	std::vector<TNumistaType> QueryTypes(const String &APath, int *ACount = nullptr);
 	// Адреса searchTypes: по фразе, по номеру каталога (без issuer / date), по номиналу.
 	static String PhrasePath(const String &AQuery);
 	static String NumberPath(int ACatalogueId, const String &ANumber);

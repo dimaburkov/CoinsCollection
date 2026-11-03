@@ -69,9 +69,9 @@ namespace
 	// Ширина колонок по умолчанию (порядок = TItemColumn).
 	// Auto-link checked: больше стольких монет — подтверждение.
 	const int cConfirmCheckCoins = 10;
-	const int cDefaultWidths[] = { 22, 130, 160, 120, 130, 200, 70, 24, 70, 85, 120, 50, 65, 85, 95 };
+	const int cDefaultWidths[] = { 22, 130, 160, 120, 130, 120, 70, 24, 63, 85, 120, 50, 58, 85, 95 };
 	// Наименьшая ширина колонки «Сюжет», растянутой на свободное место (задача 27).
-	const int cMinSubjectWidth = 150;
+	const int cMinSubjectWidth = 90;
 	// Подписи строк панели подробностей (порядок = TDetailRowIndex).
 	const wchar_t *const cDetailKeys[] =
 	{
@@ -1341,9 +1341,9 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 			config.Save();
 		}
 	}
-	// Не больше 3 запросов на монету: поиск, повтор без issuer, выпуски (своя фраза и автофраза —
-	// 1 поиск); с характеристиками — ещё getType.
-	client.RequestBudget = count * (details ? (PricesWithDetails() ? 5 : 4) : 3);
+	// Не больше 4 запросов на монету: поиск с годом, без года, без issuer (задача 35), выпуски
+	// (своя фраза и автофраза — 1 поиск); с характеристиками — ещё getType, с ценами — getPrices.
+	client.RequestBudget = count * (details ? (PricesWithDetails() ? 6 : 5) : 4);
 	FPricesLoaded = 0;
 
 	int linked = 0, withIssue = 0, ambiguous = 0, notFound = 0, otherIssuer = 0, processed = 0;
@@ -2969,10 +2969,18 @@ void TfmMain::UpdateColumns()
 		return;
 
 	SyncUserWidths();
+	// Колонке — её последняя ширина от подгонки (нет — естественная): иначе следующая подгонка
+	// приняла бы разницу за ширину, заданную мышью. WM_SIZE во время перестановки (появилась /
+	// исчезла прокрутка) не подгоняет — ширины ещё от старого набора колонок.
+	FFitting = true;
 	FColumns = columns;
 	dgItems->ColCount = (int)FColumns.size();
 	for (size_t i = 0; i < FColumns.size(); ++i)
-		dgItems->ColWidths[(int)i] = FColWidths[FColumns[i]];
+	{
+		const int c = FColumns[i];
+		dgItems->ColWidths[(int)i] = FFitWidth[c] != 0 ? FFitWidth[c] : FColWidths[c];
+	}
+	FFitting = false;
 
 	// Сортировка по скрытой колонке теряет смысл — вернуть порядок по году.
 	if (std::find(FColumns.begin(), FColumns.end(), FSortColumn) == FColumns.end())
@@ -2991,7 +2999,7 @@ int TfmMain::MinFitWidth(int AColumn)
 		case icPeriod:       return 80;
 		case icCurrency:     return 70;
 		case icDenomination: return 70;
-		case icSubject:      return 100;
+		case icSubject:      return 60;
 		case icComposition:  return 60;
 	}
 	return 0;
