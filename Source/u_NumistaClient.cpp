@@ -241,6 +241,14 @@ bool TNumistaClient::IsCached(const String &APath)
 	return FileExists(CacheDir() + L"cache\\" + THashMD5::GetHashString(APath) + L".json");
 }
 //---------------------------------------------------------------------------
+TDateTime TNumistaClient::CachedAt(const String &APath)
+{
+	TDateTime result = 0.0;
+	if (!FileAge(CacheDir() + L"cache\\" + THashMD5::GetHashString(APath) + L".json", result))
+		result = 0.0;
+	return result;
+}
+//---------------------------------------------------------------------------
 std::unique_ptr<TJSONValue> TNumistaClient::GetCached(const String &APath, bool *AFromCache, bool ARefresh)
 {
 	const String dir  = CacheDir() + L"cache\\";

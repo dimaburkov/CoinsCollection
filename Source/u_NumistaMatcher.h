@@ -31,6 +31,33 @@ struct TNumistaType
 	TNumistaType() : Id(0), MinYear(0), MaxYear(0), OtherIssuer(false), ByAutoQuery(false), YearMismatch(false) {}
 };
 //---------------------------------------------------------------------------
+// Продажа на аукционе (getSalesRecords; задача 38).
+struct TNumistaSale
+{
+	String    Date;            // yyyy-mm-dd
+	String    House;           // аукционный дом
+	String    Title;           // аукцион
+	String    LotNumber;
+	String    LotUrl;
+	int       IssueId;         // 0 — продажа не привязана к выпуску
+	String    Grade;           // g … unc ("" — не указано)
+	String    GradeDetails;
+	double    Amount;          // в валюте продажи
+	String    Currency;
+	int       Premium;         // комиссия покупателя в цене: 1 — да, 0 — нет, -1 — неизвестно
+	double    Converted;       // в запрошенной валюте; 0 — нет курса
+	TNumistaSale() : IssueId(0), Amount(0.0), Premium(-1), Converted(0.0) {}
+};
+struct TNumistaSales
+{
+	int       Count;           // продаж у Numista всего (sales_count)
+	String    Currency;        // запрошенная валюта пересчёта
+	TDateTime LoadedAt;        // когда получен ответ (дата файла кэша)
+	bool      FromCache;
+	std::vector<TNumistaSale> Items;
+	TNumistaSales() : Count(0), LoadedAt(0.0), FromCache(false) {}
+};
+//---------------------------------------------------------------------------
 class TNumistaMatcher
 {
 public:
@@ -97,6 +124,10 @@ public:
 	TNumistaPrices LoadPrices(int ATypeId, int AIssueId, const String &ACurrency);
 
 	static String TypeUrl(int ATypeId);
+	// Продажи на аукционах (getSalesRecords, задача 38): AIssueId = 0 — все продажи типа; цены
+	// пересчитаны в ACurrency; до 500 продаж (одна страница). Кэш ответа — 7 дней; ARefresh — мимо кэша.
+	TNumistaSales LoadSales(int ATypeId, int AIssueId, const String &ACurrency, bool ARefresh = false);
+	static String SalesPath(int ATypeId, int AIssueId, const String &ACurrency);
 	// Знак двора для сравнения: заглавные, без точек / пробелов / дефисов, кириллица латиницей.
 	static String MintKey(const String &AMint);
 	// Примечание выпуска говорит о Proof, BU, наборе, пробе, рестрайке … (не обычный тираж).

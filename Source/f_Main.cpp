@@ -29,6 +29,7 @@
 #include "u_PhotoRepository.h"
 #include "f_PhotoView.h"
 #include "f_Progress.h"
+#include "f_NumistaSales.h"
 #include "u_Help.h"
 #include "f_NumistaImport.h"
 #include "u_Backup.h"
@@ -879,6 +880,24 @@ void __fastcall TfmMain::actNumistaPricesExecute(TObject *Sender)
 	}
 	else
 		LoadNumistaPrices(CheckedRecords(), false);
+}
+//---------------------------------------------------------------------------
+// Numista → «Продажі на аукціонах» (задача 38): окно продаж выбранной монеты (getSalesRecords).
+void __fastcall TfmMain::actNumistaSalesExecute(TObject *Sender)
+{
+	const int index = CurrentIndex();
+	if (index < 0 || FItems[index].NumistaTypeId == 0)
+		return;
+	TNumistaClient client;
+	TNumistaMatcher matcher(client);
+	TfmNumistaSales::Execute(this, FItems[index], CoinText(FItems[index]), matcher, AppConfig().NumistaPriceCurrency);
+	UpdateStatus();
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::DetailPricesClick(TObject *Sender)
+{
+	if (actNumistaSales->Enabled)
+		actNumistaSales->Execute();
 }
 //---------------------------------------------------------------------------
 bool TfmMain::PricesWithDetails()
@@ -1822,6 +1841,7 @@ void __fastcall TfmMain::actNumistaUpdate(TObject *Sender)
 	actNumistaPricesOne->Visible  = AppConfig().NumistaLoadPrices;
 	actNumistaPrices->Visible     = AppConfig().NumistaLoadPrices;
 	actNumistaPricesOne->Enabled  = coin && coin->NumistaIssueId != 0;
+	actNumistaSales->Enabled      = coin && coin->NumistaTypeId != 0;	// задача 38
 	actNumistaPrices->Enabled     = linked;
 
 	actNumistaCheck->Enabled   = noType;
@@ -3595,6 +3615,10 @@ void TfmMain::CreateDetailRows()
 	}
 	// N# — ссылка на страницу типа на Numista.
 	FDetailRows[drNumista].Value->OnClick = NumistaLinkClick;
+	// Цены Numista — клик открывает продажи на аукционах (задача 38).
+	FDetailRows[drPrices].Value->OnClick = DetailPricesClick;
+	FDetailRows[drPrices].Value->Cursor  = crHandPoint;
+	FDetailRows[drPrices].Value->ShowHint = true;
 	// F1 — помощь о главном окне (задача 18).
 	InstallHelpKey(this, L"main-window");
 	// Двойной клик по фото — окно просмотра (задача 16).
@@ -3649,6 +3673,7 @@ void TfmMain::ShowDetails(int AIndex)
 			: L"#" + IntToStr(r.NumistaItemId);
 		FDetailRows[drIssueComment].Value->Caption = value(r.NumistaIssueComment);
 		FDetailRows[drPrices].Value->Caption = NumistaPricesText(r);
+		FDetailRows[drPrices].Value->Hint    = Tr(L"Main.Details.PricesHint");
 		ShowTypeDetails(r.NumistaTypeLoaded ? r.NumistaTypeId : 0);
 	}
 	else

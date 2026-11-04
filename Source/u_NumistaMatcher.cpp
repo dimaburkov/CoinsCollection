@@ -2,6 +2,7 @@
 #include <vcl.h>
 #pragma hdrstop
 
+#include <algorithm>
 #include <memory>
 #include <System.IOUtils.hpp>
 #include <System.JSON.hpp>
@@ -599,6 +600,75 @@ TNumistaPrices TNumistaMatcher::LoadPrices(int ATypeId, int AIssueId, const Stri
 			p.Price[grade] = JsonFloat(prices->Items[i], L"price");
 	}
 	return p;
+}
+//---------------------------------------------------------------------------
+String TNumistaMatcher::SalesPath(int ATypeId, int AIssueId, const String &ACurrency)
+{
+	return L"/types/" + IntToStr(ATypeId) + L"/sales_records?count=500&currency=" + UrlParam(ACurrency)
+		+ (AIssueId != 0 ? L"&issue_id=" + IntToStr(AIssueId) : String());
+}
+//---------------------------------------------------------------------------
+// GET /types/{type_id}/sales_records: {"sales_count": N, "sales_records": [{auction_house: {name}, auction_title,
+// auction_date, lot_number, lot_url, issue_id, grade, grade_details, price: {amount, currency, premium_included,
+// converted_amount}}, ...]}. Фото лотов (pictures) не читаются — без согласия владельцев не используются.
+// Numista отдаёт продажи от старых к новым (параметра порядка нет): больше 500 — дочитываются
+// последние страницы (до 2), остаются 500 новейших. Обычно 1 запрос, не больше 3.
+TNumistaSales TNumistaMatcher::LoadSales(int ATypeId, int AIssueId, const String &ACurrency, bool ARefresh)
+{
+	const int cSalesPage = 500;	// максимум count у getSalesRecords
+	const String path = SalesPath(ATypeId, AIssueId, ACurrency);
+	const TDateTime cached = TNumistaClient::CachedAt(path);
+	const bool refresh = ARefresh || (double)cached == 0.0 || (double)Now() - (double)cached > 7.0;
+	TNumistaSales result;
+	result.Currency = ACurrency;
+	result.FromCache = true;
+	std::vector<TNumistaSale> all;
+	auto readPage = [&](int APage)
+	{
+		bool fromCache = false;
+		std::unique_ptr<TJSONValue> json = FClient.GetCached(APage == 1 ? path : path + L"&page=" + IntToStr(APage),
+			&fromCache, refresh);
+		result.FromCache = result.FromCache && fromCache;
+		if (APage == 1)
+			result.Count = JsonInt(json.get(), L"sales_count");
+		TJSONArray *items = dynamic_cast<TJSONArray *>(json->FindValue(L"sales_records"));
+		for (int i = 0; items && i < items->Count; ++i)
+		{
+			TJSONValue *item = items->Items[i];
+			TNumistaSale s;
+			s.Date         = JsonString(item, L"auction_date");
+			s.House        = JsonString(item, L"auction_house.name");
+			s.Title        = JsonString(item, L"auction_title");
+			s.LotNumber    = JsonString(item, L"lot_number");
+			s.LotUrl       = JsonString(item, L"lot_url");
+			s.IssueId      = JsonInt   (item, L"issue_id");
+			s.Grade        = JsonString(item, L"grade").LowerCase();
+			s.GradeDetails = JsonString(item, L"grade_details");
+			s.Amount       = JsonFloat (item, L"price.amount");
+			s.Currency     = JsonString(item, L"price.currency");
+			s.Converted    = JsonFloat (item, L"price.converted_amount");
+			const String premium = JsonString(item, L"price.premium_included");
+			s.Premium      = SameText(premium, L"true") ? 1 : (SameText(premium, L"false") ? 0 : -1);
+			all.push_back(s);
+		}
+	};
+	readPage(1);
+	const int pages = (result.Count + cSalesPage - 1) / cSalesPage;
+	if (pages > 1)
+	{
+		all.clear();
+		if (pages > 2)
+			readPage(pages - 1);
+		readPage(pages);
+	}
+	std::stable_sort(all.begin(), all.end(), [](const TNumistaSale &A, const TNumistaSale &B) { return A.Date < B.Date; });
+	if ((int)all.size() > cSalesPage)
+		all.erase(all.begin(), all.end() - cSalesPage);
+	result.Items = all;
+	result.LoadedAt = result.FromCache ? cached : Now();
+	if (result.Count < (int)result.Items.size())
+		result.Count = (int)result.Items.size();
+	return result;
 }
 //---------------------------------------------------------------------------
 String TNumistaMatcher::IssuesPath(int ATypeId)

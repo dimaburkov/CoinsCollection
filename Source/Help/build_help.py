@@ -723,6 +723,19 @@ are not requested again; for one coin — only prices loaded today are skipped.<
 <li>Only coins with a chosen issue get prices — [[ui:Choose issue|Вибрати випуск]].</li>
 <li>Prices in another currency stay in the database: switching the currency back shows them again.</li>
 </ul>
+<h2>Auction sales</h2>
+<p>Numista collects past sales of coins at auctions (the <i>Past sales</i> block on the type page). For a linked coin:
+right-click → [[ui:Auction sales...|Продажі на аукціонах...]] (or click the [[ui:Numista prices|Ціни Numista]] row in the details).</p>
+<ul>
+<li>The list: date, auction house, auction and lot, condition, price in the sale currency and in the currency of the price settings
+(converted by Numista at the historical rate; “—” — no rate), whether the buyer's premium is included. Double-click opens the lot.</li>
+<li>[[ui:My issue|Мій випуск]] — sales of the coin's issue (year, mint); [[ui:Whole type|Увесь тип]] — of all years.
+[[ui:Only my condition|Лише мій стан]] — sales in the condition of your coin.</li>
+<li>Above the list: how many sales (and in the last 3 years) and the prices — from, to, median. Real sales are a good addition
+to the Numista estimate; the price may or may not include the buyer's premium.</li>
+<li>1 request (up to 500 sales; more — up to 3 requests, the newest 500 are shown). The answer is kept for 7 days;
+[[ui:Refresh|Оновити]] asks Numista again. Sales are not saved in the collection; pictures of lots are not shown — open the lot.</li>
+</ul>
 """
 T['numista-catalog', 'uk'] = u"""
 <p>Для пов'язаних монет програма зберігає дані з каталогу Numista:</p>
@@ -758,6 +771,19 @@ T['numista-catalog', 'uk'] = u"""
 повторно не запитуються; для однієї монети пропускаються лише ціни, завантажені сьогодні.</li>
 <li>Ціни отримують лише монети з вибраним випуском — [[ui:Choose issue|Вибрати випуск]].</li>
 <li>Ціни в іншій валюті залишаються в базі: якщо повернути валюту, вони знову видні.</li>
+</ul>
+<h2>Продажі на аукціонах</h2>
+<p>Numista збирає минулі продажі монет на аукціонах (блок <i>Past sales</i> на сторінці типу). Для пов'язаної монети:
+праве клацання → [[ui:Auction sales...|Продажі на аукціонах...]] (або клацніть рядок [[ui:Numista prices|Ціни Numista]] у подробицях).</p>
+<ul>
+<li>Список: дата, аукціонний дім, аукціон і лот, стан, ціна у валюті продажу та у валюті налаштувань цін
+(перерахунок Numista за історичним курсом; «—» — курсу немає), чи включена комісія покупця. Подвійне клацання відкриває лот.</li>
+<li>[[ui:My issue|Мій випуск]] — продажі випуску монети (рік, двір); [[ui:Whole type|Увесь тип]] — усіх років.
+[[ui:Only my condition|Лише мій стан]] — продажі у стані вашої монети.</li>
+<li>Над списком: скільки продажів (і за останні 3 роки) та ціни — від, до, медіана. Реальні продажі — добре доповнення
+до оцінки Numista; ціна може включати або не включати комісію покупця.</li>
+<li>1 запит (до 500 продажів; більше — до 3 запитів, показуються 500 найновіших). Відповідь зберігається 7 днів;
+[[ui:Refresh|Оновити]] запитує Numista знову. Продажі не зберігаються в колекції; фото лотів не показуються — відкрийте лот.</li>
 </ul>
 """
 

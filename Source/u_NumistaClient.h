@@ -57,6 +57,8 @@ public:
 	std::unique_ptr<TJSONValue> GetCached(const String &APath, bool *AFromCache = nullptr, bool ARefresh = false);
 	// Ответ на APath уже есть в кэше (GetCached не потратит запрос).
 	static bool IsCached(const String &APath);
+	// Когда ответ на APath записан в кэш (дата файла); 0 — нет в кэше (задача 38).
+	static TDateTime CachedAt(const String &APath);
 
 	// Своя коллекция (OAuth: сначала Authorize).
 	// getCollectedItems — GET /users/{user_id}/collected_items: вся коллекция одним ответом.
