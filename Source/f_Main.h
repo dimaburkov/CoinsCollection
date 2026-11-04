@@ -69,6 +69,9 @@ __published:	// IDE-managed Components
 	TAction *actNumistaUnlinkOne;
 	TAction *actNumistaUnlink;
 	TAction *actReportProblem;
+	TAction *actNumistaSales;
+	TMenuItem *miNumistaSales;
+	TMenuItem *miPopNumistaSales;
 	TMenuItem *miReportProblem;
 	TAction *actNumistaPricesOne;
 	TAction *actNumistaPrices;
@@ -216,6 +219,8 @@ __published:	// IDE-managed Components
 	void __fastcall actNumistaCatalogExecute(TObject *Sender);
 	void __fastcall actNumistaPricesExecute(TObject *Sender);
 	void __fastcall actReportProblemExecute(TObject *Sender);
+	void __fastcall actNumistaSalesExecute(TObject *Sender);
+	void __fastcall DetailPricesClick(TObject *Sender);	// назначается в CreateDetailRows
 	void __fastcall actHelpContentsExecute(TObject *Sender);
 	void __fastcall actNumistaImportExecute(TObject *Sender);
 	void __fastcall actCheckAllExecute(TObject *Sender);

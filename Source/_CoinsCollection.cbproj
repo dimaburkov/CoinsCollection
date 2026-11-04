@@ -275,6 +275,12 @@
             <DependentOn>u_Backup.h</DependentOn>
             <BuildOrder>31</BuildOrder>
         </CppCompile>
+        <CppCompile Include="f_NumistaSales.cpp">
+            <Form>fmNumistaSales</Form>
+            <FormType>dfm</FormType>
+            <DependentOn>f_NumistaSales.h</DependentOn>
+            <BuildOrder>33</BuildOrder>
+        </CppCompile>
         <CppCompile Include="f_About.cpp">
             <DependentOn>f_About.h</DependentOn>
             <BuildOrder>32</BuildOrder>
@@ -299,6 +305,7 @@
         <FormResources Include="f_NumistaSettings.dfm"/>
         <FormResources Include="f_NumistaChoose.dfm"/>
         <FormResources Include="f_NumistaIssue.dfm"/>
+        <FormResources Include="f_NumistaSales.dfm"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
