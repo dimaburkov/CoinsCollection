@@ -61,8 +61,9 @@ public:
 	// Число экземпляров монеты ACoinId.
 	int  ItemCount(int ACoinId);
 
-	// Связь монеты с типом и выпуском Numista (0 — нет).
-	void SetCoinNumista(int ACoinId, int ATypeId, int AIssueId);
+	// Связь монеты с типом и выпуском Numista (0 — нет); ATitle — название типа Numista
+	// (задача 39; "" — прежнее, если тип тот же, иначе пусто).
+	void SetCoinNumista(int ACoinId, int ATypeId, int AIssueId, const String &ATitle = String());
 	// id предмета в коллекции Numista у экземпляра (0 — не выгружен).
 	void SetItemNumista(int AItemId, int ANumistaItemId);
 	// Индекс редкости монеты (-1 — не известен).

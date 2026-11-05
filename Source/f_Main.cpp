@@ -71,7 +71,7 @@ namespace
 	// Ширина колонок по умолчанию (порядок = TItemColumn).
 	// Auto-link checked: больше стольких монет — подтверждение.
 	const int cConfirmCheckCoins = 10;
-	const int cDefaultWidths[] = { 22, 130, 160, 120, 130, 120, 70, 24, 63, 85, 120, 50, 58, 85, 95 };
+	const int cDefaultWidths[] = { 22, 130, 160, 120, 200, 120, 70, 24, 63, 85, 120, 50, 58, 85, 95 };
 	// Наименьшая ширина колонки «Сюжет», растянутой на свободное место (задача 27).
 	const int cMinSubjectWidth = 90;
 	// Подписи строк панели подробностей (порядок = TDetailRowIndex).
@@ -956,9 +956,25 @@ std::map<String, String> TfmMain::NumistaIssuers()
 	return result;
 }
 //---------------------------------------------------------------------------
+String TfmMain::TitleExtra(const TCoinRecord &ARecord)
+{
+	return ARecord.Subject.Trim().IsEmpty() ? NumistaTitleExtra(ARecord.NumistaTitle) : String();
+}
+//---------------------------------------------------------------------------
+String TfmMain::KnownNumistaTitle(int ATypeId) const
+{
+	for (size_t i = 0; ATypeId != 0 && i < FAll.size(); ++i)
+		if (FAll[i].NumistaTypeId == ATypeId && !FAll[i].NumistaTitle.IsEmpty())
+			return FAll[i].NumistaTitle;
+	return String();
+}
+//---------------------------------------------------------------------------
 String TfmMain::CoinText(const TCoinRecord &ARecord)
 {
 	String text = ARecord.Country + L", " + ARecord.Denomination;
+	const String extra = TitleExtra(ARecord);	// задача 39
+	if (!extra.IsEmpty())
+		text += L" \u2014 " + extra;
 	if (ARecord.Year != 0)
 		text += L", " + YearText(ARecord.Year, ARecord.YearTo);
 	if (!ARecord.Variety.IsEmpty())
@@ -1002,6 +1018,7 @@ void __fastcall TfmMain::actNumistaFindExecute(TObject *Sender)
 	try
 	{
 		std::vector<TNumistaType> types;
+		std::map<int, String> titles;	// N# -> название Numista без пометок окна выбора (задача 39)
 		String countryIssuer, periodIssuer;
 		const TCursor saved = Screen->Cursor;
 		Screen->Cursor = crHourGlass;
@@ -1025,6 +1042,7 @@ void __fastcall TfmMain::actNumistaFindExecute(TObject *Sender)
 				same.MinYear    = info.MinYear;
 				same.MaxYear    = info.MaxYear;
 				same.ByAutoQuery = true;	// только с подтверждением в окне выбора
+				titles[same.Id] = info.Title;
 				for (size_t i = 0; i < FAll.size(); ++i)
 					if (FAll[i].NumistaTypeId == sameTypeId && NumberKey(FAll[i]) == NumberKey(coin))
 					{
@@ -1046,8 +1064,12 @@ void __fastcall TfmMain::actNumistaFindExecute(TObject *Sender)
 		// поиска можно исправить и искать снова. Изменённая фраза сохраняется у монеты при Link.
 		// Тип не по году монеты — с пометкой в названии (годы — красным в окне).
 		for (TNumistaType &t : types)
+		{
+			if (!titles.count(t.Id))
+				titles[t.Id] = t.Title;
 			if (t.YearMismatch)
 				t.Title += L"  " + Format(Tr(L"NumistaChoose.YearMismatch"), ARRAYOFCONST((coin.Year)));
+		}
 		const String autoQuery = TNumistaMatcher::AutoQuery(coin);
 		const String startQuery = coin.NumistaQuery.IsEmpty() ? autoQuery : coin.NumistaQuery;
 		String query = startQuery;
@@ -1082,13 +1104,13 @@ void __fastcall TfmMain::actNumistaFindExecute(TObject *Sender)
 			message = Tr(L"Numista.Find.Cancelled");
 		else
 		{
-			FRepository->SetCoinNumista(coin.CoinId, typeId, issueId);
-			if (issueId != 0)
-				StoreIssues(*FRepository, matcher, typeId);
 			TNumistaType chosen;
 			for (size_t i = 0; i < types.size(); ++i)
 				if (types[i].Id == typeId)
 					chosen = types[i];
+			FRepository->SetCoinNumista(coin.CoinId, typeId, issueId, titles.count(typeId) ? titles[typeId] : chosen.Title);
+			if (issueId != 0)
+				StoreIssues(*FRepository, matcher, typeId);
 			message = Format(Tr(L"Numista.Find.Linked"), ARRAYOFCONST((typeId, chosen.Title))) + L"\r\n"
 				+ (issueId != 0 ? Tr(L"Numista.Find.IssueFound") : Tr(L"Numista.Find.IssueNotFound"));
 			if (!relinkNote.IsEmpty())
@@ -1369,6 +1391,7 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 	int linkedByPhrase = 0, linkedBySame = 0, phraseCheck = 0, yearMismatch = 0;
 	int typesLoaded = 0, typesFailed = 0, photos = 0, photosFailed = 0;
 	std::set<int> linkedCoins;
+	std::map<int, String> runTitles;	// N# -> название Numista, связанные в этом запуске
 	String stopReason;
 	std::unique_ptr<TProgress> progress(new TProgress(this, caption, count, &client));
 	try
@@ -1423,7 +1446,12 @@ void __fastcall TfmMain::actNumistaCheckExecute(TObject *Sender)
 					{
 						stopReason = e.Message;	// тип найден — сохраняем без выпуска и останавливаемся
 					}
-					FRepository->SetCoinNumista(coin.CoinId, types[0].Id, issueId);
+					// Название (задача 39): из ответа поиска; тип соседа с тем же номером — уже известное.
+					String title = types[0].Title;
+					if (title.IsEmpty())
+						title = runTitles.count(types[0].Id) ? runTitles[types[0].Id] : KnownNumistaTitle(types[0].Id);
+					runTitles[types[0].Id] = title;
+					FRepository->SetCoinNumista(coin.CoinId, types[0].Id, issueId, title);
 					if (issueId != 0)
 						StoreIssues(*FRepository, matcher, types[0].Id);
 					linkedCoins.insert(coin.CoinId);
@@ -1555,7 +1583,7 @@ void TfmMain::OfferSameNumber(TNumistaClient &AClient, TNumistaMatcher &AMatcher
 	for (size_t i = 0; i < coins.size(); ++i)
 	{
 		const int issueId = AMatcher.FindIssue(ATypeId, coins[i]);
-		FRepository->SetCoinNumista(coins[i].CoinId, ATypeId, issueId);
+		FRepository->SetCoinNumista(coins[i].CoinId, ATypeId, issueId, type.Title);
 		++linked;
 		if (issueId != 0)
 			++withIssue;
@@ -2251,20 +2279,29 @@ void __fastcall TfmMain::actNumistaCatalogExecute(TObject *Sender)
 
 	LoadItems();	// и строка состояния
 	std::set<int> withMintage, noMintage;	// отмеченные монеты: тираж известен / выпуск загружен, тиража у Numista нет
+	std::set<int> linkedCoins, titledCoins;	// отмеченные связанные монеты / из них с названием Numista (задача 39)
 	for (size_t i = 0; i < FAll.size(); ++i)
 		if (!FChecked.count(FAll[i].Id))
 			continue;
-		else if (FAll[i].NumistaMintage >= 0)
-			withMintage.insert(FAll[i].CoinId);
-		else if (FAll[i].NumistaIssueLoaded)
-			noMintage.insert(FAll[i].CoinId);
+		else
+		{
+			if (FAll[i].NumistaTypeId != 0)
+				linkedCoins.insert(FAll[i].CoinId);
+			if (FAll[i].NumistaTypeId != 0 && !FAll[i].NumistaTitle.IsEmpty())
+				titledCoins.insert(FAll[i].CoinId);
+			if (FAll[i].NumistaMintage >= 0)
+				withMintage.insert(FAll[i].CoinId);
+			else if (FAll[i].NumistaIssueLoaded)
+				noMintage.insert(FAll[i].CoinId);
+		}
 	String report = Format(Tr(L"Numista.Catalog.Types"), ARRAYOFCONST((processed, (int)types.size(), fromCache))) + L"\r\n"
 		+ Format(Tr(L"Numista.Catalog.Issues"), ARRAYOFCONST((issues))) + L"\r\n"
 		+ Format(Tr(L"Numista.Catalog.Details"), ARRAYOFCONST((details))) + L"\r\n"
 		+ Format(Tr(L"Numista.Photos.Loaded"), ARRAYOFCONST((photos))) + L"\r\n"
 		+ (photosFailed > 0 ? Format(Tr(L"Numista.Photos.Failed"), ARRAYOFCONST((photosFailed))) + L"\r\n" : String())
 		+ Format(Tr(L"Numista.Catalog.Mintage"), ARRAYOFCONST(((int)withMintage.size()))) + L"\r\n"
-		+ Format(Tr(L"Numista.Catalog.NoMintage"), ARRAYOFCONST(((int)noMintage.size())))
+		+ Format(Tr(L"Numista.Catalog.NoMintage"), ARRAYOFCONST(((int)noMintage.size()))) + L"\r\n"
+		+ Format(Tr(L"Numista.Catalog.Titles"), ARRAYOFCONST(((int)titledCoins.size(), (int)linkedCoins.size())))
 		+ PricesNote();
 	if (!stopReason.IsEmpty())
 		report += L"\r\n\r\n" + Tr(L"Numista.Match.Stopped") + L" " + stopReason;
@@ -2617,7 +2654,7 @@ void TfmMain::LinkExistingItem(TNumistaClient &AClient, TNumistaMatcher &AMatche
 	const int issueId = JsonNumber(AItem, L"issue.id");
 
 	if (coin.NumistaTypeId == 0 || (coin.NumistaIssueId == 0 && issueId != 0))
-		FRepository->SetCoinNumista(coin.CoinId, typeId, issueId);
+		FRepository->SetCoinNumista(coin.CoinId, typeId, issueId, AType.Title);
 	FRepository->SetItemNumista(coin.Id, JsonNumber(AItem, L"id"));
 	FRepository->SaveNumistaType(AType);
 	if (issueId != 0)
@@ -2699,7 +2736,7 @@ void TfmMain::ImportNumistaItem(TNumistaClient &AClient, TNumistaMatcher &AMatch
 	r.Origin = L"numista";
 
 	FRepository->Save(r);
-	FRepository->SetCoinNumista(r.CoinId, typeId, issueId);
+	FRepository->SetCoinNumista(r.CoinId, typeId, issueId, AType.Title);
 	FRepository->SetItemNumista(r.Id, JsonNumber(AItem, L"id"));
 	FRepository->SaveNumistaType(AType);
 	if (comment.Rarity >= 0)
@@ -2830,7 +2867,7 @@ void TfmMain::LoadItems()
 		const TCoinRecord &r = FAll[i];
 		FSearchTexts.push_back(AnsiUpperCase(r.Country + sep + r.Period + sep + r.Currency + sep
 			+ r.Denomination + sep + YearText(r.Year, r.YearTo) + sep + r.Subject + sep
-			+ r.Variety + sep + r.CatalogNumber + sep + r.Comment));
+			+ r.Variety + sep + r.CatalogNumber + sep + r.Comment + sep + r.NumistaTitle));
 	}
 
 	FCountryByName.clear();
@@ -3365,6 +3402,24 @@ void __fastcall TfmMain::dgItemsDrawCell(TObject *Sender, int ACol, int ARow,
 		&& FItems[ARow - 1].NumistaIssueId == 0 && !State.Contains(gdSelected))
 		canvas->Font->Color = clGrayText;
 	canvas->Brush->Style = bsClear;
+	// Номинал + добавка названия Numista серым (задача 39); не помещается — «…».
+	const String extra = ARow > 0 && column == icDenomination && ARow - 1 < (int)FItems.size()
+		? TitleExtra(FItems[ARow - 1]) : String();
+	if (!extra.IsEmpty())
+	{
+		RECT measure = r;
+		DrawTextW(canvas->Handle, text.c_str(), -1, &measure, (flags & ~DT_END_ELLIPSIS) | DT_CALCRECT);
+		DrawTextW(canvas->Handle, text.c_str(), -1, &r, flags);
+		RECT rest = r;
+		rest.left = measure.right + 6;
+		if (rest.left < rest.right)
+		{
+			if (!State.Contains(gdSelected))
+				canvas->Font->Color = clGrayText;
+			DrawTextW(canvas->Handle, extra.c_str(), -1, &rest, flags);
+		}
+		return;
+	}
 	DrawTextW(canvas->Handle, text.c_str(), -1, &r, flags);
 }
 //---------------------------------------------------------------------------
@@ -3659,6 +3714,9 @@ void TfmMain::ShowDetails(int AIndex)
 	{
 		const TCoinRecord &r = FItems[AIndex];
 		String title = r.Denomination;
+		const String extra = TitleExtra(r);	// задача 39
+		if (!extra.IsEmpty())
+			title += L" \u2014 " + extra;
 		if (r.Year != 0)
 			title += L", " + YearText(r.Year, r.YearTo);
 		lblDetailsTitle->Caption = title + L" \u2014 " + r.Country;
@@ -3667,7 +3725,7 @@ void TfmMain::ShowDetails(int AIndex)
 		FDetailRows[drSubject].Value->Caption  = value(r.Subject);
 		FDetailRows[drNumber].Value->Caption   = value(r.CatalogNumber);
 		FDetailRows[drNumista].Value->Caption  = r.NumistaTypeId == 0 ? String(L"\u2014")
-			: L"N# " + IntToStr(r.NumistaTypeId);
+			: L"N# " + IntToStr(r.NumistaTypeId) + (r.NumistaTitle.IsEmpty() ? String() : L" \u2014 " + r.NumistaTitle);
 		FDetailsTypeId = r.NumistaTypeId;
 		FDetailRows[drNumistaItem].Value->Caption = r.NumistaItemId == 0 ? String(L"\u2014")
 			: L"#" + IntToStr(r.NumistaItemId);

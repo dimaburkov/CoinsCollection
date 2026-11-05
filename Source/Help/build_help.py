@@ -199,12 +199,15 @@ T['main-window', 'en'] = u"""
 [[ui:Extinct states|Зниклі держави]] and [[ui:Checked|Позначені]] (all checked coins from any country, see [[page:checks|Checking coins]]).
 The number in brackets is the number of items.</p>
 <h2>Search</h2>
-<p>The search field on the toolbar filters the list by country, period, currency, denomination, year, subject, variety, catalogue number and comment.</p>
+<p>The search field on the toolbar filters the list by country, period, currency, denomination, year, subject, variety, catalogue number, comment and the Numista title (for example <i>Crispina</i>).</p>
 <h2>Coin list</h2>
 <table>
 <tr><th>Column</th><th>Meaning</th></tr>
 <tr><td>☐</td><td>Check box for mass operations ([[page:checks|Checking coins]]).</td></tr>
-<tr><td>Country, Period, Currency, Denomination</td><td>From uCoin. Country is hidden when one country is selected in the tree.</td></tr>
+<tr><td>Country, Period, Currency, Denomination</td><td>From uCoin. Country is hidden when one country is selected in the tree.
+For a coin linked with Numista, the denomination is followed (in grey) by what the Numista title adds: the ruler, the variety
+or the legend — for example <i>1 Denarius</i> <span style="color:gray">Crispina (CONCORDIA)</span>,
+<i>10 lekë</i> <span style="color:gray">Non-magnetic</span>. Commemorative coins with a subject do not get it.</td></tr>
 <tr><td>[[ui:Subject|Сюжет]]</td><td>Subject of a commemorative coin (from uCoin or the coin card); shown instead of Country when one country is selected. The column takes the free width of the list;
 after you change its width with the mouse, it keeps your width.</td></tr>
 <tr><td>#Numista</td><td>Numista type number (N#). Grey — the issue is not chosen yet.</td></tr>
@@ -236,12 +239,15 @@ T['main-window', 'uk'] = u"""
 [[ui:Extinct states|Зниклі держави]] і [[ui:Checked|Позначені]] (усі позначені монети з будь-яких країн, див. [[page:checks|Позначки монет]]).
 Число в дужках — кількість примірників.</p>
 <h2>Пошук</h2>
-<p>Поле пошуку на панелі інструментів фільтрує список за країною, періодом, валютою, номіналом, роком, сюжетом, різновидом, номером у каталозі та коментарем.</p>
+<p>Поле пошуку на панелі інструментів фільтрує список за країною, періодом, валютою, номіналом, роком, сюжетом, різновидом, номером у каталозі, коментарем і назвою Numista (наприклад <i>Crispina</i>).</p>
 <h2>Список монет</h2>
 <table>
 <tr><th>Колонка</th><th>Значення</th></tr>
 <tr><td>☐</td><td>Позначка для масових операцій ([[page:checks|Позначки монет]]).</td></tr>
-<tr><td>[[ui:Country|Країна]], [[ui:Period|Період]], [[ui:Currency|Валюта]], [[ui:Denomination|Номінал]]</td><td>З uCoin. Країна прихована, коли в дереві вибрано одну країну.</td></tr>
+<tr><td>[[ui:Country|Країна]], [[ui:Period|Період]], [[ui:Currency|Валюта]], [[ui:Denomination|Номінал]]</td><td>З uCoin. Країна прихована, коли в дереві вибрано одну країну.
+У монети, пов'язаної з Numista, після номіналу сірим — те, що додає назва Numista: правитель, різновид чи легенда —
+наприклад <i>1 Denarius</i> <span style="color:gray">Crispina (CONCORDIA)</span>,
+<i>10 lekë</i> <span style="color:gray">Non-magnetic</span>. Пам'ятні монети із сюжетом цього не мають.</td></tr>
 <tr><td>[[ui:Subject|Сюжет]]</td><td>Сюжет пам'ятної монети (з uCoin або картки монети); показується замість Країни, коли вибрано одну країну. Колонка займає вільну ширину списку;
 якщо змінити її ширину мишею, залишається ваша ширина.</td></tr>
 <tr><td>#Numista</td><td>Номер типу Numista (N#). Сірим — випуск ще не вибрано.</td></tr>
@@ -695,6 +701,8 @@ T['numista-catalog', 'en'] = u"""
 <li><b>Type details</b> — composition (the [[ui:Composition|Метал]] column), weight, size, shape, technique, ruler, series,
 commemorated topic, years, mints, demonetization (coin details, right column);</li>
 <li><b>Photos</b> of the type ([[page:photos|Photos]]).</li>
+<li><b>Title</b> of the type, for example <i>Denarius - Crispina (CONCORDIA)</i>: in the coin details (row Numista); its addition to the
+denomination — in the list. It is saved when the coin is linked; for coins linked earlier — [[ui:Update catalogue data|Оновити дані каталогу]].</li>
 </ul>
 <h2>Update catalogue data</h2>
 <p>Check coins → [[ui:Update catalogue data|Оновити дані каталогу]]: loads what is missing. Cached answers are free,
@@ -744,6 +752,8 @@ T['numista-catalog', 'uk'] = u"""
 <li><b>Характеристики типу</b> — метал (колонка [[ui:Composition|Метал]]), вага, розмір, форма, техніка, правитель, серія,
 пам'ятна тема, роки, монетні двори, демонетизація (подробиці, права колонка);</li>
 <li><b>Фото</b> типу ([[page:photos|Фото]]).</li>
+<li><b>Назва</b> типу, наприклад <i>Denarius - Crispina (CONCORDIA)</i>: у подробицях монети (рядок Numista); її доповнення до
+номіналу — у списку. Зберігається під час зв'язку; для монет, пов'язаних раніше, — [[ui:Update catalogue data|Оновити дані каталогу]].</li>
 </ul>
 <h2>Оновити дані каталогу</h2>
 <p>Позначте монети → [[ui:Update catalogue data|Оновити дані каталогу]]: завантажує те, чого бракує. Збережені відповіді безкоштовні,
