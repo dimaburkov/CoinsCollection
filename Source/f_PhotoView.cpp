@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <Vcl.Imaging.jpeg.hpp>
 #include "f_PhotoView.h"
+#include "u_AppConfig.h"
 #include "u_Translator.h"
 #include "u_Help.h"
 //---------------------------------------------------------------------------
@@ -41,6 +42,7 @@ __fastcall TfmPhotoView::TfmPhotoView(TComponent *AOwner)
 	// Шире 900: в панели кнопки комплектов и подсказка (задача 30); не шире рабочей области.
 	Width        = std::min(1080, Screen->WorkAreaWidth - 40);
 	Height       = 720;
+	AppConfig().RestoreFormSize(this, L"PhotoView");	// задача 44
 	KeyPreview   = true;
 	Color        = clBtnFace;
 	OnMouseWheel = FormMouseWheel;
@@ -116,6 +118,7 @@ void TfmPhotoView::Execute(TComponent *AOwner, const String &ATitle, const std::
 	form->LayoutToolbar();
 	form->ShowPhoto(std::min<int>(std::max(ASet, 0), (int)form->FSets.size() - 1), ASide);
 	form->ShowModal();
+	AppConfig().StoreFormSize(form.get(), L"PhotoView");
 }
 //---------------------------------------------------------------------------
 void TfmPhotoView::LayoutToolbar()

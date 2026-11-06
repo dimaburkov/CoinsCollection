@@ -15,6 +15,7 @@ object fmMain: TfmMain
   OldCreateOrder = False
   Position = poScreenCenter
   OnCreate = FormCreate
+  OnClose = FormClose
   OnCloseQuery = FormCloseQuery
   OnDestroy = FormDestroy
   PixelsPerInch = 96

@@ -176,6 +176,7 @@ __published:	// IDE-managed Components
 	void __fastcall FormCreate(TObject *Sender);
 	void __fastcall FormDestroy(TObject *Sender);
 	void __fastcall FormCloseQuery(TObject *Sender, bool &CanClose);
+	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
 	void __fastcall actBackupExecute(TObject *Sender);
 	void __fastcall actRestoreExecute(TObject *Sender);
 	void __fastcall actImportExecute(TObject *Sender);
@@ -326,6 +327,16 @@ private:	// User declarations
 	// Задача 41: колонки по [Grid] ini и обратно, меню колонок, высота строк, миниатюры.
 	void LoadGridSettings();
 	void SaveGridSettings();
+	// Задача 44: окно, панели и ширины колонок, заданные мышью, — из [Window] / [Grid] Widths и обратно.
+	void RestoreLayout();
+	void SaveLayout();
+	// Развёрнутое при старте окно: VCL создаёт его с обычным размером из .dfm (ClientWidth /
+	// ClientHeight) — сохранённый обычный размер ставится в CreateWnd (пустой — не нужно).
+	TRect FNormalBounds;
+protected:
+	virtual void __fastcall CreateWnd();
+private:
+	void StoreColumnWidths();
 	void SetRowHeight(int AHeight);
 	void __fastcall ColumnsMenuPopup(TObject *Sender);
 	void __fastcall ColumnMenuClick(TObject *Sender);

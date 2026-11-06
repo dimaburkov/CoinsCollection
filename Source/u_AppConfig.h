@@ -6,6 +6,8 @@
 #define u_AppConfigH
 //---------------------------------------------------------------------------
 #include <System.hpp>
+#include <Vcl.Forms.hpp>
+#include <map>
 //---------------------------------------------------------------------------
 class TAppConfig
 {
@@ -51,6 +53,26 @@ public:
 	int       GridRowHeight;
 	// Порядок колонок (задача 42): ключи через запятую; пусто — по умолчанию.
 	String    GridOrder;
+	// Ширины колонок, заданные мышью ([Grid] Widths = "ключ:ширина,...", задача 44).
+	std::map<String, int> GridWidths;
+
+	// Главное окно ([Window], задача 44): обычные (не развёрнутые) положение и размер на экране
+	// (пустой — не сохранено), развёрнуто, ширина дерева и высота подробностей (0 — по умолчанию).
+	// Размеры здесь — при текущем масштабе экрана: записанные при другом ([Window] PixelsPerInch)
+	// пересчитываются при загрузке; так же [Windows] и [Grid] Widths.
+	TRect     WindowBounds;
+	bool      WindowMaximized;
+	int       WindowTreeWidth;
+	int       WindowDetailsHeight;
+	// Размеры окон с таблицами ([Windows] Имя=ШиринаxВысота, задача 44).
+	std::map<String, TPoint> FormSizes;
+
+	// Окно с таблицей: до показа — размер из [Windows] (не меньше Constraints, не больше рабочей
+	// области); после закрытия — запомнить обычный размер и сохранить ini.
+	void RestoreFormSize(TForm *AForm, const String &AName);
+	void StoreFormSize(TForm *AForm, const String &AName);
+	// Обычные (не развёрнутые) границы окна на экране; AMaximized — развёрнуто (и свёрнутое из развёрнутого).
+	static TRect NormalBounds(TForm *AForm, bool *AMaximized = nullptr);
 
 	// Резервные копии ([Backup], задача 21): папка последней копии, дата последней копии и
 	// последнего напоминания (0 — не было).

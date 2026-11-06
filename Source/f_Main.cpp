@@ -170,6 +170,7 @@ __fastcall TfmMain::TfmMain(TComponent* Owner)
 	FColumnsMenu   = nullptr;
 	FHeaderDownCol = -1;
 	FColumnMoved   = false;
+	FNormalBounds  = TRect(0, 0, 0, 0);
 	LoadGridSettings();	// задача 41: колонки и высота строк из [Grid]
 	// Строки подробностей — до колонок: смена ColCount вызывает OnSelectCell → ShowDetails.
 	CreateDetailRows();
@@ -184,6 +185,7 @@ __fastcall TfmMain::TfmMain(TComponent* Owner)
 	BuildLanguageMenu();
 	ApplyTexts();
 	FLanguageToken = Translator().Subscribe([this]() { ApplyTexts(); });
+	RestoreLayout();
 }
 //---------------------------------------------------------------------------
 __fastcall TfmMain::~TfmMain()
@@ -223,6 +225,90 @@ void __fastcall TfmMain::FormCloseQuery(TObject *Sender, bool &CanClose)
 	if (Application->MessageBox(text.c_str(), StripHotkey(actBackup->Caption).c_str(),
 		MB_YESNO | MB_ICONQUESTION) == IDYES)
 		MakeBackup();
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::FormClose(TObject *Sender, TCloseAction &Action)
+{
+	SaveLayout();
+}
+//---------------------------------------------------------------------------
+// Окно из [Window] (задача 44) — до показа. Должна быть видна часть окна хотя бы 100×50 на
+// каком-то мониторе (иначе — по центру, размер из формы); больше рабочей области — уменьшается.
+void TfmMain::RestoreLayout()
+{
+	const TAppConfig &config = AppConfig();
+	const TRect &saved = config.WindowBounds;
+	if (saved.right > saved.left && saved.bottom > saved.top)
+	{
+		const RECT r = { saved.left, saved.top, saved.right, saved.bottom };
+		const HMONITOR monitor = MonitorFromRect(&r, MONITOR_DEFAULTTONULL);
+		MONITORINFO info;
+		info.cbSize = sizeof(info);
+		RECT visible;
+		if (monitor && GetMonitorInfo(monitor, &info) && IntersectRect(&visible, &r, &info.rcWork)
+			&& visible.right - visible.left >= 100 && visible.bottom - visible.top >= 50)
+		{
+			const RECT &work = info.rcWork;
+			const int w = std::min((int)(saved.right - saved.left), (int)(work.right - work.left));
+			const int h = std::min((int)(saved.bottom - saved.top), (int)(work.bottom - work.top));
+			const int left = std::max((int)work.left, std::min((int)saved.left, (int)work.right - w));
+			const int top  = std::max((int)work.top, std::min((int)saved.top, (int)work.bottom - h));
+			Position = poDesigned;
+			SetBounds(left, top, w, h);
+			if (config.WindowMaximized)
+				FNormalBounds = TRect(left, top, left + w, top + h);
+		}
+	}
+	if (config.WindowMaximized)
+		WindowState = wsMaximized;
+	if (config.WindowTreeWidth > 0)
+		tvNav->Width = std::max(Splitter->MinSize, std::min(config.WindowTreeWidth, Screen->WorkAreaWidth - 400));
+	if (config.WindowDetailsHeight > 0)
+		pnlDetails->Height = std::max(splDetails->MinSize, std::min(config.WindowDetailsHeight, Screen->WorkAreaHeight - 250));
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::CreateWnd()
+{
+	TForm::CreateWnd();
+	if (FNormalBounds.right <= FNormalBounds.left)
+		return;
+	// rcNormalPosition — в координатах рабочей области монитора; окно ещё скрыто (SW_HIDE),
+	// развернёт его VCL при показе.
+	RECT r = { FNormalBounds.left, FNormalBounds.top, FNormalBounds.right, FNormalBounds.bottom };
+	FNormalBounds = TRect(0, 0, 0, 0);
+	MONITORINFO info;
+	info.cbSize = sizeof(info);
+	if (GetMonitorInfo(MonitorFromRect(&r, MONITOR_DEFAULTTONEAREST), &info))
+		OffsetRect(&r, info.rcMonitor.left - info.rcWork.left, info.rcMonitor.top - info.rcWork.top);
+	WINDOWPLACEMENT placement;
+	placement.length = sizeof(placement);
+	if (GetWindowPlacement(Handle, &placement))
+	{
+		placement.rcNormalPosition = r;
+		placement.showCmd = SW_HIDE;
+		SetWindowPlacement(Handle, &placement);
+	}
+}
+//---------------------------------------------------------------------------
+void TfmMain::SaveLayout()
+{
+	TAppConfig &config = AppConfig();
+	config.WindowBounds        = TAppConfig::NormalBounds(this, &config.WindowMaximized);
+	config.WindowTreeWidth     = tvNav->Width;
+	config.WindowDetailsHeight = pnlDetails->Height;
+	StoreColumnWidths();
+	try { config.Save(); } catch (Exception &) {}
+}
+//---------------------------------------------------------------------------
+// Ширины, заданные мышью, — в [Grid] Widths (задача 44); миниатюры — по высоте строк, не пишутся.
+void TfmMain::StoreColumnWidths()
+{
+	SyncUserWidths();
+	std::map<String, int> &widths = AppConfig().GridWidths;
+	widths.clear();
+	for (int c = icCountry; c < icCount; ++c)
+		if (FUserWidth[c] && c != icObverse && c != icReverse)
+			widths[cColumnIni[c]] = FColWidths[c];
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::actBackupExecute(TObject *Sender)
@@ -3291,6 +3377,17 @@ void TfmMain::LoadGridSettings()
 	hidden->CommaText = AppConfig().GridHidden;
 	for (int c = 0; c < icCount; ++c)
 		FColumnOn[c] = c == icCheck || c == icDenomination || hidden->IndexOf(cColumnIni[c]) < 0;
+	// Ширины, заданные мышью (задача 44).
+	const std::map<String, int> &widths = AppConfig().GridWidths;
+	for (int c = icCountry; c < icCount; ++c)
+	{
+		std::map<String, int>::const_iterator it = widths.find(cColumnIni[c]);
+		if (it != widths.end() && c != icObverse && c != icReverse)
+		{
+			FColWidths[c] = std::max(16, it->second);
+			FUserWidth[c] = true;
+		}
+	}
 
 	// Порядок: известные ключи из Order; остальные (пусто, новая колонка) — после соседа слева по умолчанию.
 	FOrder.assign(1, icCheck);
@@ -3322,6 +3419,7 @@ void TfmMain::SaveGridSettings()
 	AppConfig().GridHidden    = hidden;
 	AppConfig().GridRowHeight = dgItems->DefaultRowHeight;
 	AppConfig().GridOrder     = custom ? order : String();
+	StoreColumnWidths();
 	AppConfig().Save();
 }
 //---------------------------------------------------------------------------
@@ -3411,9 +3509,14 @@ void __fastcall TfmMain::DefaultColumnsClick(TObject *Sender)
 		FColumnOn[c] = c != icObverse && c != icReverse;
 	FOrder.clear();
 	for (int c = 0; c < icCount; ++c)
+	{
 		FOrder.push_back(c);
+		FColWidths[c] = cDefaultWidths[c];	// и ширины по умолчанию (задача 44)
+		FUserWidth[c] = false;
+	}
 	SetRowHeight(cRowHeights[0]);
 	UpdateColumns();
+	FitColumns();
 	UpdateRowCount();
 	dgItems->Invalidate();
 	SaveGridSettings();
@@ -3823,13 +3926,15 @@ void __fastcall TfmMain::dgItemsColumnMoved(TObject *Sender, int FromIndex, int 
 		widths.insert(widths.begin() + to, width);
 		FOrder.erase(std::find(FOrder.begin(), FOrder.end(), column));
 		FOrder.insert(std::find(FOrder.begin(), FOrder.end(), FColumns[to - 1]) + 1, column);
-		SaveGridSettings();
 	}
 	FFitting = true;
 	for (int i = 0; i < n; ++i)
 		if (dgItems->ColWidths[i] != widths[i])
 			dgItems->ColWidths[i] = widths[i];
 	FFitting = false;
+	// После ширин (задача 44): иначе переставленные сеткой ширины сочлись бы заданными мышью.
+	if (column != icCheck && to != FromIndex)
+		SaveGridSettings();
 	dgItems->Invalidate();
 }
 //---------------------------------------------------------------------------

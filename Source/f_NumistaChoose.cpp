@@ -6,6 +6,7 @@
 #include <memory>
 #include <shellapi.h>
 #include "f_NumistaChoose.h"
+#include "u_AppConfig.h"
 #include "u_Translator.h"
 #include "u_Help.h"
 //---------------------------------------------------------------------------
@@ -28,6 +29,7 @@ __fastcall TfmNumistaChoose::TfmNumistaChoose(TComponent* Owner)
 {
 	Translator().TranslateForm(this);
 	InstallHelpKey(this, L"numista-link");
+	AppConfig().RestoreFormSize(this, L"NumistaChoose");	// задача 44
 }
 //---------------------------------------------------------------------------
 int TfmNumistaChoose::Execute(TComponent *AOwner, const String &ACoinText, const std::vector<TNumistaType> &ATypes,
@@ -42,6 +44,7 @@ int TfmNumistaChoose::Execute(TComponent *AOwner, const String &ACoinText, const
 	if (ATypes.empty())
 		form->ActiveControl = form->edQuery;	// ничего не найдено — сразу править фразу
 	const bool ok = form->ShowModal() == mrOk;
+	AppConfig().StoreFormSize(form.get(), L"NumistaChoose");
 	AQuery = form->edQuery->Text.Trim();
 	if (!ok)
 		return 0;
