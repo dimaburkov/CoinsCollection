@@ -60,6 +60,30 @@ namespace
 	{
 		return StrCmpLogicalW(A.c_str(), B.c_str());
 	}
+	// Номер без числового подномера через точку: "C#118.3" -> "C#118" (задача 40); буквы —
+	// другой тип ("KM#865a" остаётся).
+	String NumberBase(const String &ANumber)
+	{
+		const int dot = ANumber.LastDelimiter(L".");
+		if (dot <= 1 || dot == ANumber.Length())
+			return ANumber;
+		for (int i = dot + 1; i <= ANumber.Length(); ++i)
+			if (ANumber[i] < L'0' || ANumber[i] > L'9')
+				return ANumber;
+		return ANumber.SubString(1, dot - 1);
+	}
+	// Первое число в тексте номинала ("2 kopeks", "1/2 grosz" -> "2", "1"); "" — нет.
+	String FirstNumber(const String &AText)
+	{
+		String result;
+		for (int i = 1; i <= AText.Length(); ++i)
+			if (AText[i] >= L'0' && AText[i] <= L'9')
+				result += AText[i];
+			else if (!result.IsEmpty())
+				break;
+		return result;
+	}
+	//-----------------------------------------------------------------------
 	// Страна + номер каталога целиком ("KM# 6b", "UC# 428") — монеты одного типа разных лет
 	// (задача 28). "" — номера нет.
 	String NumberKey(const TCoinRecord &ARecord)
@@ -2502,8 +2526,63 @@ void __fastcall TfmMain::actNumistaImportExecute(TObject *Sender)
 					row.InProgram = Tr(L"NumistaImport.LinkTo") + L" " + CoinText(FAll[k]);
 		rows.push_back(row);
 	}
+	// Монета программы вручную (задача 40): экземпляры без ✓, не связанные с другим типом, страна
+	// в ветке эмитента, год в годах типа; не выбранные для других строк. Сначала — тот же номер
+	// (без подномера), потом — тот же номинал, внутри — по году.
+	std::map<String, String> countryIssuers = NumistaIssuers();
+	auto chooseCoin = [&](int ARow, String &AInProgram) -> bool
+	{
+		TJSONValue *item = candidates[ARow];
+		const TNumistaTypeInfo &type = types[JsonNumber(item, L"type.id")];
+		auto normalize = [](const String &AText) { return StringReplace(AText, L" ", L"", TReplaceFlags() << rfReplaceAll).UpperCase(); };
+		std::set<String> refs;
+		for (size_t k = 0; k < type.References.size(); ++k)
+			refs.insert(NumberBase(normalize(type.References[k])));
+		const String typeNumber = FirstNumber(type.ValueText.IsEmpty() ? type.Title : type.ValueText);
+		std::vector<std::pair<std::pair<int, int>, int> > order;	// ((ранг, год), индекс в FAll)
+		for (size_t i = 0; i < FAll.size(); ++i)
+		{
+			const TCoinRecord &r = FAll[i];
+			if (r.NumistaItemId != 0 || (r.NumistaTypeId != 0 && r.NumistaTypeId != type.Id))
+				continue;
+			const String issuer = countryIssuers[AnsiUpperCase(r.Country)];
+			if (!issuer.IsEmpty() && !type.IssuerCode.IsEmpty() && !matcher.SameBranch(issuer, type.IssuerCode))
+				continue;
+			const int maxYear = type.MaxYear != 0 ? type.MaxYear : type.MinYear;
+			if (r.Year != 0 && type.MinYear != 0 && (r.Year < type.MinYear || r.Year > maxYear))
+				continue;
+			bool taken = false;
+			for (size_t j = 0; j < existing.size() && !taken; ++j)
+				taken = (int)j != ARow && existing[j] == r.Id;
+			if (taken)
+				continue;
+			const int rank = !r.CatalogNumber.IsEmpty() && refs.count(NumberBase(normalize(r.CatalogNumber))) ? 0
+				: (!typeNumber.IsEmpty() && FirstNumber(r.Denomination) == typeNumber ? 1 : 2);
+			order.push_back(std::make_pair(std::make_pair(rank, r.Year), (int)i));
+		}
+		std::sort(order.begin(), order.end());
+		std::vector<String> lines(1, Tr(L"NumistaImport.New"));
+		std::vector<int> ids(1, 0);
+		int current = 0;
+		for (size_t k = 0; k < order.size(); ++k)
+		{
+			const TCoinRecord &r = FAll[order[k].second];
+			lines.push_back(CoinText(r) + (r.Condition.IsEmpty() ? String() : L", " + r.Condition)
+				+ (r.Quantity > 1 ? L" \u00D7" + IntToStr(r.Quantity) : String()));
+			ids.push_back(r.Id);
+			if (r.Id == existing[ARow])
+				current = (int)k + 1;
+		}
+		const int chosen = TfmNumistaImport::ChooseLine(this, Format(Tr(L"NumistaImport.ChooseTitle"),
+			ARRAYOFCONST((type.IssuerName + L" \u2014 " + JsonText(item, L"type.title")))), lines, current);
+		if (chosen < 0)
+			return false;
+		existing[ARow] = ids[chosen];
+		AInProgram = chosen == 0 ? String() : Tr(L"NumistaImport.LinkTo") + L" " + lines[chosen];
+		return true;
+	};
 	std::vector<int> selected;
-	if (!TfmNumistaImport::Execute(this, rows, selected))
+	if (!TfmNumistaImport::Execute(this, rows, selected, chooseCoin))
 		return;
 
 	// 3. Импорт.
@@ -2622,8 +2701,9 @@ int TfmMain::FindExistingItem(TJSONValue *AItem, const TNumistaTypeInfo &AType, 
 		if (!match && !r.CatalogNumber.IsEmpty())
 		{
 			const String number = normalize(r.CatalogNumber);
+			// Номер без подномера тоже совпадает: «C# 118» = «C# 118.3» (задача 40).
 			for (size_t k = 0; k < AType.References.size() && !match; ++k)
-				match = normalize(AType.References[k]) == number;
+				match = normalize(AType.References[k]) == number || NumberBase(normalize(AType.References[k])) == number;
 			const String issuer = issuers[AnsiUpperCase(r.Country)];
 			if (match && !issuer.IsEmpty() && !AType.IssuerCode.IsEmpty() && !AMatcher.SameBranch(issuer, AType.IssuerCode))
 				match = false;

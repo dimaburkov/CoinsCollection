@@ -20,6 +20,7 @@ __fastcall TfmNumistaImport::TfmNumistaImport(TComponent *AOwner)
 	  FList(nullptr),
 	  FCount(nullptr),
 	  FImport(nullptr),
+	  FChoose(nullptr),
 	  FFilling(false)
 {
 	Caption     = Tr(L"NumistaImport.Title");
@@ -71,6 +72,14 @@ __fastcall TfmNumistaImport::TfmNumistaImport(TComponent *AOwner)
 	FCount->Parent = bottom;
 	FCount->SetBounds(8, 15, 300, 13);
 
+	// Монета программы для строки вручную (задача 40).
+	FChoose = new TButton(this);
+	FChoose->Parent = bottom;
+	FChoose->SetBounds(316, 10, 190, 25);
+	FChoose->Caption = Tr(L"NumistaImport.Choose");
+	FChoose->OnClick = ChooseClick;
+	FChoose->Visible = false;
+
 	TButton *cancel = new TButton(this);
 	cancel->Parent = bottom;
 	cancel->Anchors = TAnchors() << akTop << akRight;
@@ -112,10 +121,12 @@ __fastcall TfmNumistaImport::TfmNumistaImport(TComponent *AOwner)
 }
 //---------------------------------------------------------------------------
 bool TfmNumistaImport::Execute(TComponent *AOwner, const std::vector<TNumistaImportRow> &ARows,
-	std::vector<int> &ASelected)
+	std::vector<int> &ASelected, TChooseCoin AChooseCoin)
 {
 	std::unique_ptr<TfmNumistaImport> form(new TfmNumistaImport(AOwner));
 	form->FRows = ARows;
+	form->FChooseCoin = AChooseCoin;
+	form->FChoose->Visible = (bool)AChooseCoin;
 	form->FChecked.assign(ARows.size(), false);
 
 	// Эмитенты по алфавиту, сверху — «все».
@@ -202,12 +213,91 @@ void __fastcall TfmNumistaImport::ListItemChecked(TObject *Sender, TListItem *It
 	UpdateCount();
 }
 //---------------------------------------------------------------------------
-// Двойной клик — тип на сайте Numista.
+// Двойной клик: по колонке «У програмі» — выбор монеты (задача 40), по остальным — тип на сайте Numista.
 void __fastcall TfmNumistaImport::ListDblClick(TObject *Sender)
 {
 	if (!FList->Selected)
 		return;
+	const TPoint pt = FList->ScreenToClient(Mouse->CursorPos);
+	int left = -GetScrollPos(FList->Handle, SB_HORZ);
+	for (int c = 0; c < FList->Columns->Count - 1; ++c)
+		left += FList->Columns->Items[c]->Width;
+	if (FChooseCoin && pt.x >= left)
+	{
+		ChooseClick(Sender);
+		return;
+	}
 	const TNumistaImportRow &r = FRows[(NativeInt)FList->Selected->Data];
 	ShellExecuteW(Handle, L"open", TNumistaMatcher::TypeUrl(r.TypeId).c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmNumistaImport::ChooseClick(TObject *Sender)
+{
+	if (!FChooseCoin || !FList->Selected)
+		return;
+	const int row = (int)(NativeInt)FList->Selected->Data;
+	String inProgram;
+	if (!FChooseCoin(row, inProgram))
+		return;
+	FRows[row].InProgram = inProgram;
+	FList->Selected->SubItems->Strings[3] = inProgram.IsEmpty() ? Tr(L"NumistaImport.New") : inProgram;
+}
+//---------------------------------------------------------------------------
+namespace
+{
+	// Окно выбора строки (без .dfm): двойной клик по списку — OK.
+	class TChooseLineForm : public TForm
+	{
+	public:
+		__fastcall TChooseLineForm(TComponent *AOwner) : TForm(AOwner, 0) {}
+		void __fastcall ListDblClick(TObject *Sender) { ModalResult = mrOk; }
+	};
+}
+//---------------------------------------------------------------------------
+// Окно выбора одной строки из списка (без .dfm).
+int TfmNumistaImport::ChooseLine(TComponent *AOwner, const String &ACaption, const std::vector<String> &ALines,
+	int ACurrent)
+{
+	std::unique_ptr<TChooseLineForm> form(new TChooseLineForm(AOwner));
+	form->Caption     = ACaption;
+	form->BorderStyle = bsSizeable;
+	form->BorderIcons = TBorderIcons() << biSystemMenu;
+	form->Position    = poOwnerFormCenter;
+	form->Width  = 640;
+	form->Height = 420;
+
+	TPanel *bottom = new TPanel(form.get());
+	bottom->Parent = form.get();
+	bottom->Align = alBottom;
+	bottom->Height = 44;
+	bottom->BevelOuter = bvNone;
+	TButton *cancel = new TButton(form.get());
+	cancel->Parent = bottom;
+	cancel->Anchors = TAnchors() << akTop << akRight;
+	cancel->SetBounds(form->ClientWidth - 92, 10, 84, 25);
+	cancel->Caption = Tr(L"NumistaImport.Cancel");
+	cancel->Cancel = true;
+	cancel->ModalResult = mrCancel;
+	TButton *ok = new TButton(form.get());
+	ok->Parent = bottom;
+	ok->Anchors = TAnchors() << akTop << akRight;
+	ok->SetBounds(form->ClientWidth - 92 - 6 - 110, 10, 110, 25);
+	ok->Caption = Tr(L"NumistaImport.ChooseOk");
+	ok->Default = true;
+	ok->ModalResult = mrOk;
+
+	TListBox *list = new TListBox(form.get());
+	list->Parent = form.get();
+	list->Align = alClient;
+	list->AlignWithMargins = true;
+	for (size_t i = 0; i < ALines.size(); ++i)
+		list->Items->Add(ALines[i]);
+	list->ItemIndex = ACurrent >= 0 && ACurrent < (int)ALines.size() ? ACurrent : 0;
+	list->OnDblClick = form->ListDblClick;	// двойной клик по строке — как OK
+	form->ActiveControl = list;
+
+	if (form->ShowModal() != mrOk)
+		return -1;
+	return list->ItemIndex;
 }
 //---------------------------------------------------------------------------

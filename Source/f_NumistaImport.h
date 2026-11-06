@@ -14,6 +14,7 @@
 #include <Vcl.ExtCtrls.hpp>
 #include <Vcl.ComCtrls.hpp>
 #include <vector>
+#include <functional>
 //---------------------------------------------------------------------------
 // Строка списка: предмет коллекции Numista.
 struct TNumistaImportRow
@@ -32,14 +33,24 @@ class TfmNumistaImport : public TForm
 public:
 	__fastcall TfmNumistaImport(TComponent *AOwner);
 
+	// Выбор монеты программы для строки ARow (задача 40): true — выбор сделан, AInProgram — новый текст колонки.
+	typedef std::function<bool(int ARow, String &AInProgram)> TChooseCoin;
+
 	// Показать ARows; true — Import, ASelected — индексы отмеченных строк в ARows.
-	static bool Execute(TComponent *AOwner, const std::vector<TNumistaImportRow> &ARows, std::vector<int> &ASelected);
+	// AChooseCoin — кнопка «Монета в програмі…» (пусто — кнопки нет).
+	static bool Execute(TComponent *AOwner, const std::vector<TNumistaImportRow> &ARows, std::vector<int> &ASelected,
+		TChooseCoin AChooseCoin = TChooseCoin());
+	// Список для выбора (задача 40): ALines[0] — «нова монета», остальные — монеты программы;
+	// индекс выбранной строки, -1 — отмена.
+	static int ChooseLine(TComponent *AOwner, const String &ACaption, const std::vector<String> &ALines, int ACurrent);
 
 private:
 	TComboBox *FIssuer;
 	TListView *FList;
 	TLabel    *FCount;
 	TButton   *FImport;
+	TButton   *FChoose;
+	TChooseCoin FChooseCoin;
 
 	std::vector<TNumistaImportRow> FRows;
 	std::vector<bool>              FChecked;	// по индексу в FRows (отметки сохраняются при смене фильтра)
@@ -52,6 +63,7 @@ private:
 	void __fastcall UncheckAllClick(TObject *Sender);
 	void __fastcall ListItemChecked(TObject *Sender, TListItem *Item);
 	void __fastcall ListDblClick(TObject *Sender);
+	void __fastcall ChooseClick(TObject *Sender);
 };
 //---------------------------------------------------------------------------
 #endif
