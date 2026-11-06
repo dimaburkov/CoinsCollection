@@ -139,6 +139,8 @@ void TAppConfig::Load()
 	if (GridRowHeight != 18 && GridRowHeight != 40 && GridRowHeight != 64)
 		GridRowHeight = 18;
 
+	GridOrder = ini->ReadString(L"Grid", L"Order", L"").Trim().LowerCase();
+
 	BackupFolder = ini->ReadString(L"Backup", L"Folder", L"").Trim();
 	BackupLast   = ParseDateTime(ini->ReadString(L"Backup", L"Last", L""));
 	BackupAsked  = ParseDateTime(ini->ReadString(L"Backup", L"Asked", L""));
@@ -176,6 +178,7 @@ void TAppConfig::Save()
 	ini->WriteString(cUiSection, cLanguageKey, Language);
 	ini->WriteString(L"Grid", L"Hidden", GridHidden);
 	ini->WriteInteger(L"Grid", L"RowHeight", GridRowHeight);
+	ini->WriteString(L"Grid", L"Order", GridOrder);
 
 	if (!NumistaApiKey.IsEmpty() || ini->SectionExists(cNumistaSection))
 	{

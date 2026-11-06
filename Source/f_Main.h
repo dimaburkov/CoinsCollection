@@ -193,6 +193,8 @@ __published:	// IDE-managed Components
 	void __fastcall dgItemsFixedCellClick(TObject *Sender, int ACol, int ARow);
 	void __fastcall dgItemsDblClick(TObject *Sender);
 	void __fastcall dgItemsMouseDown(TObject *Sender, TMouseButton Button, TShiftState Shift, int X, int Y);
+	void __fastcall dgItemsMouseUp(TObject *Sender, TMouseButton Button, TShiftState Shift, int X, int Y);
+	void __fastcall dgItemsColumnMoved(TObject *Sender, int FromIndex, int ToIndex);
 	void __fastcall dgItemsKeyDown(TObject *Sender, WORD &Key, TShiftState Shift);
 	void __fastcall dgItemsSelectCell(TObject *Sender, int ACol, int ARow, bool &CanSelect);
 	void __fastcall sbInfoResize(TObject *Sender);
@@ -283,6 +285,13 @@ private:	// User declarations
 	TPopupMenu                      *FColumnsMenu;
 	std::map<String, std::shared_ptr<Graphics::TBitmap> > FThumbs;
 	std::map<__int64, String>        FThumbFiles;
+	// Порядок колонок (задача 42): все TItemColumn в порядке пользователя, флажки — первые.
+	// Нажатие на заголовок — колонка сетки и точка: при goColMoving сетка не вызывает
+	// OnFixedCellClick, клик без перетаскивания (сортировка) ловит OnMouseUp.
+	std::vector<int>                 FOrder;
+	int                              FHeaderDownCol;
+	TPoint                           FHeaderDownPos;
+	bool                             FColumnMoved;
 	bool                             FUserWidth[icCount];
 	int                              FFitWidth[icCount];
 	std::vector<TDetailRow>          FDetailRows;      // порядок = TDetailRowIndex

@@ -167,7 +167,9 @@ __fastcall TfmMain::TfmMain(TComponent* Owner)
 		FUserWidth[c] = false;
 		FFitWidth[c]  = 0;
 	}
-	FColumnsMenu = nullptr;
+	FColumnsMenu   = nullptr;
+	FHeaderDownCol = -1;
+	FColumnMoved   = false;
 	LoadGridSettings();	// задача 41: колонки и высота строк из [Grid]
 	// Строки подробностей — до колонок: смена ColCount вызывает OnSelectCell → ShowDetails.
 	CreateDetailRows();
@@ -3165,10 +3167,12 @@ void TfmMain::UpdateColumns()
 	const bool showCountry = !node || node->Kind != nkCountry;
 	const bool showPrice = AppConfig().NumistaLoadPrices;	// задача 34
 	std::vector<int> columns;
-	for (int c = 0; c < icCount; ++c)
-		if ((c != icCountry || showCountry) && (c != icSubject || !showCountry) && (c != icNumistaPrice || showPrice)
-			&& FColumnOn[c])
-			columns.push_back(c);
+	for (size_t i = 0; i < FOrder.size(); ++i)	// в порядке пользователя (задача 42)
+		if (const int c = FOrder[i])
+			if ((c != icCountry || showCountry) && (c != icSubject || !showCountry) && (c != icNumistaPrice || showPrice)
+				&& FColumnOn[c])
+				columns.push_back(c);
+	columns.insert(columns.begin(), icCheck);
 	if (columns == FColumns && dgItems->ColCount == (int)columns.size())
 		return;
 
@@ -3280,13 +3284,25 @@ void TfmMain::FitColumns(int ARetry)
 		FitColumns(ARetry + 1);
 }
 //---------------------------------------------------------------------------
-// [Grid] ini (задача 41): включённые колонки и высота строк.
+// [Grid] ini (задача 41): включённые колонки и высота строк; порядок колонок (задача 42).
 void TfmMain::LoadGridSettings()
 {
 	std::unique_ptr<TStringList> hidden(new TStringList());
 	hidden->CommaText = AppConfig().GridHidden;
 	for (int c = 0; c < icCount; ++c)
 		FColumnOn[c] = c == icCheck || c == icDenomination || hidden->IndexOf(cColumnIni[c]) < 0;
+
+	// Порядок: известные ключи из Order; остальные (пусто, новая колонка) — после соседа слева по умолчанию.
+	FOrder.assign(1, icCheck);
+	std::unique_ptr<TStringList> order(new TStringList());
+	order->CommaText = AppConfig().GridOrder;
+	for (int i = 0; i < order->Count; ++i)
+		for (int c = icCountry; c < icCount; ++c)
+			if (order->Strings[i] == cColumnIni[c] && std::find(FOrder.begin(), FOrder.end(), c) == FOrder.end())
+				FOrder.push_back(c);
+	for (int c = icCountry; c < icCount; ++c)
+		if (std::find(FOrder.begin(), FOrder.end(), c) == FOrder.end())
+			FOrder.insert(std::find(FOrder.begin(), FOrder.end(), c - 1) + 1, c);
 	SetRowHeight(AppConfig().GridRowHeight);
 }
 //---------------------------------------------------------------------------
@@ -3296,8 +3312,16 @@ void TfmMain::SaveGridSettings()
 	for (int c = 0; c < icCount; ++c)
 		if (!FColumnOn[c])
 			hidden += (hidden.IsEmpty() ? String() : String(L",")) + cColumnIni[c];
+	String order;	// по умолчанию — пусто
+	bool custom = false;
+	for (size_t i = 1; i < FOrder.size(); ++i)
+	{
+		order += (order.IsEmpty() ? String() : String(L",")) + cColumnIni[FOrder[i]];
+		custom = custom || FOrder[i] != (int)i;
+	}
 	AppConfig().GridHidden    = hidden;
 	AppConfig().GridRowHeight = dgItems->DefaultRowHeight;
+	AppConfig().GridOrder     = custom ? order : String();
 	AppConfig().Save();
 }
 //---------------------------------------------------------------------------
@@ -3385,6 +3409,9 @@ void __fastcall TfmMain::DefaultColumnsClick(TObject *Sender)
 {
 	for (int c = 0; c < icCount; ++c)
 		FColumnOn[c] = c != icObverse && c != icReverse;
+	FOrder.clear();
+	for (int c = 0; c < icCount; ++c)
+		FOrder.push_back(c);
 	SetRowHeight(cRowHeights[0]);
 	UpdateColumns();
 	UpdateRowCount();
@@ -3738,6 +3765,13 @@ void __fastcall TfmMain::dgItemsMouseDown(TObject *Sender, TMouseButton Button,
 {
 	int col = -1;
 	dgItems->MouseToCell(X, Y, col, FMouseDownRow);
+	FHeaderDownCol = -1;
+	if (Button == mbLeft && !Shift.Contains(ssDouble) && FMouseDownRow == 0 && col >= 0)
+	{
+		FHeaderDownCol = col;
+		FHeaderDownPos = TPoint(X, Y);
+		FColumnMoved   = false;
+	}
 	const int index = FMouseDownRow - 1;
 	if (index < 0 || index >= (int)FItems.size())
 		return;
@@ -3745,6 +3779,59 @@ void __fastcall TfmMain::dgItemsMouseDown(TObject *Sender, TMouseButton Button,
 		ToggleChecked(index);
 	else if (Button == mbRight)
 		SelectIndex(index);	// контекстное меню — для строки под курсором
+}
+//---------------------------------------------------------------------------
+// Клик по заголовку без перетаскивания (задача 42) — как OnFixedCellClick: сортировка, флажки.
+void __fastcall TfmMain::dgItemsMouseUp(TObject *Sender, TMouseButton Button,
+	TShiftState Shift, int X, int Y)
+{
+	const int down = FHeaderDownCol;
+	FHeaderDownCol = -1;
+	if (Button != mbLeft || down < 0 || FColumnMoved)
+		return;
+	int col = -1, row = -1;
+	dgItems->MouseToCell(X, Y, col, row);
+	if (row == 0 && col == down && abs(X - FHeaderDownPos.X) <= GetSystemMetrics(SM_CXDRAG)
+		&& abs(Y - FHeaderDownPos.Y) <= GetSystemMetrics(SM_CYDRAG))
+		dgItemsFixedCellClick(dgItems, col, 0);
+}
+//---------------------------------------------------------------------------
+// Колонка перетащена мышью (задача 42). Сетка уже переставила ширины; переставить колонку
+// по своим правилам: флажки остаются первыми и на их место не встать. В FOrder колонка
+// встаёт после левого соседа — скрытые колонки сохраняют свои места.
+void __fastcall TfmMain::dgItemsColumnMoved(TObject *Sender, int FromIndex, int ToIndex)
+{
+	FColumnMoved = true;
+	const int n = (int)FColumns.size();
+	if (FromIndex < 0 || FromIndex >= n || ToIndex < 0 || ToIndex >= n)
+		return;
+	// Ширины — как до перестановки сетки.
+	std::vector<int> widths(n);
+	for (int i = 0; i < n; ++i)
+		widths[i] = dgItems->ColWidths[i];
+	int width = widths[ToIndex];
+	widths.erase(widths.begin() + ToIndex);
+	widths.insert(widths.begin() + FromIndex, width);
+
+	const int column = FColumns[FromIndex];
+	const int to = std::max(1, ToIndex);
+	if (column != icCheck && to != FromIndex)
+	{
+		FColumns.erase(FColumns.begin() + FromIndex);
+		FColumns.insert(FColumns.begin() + to, column);
+		width = widths[FromIndex];
+		widths.erase(widths.begin() + FromIndex);
+		widths.insert(widths.begin() + to, width);
+		FOrder.erase(std::find(FOrder.begin(), FOrder.end(), column));
+		FOrder.insert(std::find(FOrder.begin(), FOrder.end(), FColumns[to - 1]) + 1, column);
+		SaveGridSettings();
+	}
+	FFitting = true;
+	for (int i = 0; i < n; ++i)
+		if (dgItems->ColWidths[i] != widths[i])
+			dgItems->ColWidths[i] = widths[i];
+	FFitting = false;
+	dgItems->Invalidate();
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::dgItemsDblClick(TObject *Sender)
@@ -4087,10 +4174,11 @@ void TfmMain::ShowDetailPhotos(const TCoinRecord *ARecord)
 			FDetailPhotos[s] = file;
 			try
 			{
-				if (file.IsEmpty())
-					image->Picture->Assign(nullptr);
-				else
-					image->Picture->LoadFromFile(file);
+				// Со сглаживанием под размер рамки (задача 42).
+				std::unique_ptr<TPicture> picture(new TPicture());
+				if (!file.IsEmpty())
+					picture->LoadFromFile(file);
+				ShowFittedPhoto(image, file.IsEmpty() ? nullptr : picture->Graphic);
 			}
 			catch (Exception &)
 			{

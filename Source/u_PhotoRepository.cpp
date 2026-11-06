@@ -273,6 +273,35 @@ void TPhotoRepository::SaveScaledJpeg(TGraphic *AGraphic, const String &AFileNam
 	jpeg->SaveToFile(AFileName);
 }
 //---------------------------------------------------------------------------
+void ShowFittedPhoto(TImage *AImage, TGraphic *AGraphic)
+{
+	AImage->Stretch = false;
+	AImage->Center  = true;
+	const int cw = AImage->Width, ch = AImage->Height;
+	if (!AGraphic || AGraphic->Empty || AGraphic->Width <= 0 || AGraphic->Height <= 0 || cw <= 0 || ch <= 0)
+	{
+		AImage->Picture->Assign(nullptr);
+		return;
+	}
+	const int w = AGraphic->Width, h = AGraphic->Height;
+	const double k = std::min((double)cw / w, (double)ch / h);
+	const int nw = std::max(1, (int)(w * k + 0.5)), nh = std::max(1, (int)(h * k + 0.5));
+	if (nw == w && nh == h)
+	{
+		AImage->Picture->Assign(AGraphic);
+		return;
+	}
+	std::unique_ptr<TBitmap> bitmap(new TBitmap());
+	bitmap->PixelFormat = pf24bit;
+	bitmap->SetSize(nw, nh);
+	bitmap->Canvas->Brush->Color = clWindow;	// фон рамки — под прозрачностью PNG
+	bitmap->Canvas->FillRect(TRect(0, 0, nw, nh));
+	SetStretchBltMode(bitmap->Canvas->Handle, HALFTONE);
+	SetBrushOrgEx(bitmap->Canvas->Handle, 0, 0, nullptr);
+	bitmap->Canvas->StretchDraw(TRect(0, 0, nw, nh), AGraphic);
+	AImage->Picture->Assign(bitmap.get());
+}
+//---------------------------------------------------------------------------
 void TPhotoRepository::DeleteFiles(const std::vector<String> &AFileNames)
 {
 	const String dir = PhotosDir();
