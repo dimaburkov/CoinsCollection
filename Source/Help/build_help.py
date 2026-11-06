@@ -242,6 +242,11 @@ after you change its width with the mouse, it keeps your width.</td></tr>
 ([[page:numista-catalog|Numista catalogue data]]).</td></tr>
 </table>
 <p>Click a column header to sort, click it again to reverse. By default the list is sorted by year, then by denomination.</p>
+<p>Right-click a column header: the menu [[ui:Columns|Стовпці]] shows or hides columns (the denomination always stays),
+[[ui:Row height|Висота рядків]] — normal, medium or large, [[ui:Default columns|Типові стовпці]] — back to the default set.
+The columns [[ui:Obverse|Аверс]] and [[ui:Reverse|Реверс]] show small photos of the coin: your photo, otherwise the catalogue picture;
+double-click a photo to open the photo viewer. The choice is remembered.</p>
+[[shot:01b-main-thumbnails.png|The list with the columns Obverse and Reverse, medium row height.]]
 <p>All columns fit into the window: if they do not, the text columns (country, period, currency, denomination, subject, composition)
 get narrower, long text ends with “…” (the full text is in the coin details). A column whose width you changed with the mouse
 keeps your width.</p>
@@ -282,6 +287,11 @@ T['main-window', 'uk'] = u"""
 ([[page:numista-catalog|Дані каталогу Numista]]).</td></tr>
 </table>
 <p>Клацніть заголовок колонки, щоб відсортувати, ще раз — у зворотному порядку. Типово — за роком, потім за номіналом.</p>
+<p>Праве клацання по заголовку колонки: меню [[ui:Columns|Стовпці]] показує або ховає колонки (номінал лишається завжди),
+[[ui:Row height|Висота рядків]] — звичайна, середня чи велика, [[ui:Default columns|Типові стовпці]] — повернути типовий набір.
+Колонки [[ui:Obverse|Аверс]] і [[ui:Reverse|Реверс]] показують мініатюри монети: ваше фото, інакше зображення з каталогу;
+подвійне клацання по мініатюрі відкриває перегляд фото. Вибір запам'ятовується.</p>
+[[shot:01b-main-thumbnails.png|Список зі стовпцями Аверс і Реверс, середня висота рядків.]]
 <p>Усі колонки вміщуються у вікно: якщо ні, текстові колонки (країна, період, валюта, номінал, сюжет, метал) звужуються,
 довгий текст закінчується «…» (повний текст — у подробицях монети). Колонка, ширину якої ви змінили мишею, зберігає вашу ширину.</p>
 <h2>Подробиці про монету</h2>

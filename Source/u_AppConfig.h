@@ -45,6 +45,11 @@ public:
 	bool      NumistaUploadDate;
 	bool      NumistaUploadComment;
 
+	// Список монет ([Grid], задача 41): скрытые пользователем колонки — ключи через запятую
+	// (по умолчанию "obverse,reverse"), высота строк в пикселях (18 / 40 / 64).
+	String    GridHidden;
+	int       GridRowHeight;
+
 	// Резервные копии ([Backup], задача 21): папка последней копии, дата последней копии и
 	// последнего напоминания (0 — не было).
 	String    BackupFolder;

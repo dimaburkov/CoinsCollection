@@ -65,6 +65,8 @@ TAppConfig::TAppConfig()
 	  NumistaUploadPrice(true),
 	  NumistaUploadDate(true),
 	  NumistaUploadComment(true),
+	  GridHidden(L"obverse,reverse"),
+	  GridRowHeight(18),
 	  BackupLast(0.0),
 	  BackupAsked(0.0)
 {
@@ -132,6 +134,11 @@ void TAppConfig::Load()
 	NumistaUploadDate      = ini->ReadBool(cNumistaSection, L"UploadDate", true);
 	NumistaUploadComment   = ini->ReadBool(cNumistaSection, L"UploadComment", true);
 
+	GridHidden    = ini->ReadString(L"Grid", L"Hidden", L"obverse,reverse").Trim().LowerCase();
+	GridRowHeight = ini->ReadInteger(L"Grid", L"RowHeight", 18);
+	if (GridRowHeight != 18 && GridRowHeight != 40 && GridRowHeight != 64)
+		GridRowHeight = 18;
+
 	BackupFolder = ini->ReadString(L"Backup", L"Folder", L"").Trim();
 	BackupLast   = ParseDateTime(ini->ReadString(L"Backup", L"Last", L""));
 	BackupAsked  = ParseDateTime(ini->ReadString(L"Backup", L"Asked", L""));
@@ -167,6 +174,8 @@ void TAppConfig::Save()
 		ini->WriteString(cPhotosSection, cPathKey, FPhotosPathInIni);
 
 	ini->WriteString(cUiSection, cLanguageKey, Language);
+	ini->WriteString(L"Grid", L"Hidden", GridHidden);
+	ini->WriteInteger(L"Grid", L"RowHeight", GridRowHeight);
 
 	if (!NumistaApiKey.IsEmpty() || ini->SectionExists(cNumistaSection))
 	{
