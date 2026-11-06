@@ -1055,6 +1055,9 @@ with a search phrase; you can change the phrase, search again and link.</li>
 <li>Write the rarity index into the private comment of an item on Numista, then
 [[ui:Read rarity index|Прочитати індекс рідкісності]]. <b>Expected:</b> the number in the [[ui:Rarity|Рідкість]] column;
 sorting by this column puts the rarest coins first.</li>
+<li>Import your Numista collection when the coins are already in the program from uCoin. <b>Expected:</b> the column
+[[ui:In program|У програмі]] shows <i>Link to …</i> for coins found in the program; for a <i>new coin</i> that is in fact
+in the program — [[ui:Coin in the program...|Монета в програмі...]], choose it; no second coin is added.</li>
 </ol>
 <h2>5. Photos</h2>
 <ol>
@@ -1067,11 +1070,20 @@ sorting by this column puts the rarest coins first.</li>
 <li>Numista settings → [[ui:What to load from Numista|Що завантажувати з Numista]] → [[ui:Numista prices (estimate by condition)|Ціни Numista (оцінка за станом)]].</li>
 <li>A coin with a chosen issue → right-click → [[ui:Load Numista prices|Завантажити ціни Numista]].
 <b>Expected:</b> the price for the condition of the coin in the column, all conditions in the details.</li>
+<li>A linked coin → right-click → [[ui:Auction sales...|Продажі на аукціонах...]]. <b>Expected:</b> past auction sales
+of the issue (or of the whole type) with prices in your currency, the summary “from — to, median”, links to the lots.</li>
 </ol>
 <h2>7. Backup</h2>
 <ol>
 <li>[[ui:File → Backup collection|Файл → Резервна копія колекції]]. <b>Expected:</b> one <code>.zip</code> file.</li>
 <li>(On a test copy only.) [[ui:File → Restore from backup|Файл → Відновити з копії]]. <b>Expected:</b> the collection and photos as in the backup.</li>
+</ol>
+<h2>8. The coin list</h2>
+<ol>
+<li>Right-click a column header → [[ui:Columns|Стовпці]]: hide a column, turn on [[ui:Obverse|Аверс]] and [[ui:Reverse|Реверс]].
+<b>Expected:</b> small photos of the coins in the list; [[ui:Row height|Висота рядків]] makes them larger.</li>
+<li>Drag a column header to another place; change the window size, the width of the tree and of a column. Restart the program.
+<b>Expected:</b> everything as you left it.</li>
 </ol>
 <h2>What to send with a problem</h2>
 <ul>
@@ -1115,6 +1127,9 @@ T['testing', 'uk'] = u"""
 <li>Запишіть індекс рідкісності в приватний коментар предмета на Numista, потім
 [[ui:Read rarity index|Прочитати індекс рідкісності]]. <b>Очікується:</b> число в колонці [[ui:Rarity|Рідкість]];
 сортування за нею ставить найрідкісніші монети першими.</li>
+<li>Імпортуйте колекцію Numista, коли монети вже є в програмі з uCoin. <b>Очікується:</b> у колонці
+[[ui:In program|У програмі]] — <i>Пов'язати з …</i> для знайдених монет; якщо <i>нова монета</i> насправді є в програмі —
+[[ui:Coin in the program...|Монета в програмі...]], виберіть її; другої монети не з'являється.</li>
 </ol>
 <h2>5. Фото</h2>
 <ol>
@@ -1127,11 +1142,20 @@ T['testing', 'uk'] = u"""
 <li>Налаштування Numista → [[ui:What to load from Numista|Що завантажувати з Numista]] → [[ui:Numista prices (estimate by condition)|Ціни Numista (оцінка за станом)]].</li>
 <li>Монета з вибраним випуском → праве клацання → [[ui:Load Numista prices|Завантажити ціни Numista]].
 <b>Очікується:</b> ціна для стану монети в колонці, усі стани — у подробицях.</li>
+<li>Пов'язана монета → праве клацання → [[ui:Auction sales...|Продажі на аукціонах...]]. <b>Очікується:</b> минулі продажі
+на аукціонах випуску (або всього типу) з цінами у вашій валюті, підсумок «від — до, медіана», посилання на лоти.</li>
 </ol>
 <h2>7. Резервна копія</h2>
 <ol>
 <li>[[ui:File → Backup collection|Файл → Резервна копія колекції]]. <b>Очікується:</b> один файл <code>.zip</code>.</li>
 <li>(Лише на тестовій копії.) [[ui:File → Restore from backup|Файл → Відновити з копії]]. <b>Очікується:</b> колекція й фото — як у копії.</li>
+</ol>
+<h2>8. Список монет</h2>
+<ol>
+<li>Праве клацання по заголовку колонки → [[ui:Columns|Стовпці]]: сховайте колонку, увімкніть [[ui:Obverse|Аверс]] і [[ui:Reverse|Реверс]].
+<b>Очікується:</b> мініатюри монет у списку; [[ui:Row height|Висота рядків]] робить їх більшими.</li>
+<li>Перетягніть заголовок колонки на інше місце; змініть розмір вікна, ширину дерева й колонки. Перезапустіть програму.
+<b>Очікується:</b> усе так, як ви залишили.</li>
 </ol>
 <h2>Що надіслати разом із проблемою</h2>
 <ul>
