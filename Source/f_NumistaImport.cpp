@@ -7,6 +7,7 @@
 #include <set>
 #include <shellapi.h>
 #include "f_NumistaImport.h"
+#include "u_AppConfig.h"
 #include "u_NumistaMatcher.h"
 #include "u_Translator.h"
 #include "u_Help.h"
@@ -31,6 +32,7 @@ __fastcall TfmNumistaImport::TfmNumistaImport(TComponent *AOwner)
 	Height      = 520;
 	Constraints->MinWidth  = 560;
 	Constraints->MinHeight = 300;
+	AppConfig().RestoreFormSize(this, L"NumistaImport");	// задача 44
 
 	TPanel *top = new TPanel(this);
 	top->Parent = this;
@@ -140,7 +142,9 @@ bool TfmNumistaImport::Execute(TComponent *AOwner, const std::vector<TNumistaImp
 	form->Fill();
 
 	ASelected.clear();
-	if (form->ShowModal() != mrOk)
+	const bool ok = form->ShowModal() == mrOk;
+	AppConfig().StoreFormSize(form.get(), L"NumistaImport");
+	if (!ok)
 		return false;
 	for (size_t i = 0; i < form->FChecked.size(); ++i)
 		if (form->FChecked[i])

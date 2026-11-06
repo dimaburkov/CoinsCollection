@@ -51,6 +51,7 @@ __fastcall TfmNumistaSales::TfmNumistaSales(TComponent* Owner)
 {
 	Translator().TranslateForm(this);
 	InstallHelpKey(this, L"numista-catalog");
+	AppConfig().RestoreFormSize(this, L"NumistaSales");	// задача 44
 }
 //---------------------------------------------------------------------------
 void TfmNumistaSales::Execute(TComponent *AOwner, const TCoinRecord &ACoin, const String &ACoinText,
@@ -76,6 +77,7 @@ void TfmNumistaSales::Execute(TComponent *AOwner, const TCoinRecord &ACoin, cons
 	f->chkMyGrade->Caption = grade >= 0
 		? Format(Tr(L"Sales.MyGrade"), ARRAYOFCONST((ACoin.Condition.UpperCase()))) : Tr(L"Sales.MyGradeNone");
 	f->ShowModal();
+	AppConfig().StoreFormSize(f, L"NumistaSales");
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmNumistaSales::FormShow(TObject *Sender)

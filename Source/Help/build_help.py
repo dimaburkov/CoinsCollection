@@ -247,6 +247,8 @@ after you change its width with the mouse, it keeps your width.</td></tr>
 The columns [[ui:Obverse|Аверс]] and [[ui:Reverse|Реверс]] show small photos of the coin: your photo, otherwise the catalogue picture;
 double-click a photo to open the photo viewer. Drag a column header with the mouse to move the column
 (the check box column always stays first). The choice and the order are remembered.</p>
+<p>The program remembers the size and position of the window, the width of the country tree, the height of the details
+and the column widths you set with the mouse; [[ui:Default columns|Типові стовпці]] also resets the column widths.</p>
 [[shot:01b-main-thumbnails.png|The list with the columns Obverse and Reverse, medium row height.]]
 <p>All columns fit into the window: if they do not, the text columns (country, period, currency, denomination, subject, composition)
 get narrower, long text ends with “…” (the full text is in the coin details). A column whose width you changed with the mouse
@@ -293,6 +295,8 @@ T['main-window', 'uk'] = u"""
 Колонки [[ui:Obverse|Аверс]] і [[ui:Reverse|Реверс]] показують мініатюри монети: ваше фото, інакше зображення з каталогу;
 подвійне клацання по мініатюрі відкриває перегляд фото. Перетягніть заголовок колонки мишею, щоб переставити колонку
 (колонка позначок завжди перша). Вибір і порядок запам'ятовуються.</p>
+<p>Програма запам'ятовує розмір і положення вікна, ширину дерева країн, висоту подробиць
+і ширини колонок, змінені мишею; [[ui:Default columns|Типові стовпці]] скидає і ширини колонок.</p>
 [[shot:01b-main-thumbnails.png|Список зі стовпцями Аверс і Реверс, середня висота рядків.]]
 <p>Усі колонки вміщуються у вікно: якщо ні, текстові колонки (країна, період, валюта, номінал, сюжет, метал) звужуються,
 довгий текст закінчується «…» (повний текст — у подробицях монети). Колонка, ширину якої ви змінили мишею, зберігає вашу ширину.</p>

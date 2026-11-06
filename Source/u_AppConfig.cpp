@@ -2,6 +2,7 @@
 #include <vcl.h>
 #pragma hdrstop
 
+#include <algorithm>
 #include <memory>
 #include <System.IniFiles.hpp>
 #include <System.IOUtils.hpp>
@@ -67,6 +68,9 @@ TAppConfig::TAppConfig()
 	  NumistaUploadComment(true),
 	  GridHidden(L"obverse,reverse"),
 	  GridRowHeight(18),
+	  WindowMaximized(false),
+	  WindowTreeWidth(0),
+	  WindowDetailsHeight(0),
 	  BackupLast(0.0),
 	  BackupAsked(0.0)
 {
@@ -74,6 +78,46 @@ TAppConfig::TAppConfig()
 //---------------------------------------------------------------------------
 TAppConfig::~TAppConfig()
 {
+}
+//---------------------------------------------------------------------------
+void TAppConfig::RestoreFormSize(TForm *AForm, const String &AName)
+{
+	std::map<String, TPoint>::const_iterator it = FormSizes.find(AName);
+	if (it == FormSizes.end())
+		return;
+	AForm->Width  = std::min(std::max((int)it->second.x, (int)AForm->Constraints->MinWidth), Screen->WorkAreaWidth);
+	AForm->Height = std::min(std::max((int)it->second.y, (int)AForm->Constraints->MinHeight), Screen->WorkAreaHeight);
+}
+//---------------------------------------------------------------------------
+void TAppConfig::StoreFormSize(TForm *AForm, const String &AName)
+{
+	const TRect r = NormalBounds(AForm);
+	FormSizes[AName] = TPoint(r.right - r.left, r.bottom - r.top);
+	try { Save(); } catch (Exception &) {}
+}
+//---------------------------------------------------------------------------
+// GetWindowPlacement: обычные границы и у развёрнутого / свёрнутого окна — в координатах
+// рабочей области монитора (без панели задач), переводятся в экранные.
+TRect TAppConfig::NormalBounds(TForm *AForm, bool *AMaximized)
+{
+	TRect result = AForm->BoundsRect;
+	bool maximized = AForm->WindowState == wsMaximized;
+	WINDOWPLACEMENT placement;
+	placement.length = sizeof(placement);
+	if (AForm->HandleAllocated() && GetWindowPlacement(AForm->Handle, &placement))
+	{
+		const RECT &r = placement.rcNormalPosition;
+		result = TRect(r.left, r.top, r.right, r.bottom);
+		maximized = placement.showCmd == SW_SHOWMAXIMIZED
+			|| (placement.showCmd == SW_SHOWMINIMIZED && (placement.flags & WPF_RESTORETOMAXIMIZED) != 0);
+		MONITORINFO info;
+		info.cbSize = sizeof(info);
+		if (GetMonitorInfo(MonitorFromRect(&r, MONITOR_DEFAULTTONEAREST), &info))
+			OffsetRect(&result, info.rcWork.left - info.rcMonitor.left, info.rcWork.top - info.rcMonitor.top);
+	}
+	if (AMaximized)
+		*AMaximized = maximized;
+	return result;
 }
 //---------------------------------------------------------------------------
 String TAppConfig::ExeDir()
@@ -141,6 +185,43 @@ void TAppConfig::Load()
 
 	GridOrder = ini->ReadString(L"Grid", L"Order", L"").Trim().LowerCase();
 
+	// Размеры (задача 44) — к текущему масштабу экрана.
+	const int ppi = ini->ReadInteger(L"Window", L"PixelsPerInch", Screen->PixelsPerInch);
+	auto scaled = [ppi](int AValue) { return ppi > 0 ? MulDiv(AValue, Screen->PixelsPerInch, ppi) : AValue; };
+	GridWidths.clear();
+	std::unique_ptr<TStringList> list(new TStringList());
+	list->CommaText = ini->ReadString(L"Grid", L"Widths", L"");
+	for (int i = 0; i < list->Count; ++i)
+	{
+		const String item = list->Strings[i];
+		const int colon = item.Pos(L":");
+		const int width = colon > 1 ? StrToIntDef(item.SubString(colon + 1, 10), 0) : 0;
+		if (width > 0)
+			GridWidths[item.SubString(1, colon - 1).Trim().LowerCase()] = scaled(width);
+	}
+	WindowBounds = TRect(0, 0, 0, 0);
+	const int width = ini->ReadInteger(L"Window", L"Width", 0), height = ini->ReadInteger(L"Window", L"Height", 0);
+	if (width > 0 && height > 0)
+	{
+		const int left = scaled(ini->ReadInteger(L"Window", L"Left", 0)), top = scaled(ini->ReadInteger(L"Window", L"Top", 0));
+		WindowBounds = TRect(left, top, left + scaled(width), top + scaled(height));
+	}
+	WindowMaximized     = ini->ReadBool(L"Window", L"Maximized", false);
+	WindowTreeWidth     = scaled(std::max(0, ini->ReadInteger(L"Window", L"TreeWidth", 0)));
+	WindowDetailsHeight = scaled(std::max(0, ini->ReadInteger(L"Window", L"DetailsHeight", 0)));
+	FormSizes.clear();
+	list->Clear();
+	ini->ReadSectionValues(L"Windows", list.get());
+	for (int i = 0; i < list->Count; ++i)
+	{
+		const String value = list->ValueFromIndex[i].LowerCase();
+		const int x = value.Pos(L"x");
+		const int w = x > 1 ? StrToIntDef(value.SubString(1, x - 1).Trim(), 0) : 0;
+		const int h = x > 1 ? StrToIntDef(value.SubString(x + 1, 10).Trim(), 0) : 0;
+		if (w > 0 && h > 0)
+			FormSizes[list->Names[i]] = TPoint(scaled(w), scaled(h));
+	}
+
 	BackupFolder = ini->ReadString(L"Backup", L"Folder", L"").Trim();
 	BackupLast   = ParseDateTime(ini->ReadString(L"Backup", L"Last", L""));
 	BackupAsked  = ParseDateTime(ini->ReadString(L"Backup", L"Asked", L""));
@@ -179,6 +260,24 @@ void TAppConfig::Save()
 	ini->WriteString(L"Grid", L"Hidden", GridHidden);
 	ini->WriteInteger(L"Grid", L"RowHeight", GridRowHeight);
 	ini->WriteString(L"Grid", L"Order", GridOrder);
+	String widths;
+	for (std::map<String, int>::const_iterator it = GridWidths.begin(); it != GridWidths.end(); ++it)
+		widths += (widths.IsEmpty() ? String() : String(L",")) + it->first + L":" + IntToStr(it->second);
+	ini->WriteString(L"Grid", L"Widths", widths);
+
+	ini->WriteInteger(L"Window", L"PixelsPerInch", Screen->PixelsPerInch);
+	if (WindowBounds.right > WindowBounds.left && WindowBounds.bottom > WindowBounds.top)
+	{
+		ini->WriteInteger(L"Window", L"Left", WindowBounds.left);
+		ini->WriteInteger(L"Window", L"Top", WindowBounds.top);
+		ini->WriteInteger(L"Window", L"Width", WindowBounds.right - WindowBounds.left);
+		ini->WriteInteger(L"Window", L"Height", WindowBounds.bottom - WindowBounds.top);
+		ini->WriteBool(L"Window", L"Maximized", WindowMaximized);
+		ini->WriteInteger(L"Window", L"TreeWidth", WindowTreeWidth);
+		ini->WriteInteger(L"Window", L"DetailsHeight", WindowDetailsHeight);
+	}
+	for (std::map<String, TPoint>::const_iterator it = FormSizes.begin(); it != FormSizes.end(); ++it)
+		ini->WriteString(L"Windows", it->first, IntToStr((int)it->second.x) + L"x" + IntToStr((int)it->second.y));
 
 	if (!NumistaApiKey.IsEmpty() || ini->SectionExists(cNumistaSection))
 	{
