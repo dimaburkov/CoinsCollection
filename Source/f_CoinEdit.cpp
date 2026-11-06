@@ -329,7 +329,6 @@ void TfmCoinEdit::CreateItemPhotoColumn()
 		item.Image->Align        = alClient;
 		item.Image->Center       = true;
 		item.Image->Proportional = true;
-		item.Image->Stretch      = true;
 		item.Note = new TLabel(this);
 		item.Note->Parent   = gbPhotos;
 		item.Note->AutoSize = false;
@@ -396,12 +395,17 @@ void TfmCoinEdit::ShowPhoto(int AColumn, TPhotoSide ASide)
 
 	try
 	{
+		// Со сглаживанием под размер рамки (задача 42).
 		if (graphic)
-			p.Image->Picture->Assign(graphic);
+			ShowFittedPhoto(p.Image, graphic);
 		else if (!file.IsEmpty())
-			p.Image->Picture->LoadFromFile(file);
+		{
+			std::unique_ptr<TPicture> picture(new TPicture());
+			picture->LoadFromFile(file);
+			ShowFittedPhoto(p.Image, picture->Graphic);
+		}
 		else
-			p.Image->Picture->Assign(nullptr);
+			ShowFittedPhoto(p.Image, nullptr);
 	}
 	catch (Exception &)
 	{

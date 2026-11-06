@@ -132,7 +132,7 @@ object fmMain: TfmMain
       DefaultRowHeight = 18
       FixedCols = 0
       RowCount = 2
-      Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goColSizing, goRowSelect, goDrawFocusSelected, goThumbTracking, goFixedRowClick, goFixedHotTrack]
+      Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goColSizing, goColMoving, goRowSelect, goDrawFocusSelected, goThumbTracking, goFixedRowClick, goFixedHotTrack]
       TabOrder = 0
       OnDblClick = dgItemsDblClick
       OnDrawCell = dgItemsDrawCell
@@ -140,6 +140,8 @@ object fmMain: TfmMain
       OnKeyDown = dgItemsKeyDown
       OnContextPopup = dgItemsContextPopup
       OnMouseDown = dgItemsMouseDown
+      OnMouseUp = dgItemsMouseUp
+      OnColumnMoved = dgItemsColumnMoved
       OnSelectCell = dgItemsSelectCell
       PopupMenu = pmItems
       ColWidths = (

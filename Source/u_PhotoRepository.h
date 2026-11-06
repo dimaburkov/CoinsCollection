@@ -8,6 +8,7 @@
 //---------------------------------------------------------------------------
 #include <System.hpp>
 #include <Vcl.Graphics.hpp>
+#include <Vcl.ExtCtrls.hpp>
 #include <vector>
 //---------------------------------------------------------------------------
 class TDatabase;
@@ -68,5 +69,10 @@ private:
 	String FileOf(bool AItem, int AOwnerId, TPhotoSide ASide, String *ACopyright = nullptr);
 	static void SaveScaledJpeg(TGraphic *AGraphic, const String &AFileName);
 };
+//---------------------------------------------------------------------------
+// Фото в рамку TImage (задача 42): пропорционально по размеру рамки, по центру, один раз
+// со сглаживанием (HALFTONE). Сам TImage со Stretch уменьшает без сглаживания — «зерно».
+// nullptr / пустая картинка — рамка пустая.
+void ShowFittedPhoto(TImage *AImage, TGraphic *AGraphic);
 //---------------------------------------------------------------------------
 #endif
