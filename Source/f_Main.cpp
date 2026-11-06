@@ -51,8 +51,17 @@ namespace
 		L"", L"Main.Column.Country", L"Main.Column.Period", L"Main.Column.Currency", L"Main.Column.Denomination",
 		L"Main.Column.Subject", L"Main.Column.Numista", L"Main.Column.Uploaded", L"Main.Column.Rarity", L"Main.Column.Mintage",
 		L"Main.Column.Composition",
-		L"Main.Column.Year", L"Main.Column.Condition", L"Main.Column.Value", L"Main.Column.NumistaPrice"
+		L"Main.Column.Year", L"Main.Column.Condition", L"Main.Column.Value", L"Main.Column.NumistaPrice",
+		L"Main.Column.Obverse", L"Main.Column.Reverse"
 	};
+	// Ключи колонок в [Grid] Hidden ini (задача 41; порядок = TItemColumn).
+	const wchar_t *const cColumnIni[] =
+	{
+		L"", L"country", L"period", L"currency", L"denomination", L"subject", L"numista", L"uploaded", L"rarity",
+		L"mintage", L"composition", L"year", L"condition", L"value", L"numistaprice", L"obverse", L"reverse"
+	};
+	// Высоты строк (задача 41): обычная / средняя / большая.
+	const int cRowHeights[] = { 18, 40, 64 };
 	//-----------------------------------------------------------------------
 	// Строки — «как в Проводнике»: без учёта регистра, числа внутри по значению
 	// ("2 hryvni" < "10 hryven", "KM# 9" < "KM# 10").
@@ -95,7 +104,7 @@ namespace
 	// Ширина колонок по умолчанию (порядок = TItemColumn).
 	// Auto-link checked: больше стольких монет — подтверждение.
 	const int cConfirmCheckCoins = 10;
-	const int cDefaultWidths[] = { 22, 130, 160, 120, 200, 120, 70, 24, 63, 85, 120, 50, 58, 85, 95 };
+	const int cDefaultWidths[] = { 22, 130, 160, 120, 200, 120, 70, 24, 63, 85, 120, 50, 58, 85, 95, 46, 46 };
 	// Наименьшая ширина колонки «Сюжет», растянутой на свободное место (задача 27).
 	const int cMinSubjectWidth = 90;
 	// Подписи строк панели подробностей (порядок = TDetailRowIndex).
@@ -158,6 +167,8 @@ __fastcall TfmMain::TfmMain(TComponent* Owner)
 		FUserWidth[c] = false;
 		FFitWidth[c]  = 0;
 	}
+	FColumnsMenu = nullptr;
+	LoadGridSettings();	// задача 41: колонки и высота строк из [Grid]
 	// Строки подробностей — до колонок: смена ColCount вызывает OnSelectCell → ShowDetails.
 	CreateDetailRows();
 	UpdateColumns();
@@ -1942,7 +1953,14 @@ void __fastcall TfmMain::dgItemsContextPopup(TObject *Sender, const TPoint &Mous
 	if (row != 0)
 		return;
 	Handled = true;
-	if (Column(col) == icCheck)
+	if (Column(col) != icCheck)
+	{
+		// Остальные колонки — меню «Стовпці» и высота строк (задача 41).
+		const TPoint pt = dgItems->ClientToScreen(MousePos);
+		ColumnsMenuPopup(nullptr);
+		FColumnsMenu->Popup(pt.X, pt.Y);
+		return;
+	}
 	{
 		const TPoint pt = dgItems->ClientToScreen(MousePos);
 		pmHeader->Popup(pt.X, pt.Y);
@@ -2930,6 +2948,8 @@ void TfmMain::LoadItems()
 
 	FAll = FRepository->LoadAll();
 	FPrices = FRepository->LoadNumistaPrices(AppConfig().NumistaPriceCurrency);
+	FThumbFiles.clear();	// фото могли измениться (карточка, Numista, импорт) — задача 41
+	FThumbs.clear();
 
 	// Отметки — только у существующих экземпляров (удаление, импорт).
 	std::set<int> ids;
@@ -3146,7 +3166,8 @@ void TfmMain::UpdateColumns()
 	const bool showPrice = AppConfig().NumistaLoadPrices;	// задача 34
 	std::vector<int> columns;
 	for (int c = 0; c < icCount; ++c)
-		if ((c != icCountry || showCountry) && (c != icSubject || !showCountry) && (c != icNumistaPrice || showPrice))
+		if ((c != icCountry || showCountry) && (c != icSubject || !showCountry) && (c != icNumistaPrice || showPrice)
+			&& FColumnOn[c])
 			columns.push_back(c);
 	if (columns == FColumns && dgItems->ColCount == (int)columns.size())
 		return;
@@ -3257,6 +3278,176 @@ void TfmMain::FitColumns(int ARetry)
 	// Ширина изменилась (появилась / исчезла вертикальная прокрутка) — ещё раз, не больше двух.
 	if (dgItems->ClientWidth != avail && ARetry < 2)
 		FitColumns(ARetry + 1);
+}
+//---------------------------------------------------------------------------
+// [Grid] ini (задача 41): включённые колонки и высота строк.
+void TfmMain::LoadGridSettings()
+{
+	std::unique_ptr<TStringList> hidden(new TStringList());
+	hidden->CommaText = AppConfig().GridHidden;
+	for (int c = 0; c < icCount; ++c)
+		FColumnOn[c] = c == icCheck || c == icDenomination || hidden->IndexOf(cColumnIni[c]) < 0;
+	SetRowHeight(AppConfig().GridRowHeight);
+}
+//---------------------------------------------------------------------------
+void TfmMain::SaveGridSettings()
+{
+	String hidden;
+	for (int c = 0; c < icCount; ++c)
+		if (!FColumnOn[c])
+			hidden += (hidden.IsEmpty() ? String() : String(L",")) + cColumnIni[c];
+	AppConfig().GridHidden    = hidden;
+	AppConfig().GridRowHeight = dgItems->DefaultRowHeight;
+	AppConfig().Save();
+}
+//---------------------------------------------------------------------------
+// Высота строк данных; заголовок — прежний. Колонки миниатюр — квадрат по высоте строки.
+void TfmMain::SetRowHeight(int AHeight)
+{
+	dgItems->DefaultRowHeight = AHeight;
+	dgItems->RowHeights[0] = cRowHeights[0];
+	const int width = std::max(56, AHeight + 8);	// не уже заголовка «Аверс» / «Obverse»
+	FColWidths[icObverse] = FColWidths[icReverse] = width;
+	for (size_t i = 0; i < FColumns.size() && (int)i < dgItems->ColCount; ++i)
+		if (FColumns[i] == icObverse || FColumns[i] == icReverse)
+		{
+			dgItems->ColWidths[(int)i] = width;
+			FFitWidth[FColumns[i]] = width;
+		}
+	FThumbs.clear();
+}
+//---------------------------------------------------------------------------
+// Меню заголовка (задача 41): колонки с галочками, высота строк, «Типові стовпці».
+void __fastcall TfmMain::ColumnsMenuPopup(TObject *Sender)
+{
+	if (!FColumnsMenu)
+		FColumnsMenu = new TPopupMenu(this);
+	FColumnsMenu->Items->Clear();
+	TMenuItem *title = new TMenuItem(FColumnsMenu);
+	title->Caption = Tr(L"Main.Columns.Title");
+	title->Enabled = false;
+	FColumnsMenu->Items->Add(title);
+	for (int c = icCountry; c < icCount; ++c)
+	{
+		TMenuItem *item = new TMenuItem(FColumnsMenu);
+		item->Caption = c == icNumistaPrice ? Format(Tr(cColumnKeys[c]), ARRAYOFCONST((AppConfig().NumistaPriceCurrency)))
+			: (c == icUploaded ? Tr(L"Main.Columns.Uploaded") : Tr(cColumnKeys[c]));
+		item->Checked = FColumnOn[c];
+		item->Enabled = c != icDenomination;	// по номиналу строка узнаётся
+		item->Tag     = c;
+		item->OnClick = ColumnMenuClick;
+		FColumnsMenu->Items->Add(item);
+	}
+	FColumnsMenu->Items->Add(NewLine());
+	TMenuItem *heights = new TMenuItem(FColumnsMenu);
+	heights->Caption = Tr(L"Main.Columns.RowHeight");
+	const wchar_t *const heightKeys[] = { L"Main.Columns.RowNormal", L"Main.Columns.RowMedium", L"Main.Columns.RowLarge" };
+	for (int i = 0; i < 3; ++i)
+	{
+		TMenuItem *item = new TMenuItem(FColumnsMenu);
+		item->Caption    = Tr(heightKeys[i]);
+		item->RadioItem  = true;
+		item->GroupIndex = 1;
+		item->Checked    = dgItems->DefaultRowHeight == cRowHeights[i];
+		item->Tag        = cRowHeights[i];
+		item->OnClick    = RowHeightMenuClick;
+		heights->Add(item);
+	}
+	FColumnsMenu->Items->Add(heights);
+	TMenuItem *defaults = new TMenuItem(FColumnsMenu);
+	defaults->Caption = Tr(L"Main.Columns.Default");
+	defaults->OnClick = DefaultColumnsClick;
+	FColumnsMenu->Items->Add(defaults);
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::ColumnMenuClick(TObject *Sender)
+{
+	const int c = static_cast<TMenuItem *>(Sender)->Tag;
+	FColumnOn[c] = !FColumnOn[c];
+	// Миниатюры в строке 18 px не видны — средняя высота.
+	if ((c == icObverse || c == icReverse) && FColumnOn[c] && dgItems->DefaultRowHeight == cRowHeights[0])
+		SetRowHeight(cRowHeights[1]);
+	UpdateColumns();
+	UpdateRowCount();
+	dgItems->Invalidate();
+	SaveGridSettings();
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::RowHeightMenuClick(TObject *Sender)
+{
+	SetRowHeight(static_cast<TMenuItem *>(Sender)->Tag);
+	FitColumns();
+	dgItems->Invalidate();
+	SaveGridSettings();
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::DefaultColumnsClick(TObject *Sender)
+{
+	for (int c = 0; c < icCount; ++c)
+		FColumnOn[c] = c != icObverse && c != icReverse;
+	SetRowHeight(cRowHeights[0]);
+	UpdateColumns();
+	UpdateRowCount();
+	dgItems->Invalidate();
+	SaveGridSettings();
+}
+//---------------------------------------------------------------------------
+// Файл фото стороны для миниатюры: своё фото экземпляра, иначе фото типа; "" — нет. Кэш до LoadItems.
+String TfmMain::ThumbFile(const TCoinRecord &ARecord, int ASide, bool *AIsType)
+{
+	const __int64 key = (__int64)ARecord.Id * 2 + ASide;
+	std::map<__int64, String>::const_iterator it = FThumbFiles.find(key);
+	String file;
+	bool isType = false;
+	if (it != FThumbFiles.end())
+		file = it->second;
+	else if (FPhotos)
+	{
+		file = ARecord.Id != 0 ? FPhotos->PhotoFile(ARecord.Id, 0, (TPhotoSide)ASide) : String();
+		if (file.IsEmpty() && ARecord.CoinId != 0)
+			file = FPhotos->PhotoFile(0, ARecord.CoinId, (TPhotoSide)ASide);
+		FThumbFiles[key] = file;
+	}
+	if (AIsType && !file.IsEmpty() && FPhotos)
+		isType = ARecord.Id == 0 || FPhotos->PhotoFile(ARecord.Id, 0, (TPhotoSide)ASide).IsEmpty();
+	if (AIsType)
+		*AIsType = isType;
+	return file;
+}
+//---------------------------------------------------------------------------
+// Миниатюра файла: вписана в квадрат ASize, сглаживание; ошибка чтения — nullptr (запоминается).
+Graphics::TBitmap *TfmMain::Thumbnail(const String &AFile, int ASize)
+{
+	if (ASize < 8)
+		return nullptr;
+	const String key = AFile + L"|" + IntToStr(ASize);
+	std::map<String, std::shared_ptr<Graphics::TBitmap> >::const_iterator it = FThumbs.find(key);
+	if (it != FThumbs.end())
+		return it->second.get();
+	std::shared_ptr<Graphics::TBitmap> thumb;
+	try
+	{
+		std::unique_ptr<TPicture> picture(new TPicture());
+		picture->LoadFromFile(AFile);
+		const int w = picture->Width, h = picture->Height;
+		if (w > 0 && h > 0)
+		{
+			const double scale = std::min((double)ASize / w, (double)ASize / h);
+			thumb.reset(new Graphics::TBitmap());
+			thumb->PixelFormat = pf24bit;
+			thumb->SetSize(std::max(1, (int)(w * scale)), std::max(1, (int)(h * scale)));
+			thumb->Canvas->Brush->Color = dgItems->Color;
+			thumb->Canvas->FillRect(TRect(0, 0, thumb->Width, thumb->Height));
+			SetStretchBltMode(thumb->Canvas->Handle, HALFTONE);
+			thumb->Canvas->StretchDraw(TRect(0, 0, thumb->Width, thumb->Height), picture->Graphic);
+		}
+	}
+	catch (Exception &)
+	{
+		thumb.reset();
+	}
+	FThumbs[key] = thumb;
+	return thumb.get();
 }
 //---------------------------------------------------------------------------
 // Размер окна или сплиттер дерева / панели подробностей.
@@ -3441,6 +3632,20 @@ void __fastcall TfmMain::dgItemsDrawCell(TObject *Sender, int ACol, int ARow,
 		return;
 	}
 
+	// Миниатюры фото (задача 41): своё фото экземпляра, иначе фото типа; по центру ячейки.
+	if ((column == icObverse || column == icReverse) && ARow > 0)
+	{
+		if (ARow - 1 < (int)FItems.size())
+		{
+			const String file = ThumbFile(FItems[ARow - 1], column == icObverse ? psObverse : psReverse);
+			Graphics::TBitmap *thumb = file.IsEmpty() ? nullptr : Thumbnail(file, Rect.Height() - 2);
+			if (thumb)
+				dgItems->Canvas->Draw((Rect.Left + Rect.Right - thumb->Width) / 2, (Rect.Top + Rect.Bottom - thumb->Height) / 2,
+					thumb);
+		}
+		return;
+	}
+
 	String text;
 	if (ARow == 0)
 		text = column == icNumistaPrice ? Format(Tr(cColumnKeys[column]), ARRAYOFCONST((AppConfig().NumistaPriceCurrency)))
@@ -3548,6 +3753,17 @@ void __fastcall TfmMain::dgItemsDblClick(TObject *Sender)
 	const TPoint pt = dgItems->ScreenToClient(Mouse->CursorPos);
 	int col = -1, row = -1;
 	dgItems->MouseToCell(pt.X, pt.Y, col, row);
+	// По миниатюре — просмотр фото (задача 41).
+	if (FMouseDownRow > 0 && (Column(col) == icObverse || Column(col) == icReverse) && CurrentIndex() >= 0)
+	{
+		const int side = Column(col) == icObverse ? psObverse : psReverse;
+		bool isType = false;
+		if (!ThumbFile(FItems[CurrentIndex()], side, &isType).IsEmpty())
+		{
+			OpenPhotoView(CurrentIndex(), side, isType);
+			return;
+		}
+	}
 	if (FMouseDownRow > 0 && Column(col) != icCheck && actEdit->Enabled)
 		actEdit->Execute();
 }
@@ -3930,7 +4146,15 @@ void __fastcall TfmMain::DetailPhotoDblClick(TObject *Sender)
 	const int index = CurrentIndex();
 	if (FDetailPhotos[side].IsEmpty() || index < 0)
 		return;
-	const TCoinRecord &r = FItems[index];
+	// Просмотр открывается на комплекте, показанном в панели (переключатель «⇄»).
+	OpenPhotoView(index, side, FDetailIsType);
+}
+//---------------------------------------------------------------------------
+// Просмотр фото записи AIndex (свои / типа); AStartWithType — начать с фото типа, если есть оба.
+void TfmMain::OpenPhotoView(int AIndex, int ASide, bool AStartWithType)
+{
+	const TPhotoSide side = (TPhotoSide)ASide;
+	const TCoinRecord &r = FItems[AIndex];
 	TPhotoViewSet own, type;
 	own.Caption  = Tr(L"PhotoView.OwnPhoto");
 	type.Caption = Tr(L"PhotoView.TypePhoto");
@@ -3947,9 +4171,8 @@ void __fastcall TfmMain::DetailPhotoDblClick(TObject *Sender)
 		sets.push_back(own);
 	if (!type.Empty())
 		sets.push_back(type);
-	// Просмотр открывается на комплекте, показанном в панели (переключатель «⇄»).
-	const int start = sets.size() < 2 ? 0 : (FDetailIsType ? 1 : 0);
-	TfmPhotoView::Execute(this, FDetailPhotoTitle, sets, start, side);
+	const int start = sets.size() < 2 ? 0 : (AStartWithType ? 1 : 0);
+	TfmPhotoView::Execute(this, CoinText(r), sets, start, side);
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::PhotoSwitchClick(TObject *Sender)

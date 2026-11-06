@@ -234,7 +234,7 @@ private:	// User declarations
 	// icComposition — металл типа (задача 13d), icNumistaPrice — оценка Numista для состояния (задача 34).
 	enum TItemColumn { icCheck, icCountry, icPeriod, icCurrency, icDenomination, icSubject, icNumista, icUploaded, icRarity,
 		icMintage,
-		icComposition, icYear, icCondition, icValue, icNumistaPrice, icCount };
+		icComposition, icYear, icCondition, icValue, icNumistaPrice, icObverse, icReverse, icCount };
 
 	// Строка панели подробностей: подпись и значение (создаются в коде, см. CreateDetailRows).
 	struct TDetailRow
@@ -277,6 +277,12 @@ private:	// User declarations
 	// Ширины колонок (задачи 27, 34a): FColWidths — естественная (по умолчанию или заданная мышью),
 	// FUserWidth — задана мышью (программа её не меняет), FFitWidth — последняя, заданная подгонкой (0 — нет).
 	int                              FColWidths[icCount];
+	// Выбор колонок и миниатюры (задача 41): колонка включена пользователем; меню заголовка;
+	// кэш миниатюр (файл + высота -> картинка) и файлов фото строк (экземпляр * 2 + сторона -> файл).
+	bool                             FColumnOn[icCount];
+	TPopupMenu                      *FColumnsMenu;
+	std::map<String, std::shared_ptr<Graphics::TBitmap> > FThumbs;
+	std::map<__int64, String>        FThumbFiles;
 	bool                             FUserWidth[icCount];
 	int                              FFitWidth[icCount];
 	std::vector<TDetailRow>          FDetailRows;      // порядок = TDetailRowIndex
@@ -308,6 +314,17 @@ private:	// User declarations
 	void ApplyFilter();
 	void UpdateColumns();
 	void SyncUserWidths();
+	// Задача 41: колонки по [Grid] ini и обратно, меню колонок, высота строк, миниатюры.
+	void LoadGridSettings();
+	void SaveGridSettings();
+	void SetRowHeight(int AHeight);
+	void __fastcall ColumnsMenuPopup(TObject *Sender);
+	void __fastcall ColumnMenuClick(TObject *Sender);
+	void __fastcall RowHeightMenuClick(TObject *Sender);
+	void __fastcall DefaultColumnsClick(TObject *Sender);
+	String ThumbFile(const TCoinRecord &ARecord, int ASide, bool *AIsType = nullptr);
+	Graphics::TBitmap *Thumbnail(const String &AFile, int ASize);
+	void OpenPhotoView(int AIndex, int ASide, bool AStartWithType);
 	void FitColumns(int ARetry = 0);	// ARetry — повтор после появления / исчезновения прокрутки
 	// Наименьшая ширина текстовой колонки при подгонке под окно (задача 34a); 0 — колонка не сужается.
 	static int MinFitWidth(int AColumn);
