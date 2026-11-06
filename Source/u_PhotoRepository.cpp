@@ -260,11 +260,7 @@ void TPhotoRepository::SaveScaledJpeg(TGraphic *AGraphic, const String &AFileNam
 	if (source->Width == nw && source->Height == nh)
 		bitmap->Canvas->Draw(0, 0, source);
 	else
-	{
-		SetStretchBltMode(bitmap->Canvas->Handle, HALFTONE);
-		SetBrushOrgEx(bitmap->Canvas->Handle, 0, 0, nullptr);
-		bitmap->Canvas->StretchDraw(TRect(0, 0, nw, nh), source);
-	}
+		SmoothStretchDraw(bitmap->Canvas, TRect(0, 0, nw, nh), source);
 
 	std::unique_ptr<TJPEGImage> jpeg(new TJPEGImage());
 	jpeg->CompressionQuality = cJpegQuality;
@@ -296,10 +292,34 @@ void ShowFittedPhoto(TImage *AImage, TGraphic *AGraphic)
 	bitmap->SetSize(nw, nh);
 	bitmap->Canvas->Brush->Color = clWindow;	// фон рамки — под прозрачностью PNG
 	bitmap->Canvas->FillRect(TRect(0, 0, nw, nh));
-	SetStretchBltMode(bitmap->Canvas->Handle, HALFTONE);
-	SetBrushOrgEx(bitmap->Canvas->Handle, 0, 0, nullptr);
-	bitmap->Canvas->StretchDraw(TRect(0, 0, nw, nh), AGraphic);
+	SmoothStretchDraw(bitmap->Canvas, TRect(0, 0, nw, nh), AGraphic);
 	AImage->Picture->Assign(bitmap.get());
+}
+//---------------------------------------------------------------------------
+void SmoothStretchDraw(TCanvas *ACanvas, const TRect &ARect, TGraphic *AGraphic)
+{
+	if (!AGraphic || AGraphic->Empty || AGraphic->Width <= 0 || AGraphic->Height <= 0)
+		return;
+	TBitmap *source = dynamic_cast<TBitmap *>(AGraphic);
+	std::unique_ptr<TBitmap> copy;
+	if (!source || source->Transparent)
+	{
+		copy.reset(new TBitmap());
+		copy->PixelFormat = pf24bit;
+		copy->SetSize(AGraphic->Width, AGraphic->Height);
+		copy->Canvas->Brush->Color = ACanvas->Brush->Color;
+		copy->Canvas->FillRect(TRect(0, 0, copy->Width, copy->Height));
+		copy->Canvas->Draw(0, 0, AGraphic);
+		source = copy.get();
+	}
+	const HDC dc = ACanvas->Handle;
+	const int mode = SetStretchBltMode(dc, HALFTONE);
+	POINT origin;
+	SetBrushOrgEx(dc, 0, 0, &origin);
+	StretchBlt(dc, ARect.Left, ARect.Top, ARect.Width(), ARect.Height(),
+		source->Canvas->Handle, 0, 0, source->Width, source->Height, SRCCOPY);
+	SetBrushOrgEx(dc, origin.x, origin.y, nullptr);
+	SetStretchBltMode(dc, mode);
 }
 //---------------------------------------------------------------------------
 void TPhotoRepository::DeleteFiles(const std::vector<String> &AFileNames)
