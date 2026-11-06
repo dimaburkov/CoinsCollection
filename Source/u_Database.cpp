@@ -73,7 +73,8 @@ void TDatabase::EnsureSchema()
 		if (version < 9) { MigrateTo9(); version = 9; }
 		if (version < 10) { MigrateTo10(); version = 10; }
 		if (version < 11) { MigrateTo11(); version = 11; }
-		// if (version < 12) { MigrateTo12(); version = 12; }
+		if (version < 12) { MigrateTo12(); version = 12; }
+		// if (version < 13) { MigrateTo13(); version = 13; }
 
 		// PRAGMA не принимает параметры; version — целое из кода.
 		FConnection->ExecSQL(L"PRAGMA user_version = " + IntToStr(version));
@@ -337,6 +338,13 @@ void TDatabase::MigrateTo11()
 		L"  updated_at TEXT NOT NULL,"
 		L"  PRIMARY KEY (issue_id, currency)"
 		L")");
+}
+//---------------------------------------------------------------------------
+// v12: название типа Numista на момент связи (задача 39) — показывается, пока тип не загружен
+// в numista_types (там своё title).
+void TDatabase::MigrateTo12()
+{
+	FConnection->ExecSQL(L"ALTER TABLE coins ADD COLUMN numista_title TEXT");
 }
 //---------------------------------------------------------------------------
 // Справочники с начальным составом (u_SeedData). «Extinct states» — не континент:

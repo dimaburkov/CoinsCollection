@@ -122,6 +122,7 @@
 | 9 | 15b | `coins.numista_query` — своя фраза поиска |
 | 10 | 20 | `coins.year_to` — диапазон лет, `coin_items.origin` — монеты из Numista |
 | 11 | 34 | `numista_prices` — оценки цен выпуска по состояниям (строка на выпуск и валюту) |
+| 12 | 39 | `coins.numista_title` — название типа Numista на момент связи (показ: `numista_types.title`, иначе это поле) |
 
 **Как добавить версию:**
 

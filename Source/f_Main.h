@@ -351,6 +351,10 @@ private:	// User declarations
 	// Numista (задача 12)
 	std::map<String, String> NumistaIssuers();	// страна (AnsiUpperCase) -> код эмитента
 	static String CoinText(const TCoinRecord &ARecord);
+	// Добавка названия Numista к номиналу (задача 39); "" — нет или у монеты сюжет uCoin.
+	static String TitleExtra(const TCoinRecord &ARecord);
+	// Известное название типа Numista (у связанных монет); "" — нет.
+	String KnownNumistaTitle(int ATypeId) const;
 	// Меню Numista (задача 13e): одна монета / отмеченные.
 	std::vector<TCoinRecord> CheckedRecords() const;
 	void UpdateNumistaMenuTitles();

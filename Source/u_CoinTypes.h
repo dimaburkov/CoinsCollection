@@ -77,6 +77,8 @@ struct TCoinRecord
 	// Тип из numista_types (задача 13d)
 	bool      NumistaTypeLoaded;   // характеристики типа загружены
 	String    NumistaComposition;  // металл ("Silver (.925)", "Aluminium" ...)
+	// Название типа Numista (задача 39): numista_types.title, если тип загружен, иначе coins.numista_title
+	String    NumistaTitle;
 	// Фото типа из Numista (задача 17b): у Numista есть изображение стороны, а у монеты
 	// фото этой стороны нет, или ссылки на изображения ещё не известны
 	bool      NumistaPhotoPending;
@@ -183,6 +185,12 @@ struct TNumistaPrices
 	double ForCondition(const String &ACondition) const;
 	bool   Empty() const;
 };
+
+//---------------------------------------------------------------------------
+// Добавка названия типа Numista к номиналу (задача 39): «Denarius - Crispina (CONCORDIA)» ->
+// «Crispina (CONCORDIA)» (после « - » вне скобок), «Ducat (Early type 2)» -> «Early type 2»
+// (скобки в конце), «10 Markkaa» -> "".
+String NumistaTitleExtra(const String &ATitle);
 
 //---------------------------------------------------------------------------
 // Год / диапазон для показа (задача 20): "1996", "174–179", до н. э. — "44 BC" / "44 до н. е.".

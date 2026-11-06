@@ -23,7 +23,7 @@ namespace
 		L"       i.grading_company, i.grading_number, i.grade, i.label_text, i.comment, i.origin,"
 		L"       c.numista_type_id, c.numista_issue_id, i.numista_item_id, c.numista_rarity, c.numista_query,"
 		L"       ni.id AS issue_loaded, ni.mintage, ni.comment AS issue_comment,"
-		L"       nt.id AS type_loaded, nt.composition,"
+		L"       nt.id AS type_loaded, nt.composition, COALESCE(nt.title, c.numista_title) AS numista_title,"
 		L"       CASE WHEN c.numista_type_id IS NULL THEN 0"
 		L"            WHEN nt.id IS NULL OR nt.pictures_known = 0 THEN 1"
 		L"            WHEN nt.obverse_picture IS NOT NULL AND NOT EXISTS (SELECT 1 FROM coin_photos ph"
@@ -153,6 +153,7 @@ namespace
 		r.NumistaItemId   = FieldInt  (D, L"numista_item_id");
 		r.NumistaRarity   = FieldInt  (D, L"numista_rarity", -1);
 		r.NumistaQuery    = FieldText (D, L"numista_query");
+		r.NumistaTitle    = FieldText (D, L"numista_title");
 		r.NumistaIssueLoaded  = !D->FieldByName(L"issue_loaded")->IsNull;
 		TField *mintage = D->FieldByName(L"mintage");
 		r.NumistaMintage      = mintage->IsNull ? -1 : mintage->AsLargeInt;
@@ -398,7 +399,7 @@ namespace
 	};
 	struct TOldCoin
 	{
-		Variant TypeId, IssueId, Rarity, Query;
+		Variant TypeId, IssueId, Rarity, Query, Title;
 		std::vector<TOldPhoto> Photos;	// фото типа
 		std::vector<TOldItem>  Items;	// выгруженные и / или с фото
 		bool HasNumista() const { return !TypeId.IsNull() || !Rarity.IsNull() || !Query.IsNull(); }
@@ -441,7 +442,7 @@ namespace
 		std::map<int, String> keys;	// id монеты -> ключ
 		std::unique_ptr<TFDQuery> q = NewQuery(ADatabase,
 			L"SELECT id, id_period, id_currency, denomination, year, year_to, variety, subject, catalog_number,"
-			L"       numista_type_id, numista_issue_id, numista_rarity, numista_query"
+			L"       numista_type_id, numista_issue_id, numista_rarity, numista_query, numista_title"
 			L"  FROM coins c"
 			L" WHERE NOT EXISTS (SELECT 1 FROM coin_items k WHERE k.id_coin = c.id AND k.origin = 'numista')"
 			L"   AND (numista_type_id IS NOT NULL OR numista_rarity IS NOT NULL OR numista_query IS NOT NULL"
@@ -456,6 +457,7 @@ namespace
 			coin.IssueId = q->FieldByName(L"numista_issue_id")->Value;
 			coin.Rarity  = q->FieldByName(L"numista_rarity")->Value;
 			coin.Query   = q->FieldByName(L"numista_query")->Value;
+			coin.Title   = q->FieldByName(L"numista_title")->Value;
 			keys[q->FieldByName(L"id")->AsInteger] = key;
 		}
 		q->Close();
@@ -538,7 +540,7 @@ namespace
 			L" VALUES (:owner, :side, :file_name, :source, :added_at, :copyright)";
 		std::unique_ptr<TFDQuery> updateCoin = NewQuery(ADatabase,
 			L"UPDATE coins SET numista_type_id = :type_id, numista_issue_id = :issue_id,"
-			L"       numista_rarity = :rarity, numista_query = :query WHERE id = :id");
+			L"       numista_rarity = :rarity, numista_query = :query, numista_title = :title WHERE id = :id");
 		std::unique_ptr<TFDQuery> findItem = NewQuery(ADatabase,
 			L"SELECT id FROM coin_items"
 			L" WHERE id_coin = :id_coin AND numista_item_id IS NULL"
@@ -577,6 +579,7 @@ namespace
 				SetVariant(updateCoin->ParamByName(L"issue_id"), ftInteger, coin.IssueId);
 				SetVariant(updateCoin->ParamByName(L"rarity"),   ftInteger, coin.Rarity);
 				SetVariant(updateCoin->ParamByName(L"query"),    ftWideString, coin.Query);
+				SetVariant(updateCoin->ParamByName(L"title"),    ftWideString, coin.Title);
 				updateCoin->ParamByName(L"id")->AsInteger = coinId;
 				updateCoin->ExecSQL();
 				++AKept.Coins;
@@ -736,12 +739,17 @@ int TCoinRepository::ItemCount(int ACoinId)
 }
 //---------------------------------------------------------------------------
 // Связь монеты с типом и выпуском Numista (0 — снять связь).
-void TCoinRepository::SetCoinNumista(int ACoinId, int ATypeId, int AIssueId)
+void TCoinRepository::SetCoinNumista(int ACoinId, int ATypeId, int AIssueId, const String &ATitle)
 {
+	// Название (задача 39): новое — записывается; не передано — остаётся, если тип тот же,
+	// иначе (другой тип, отвязка) — очищается.
 	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
-		L"UPDATE coins SET numista_type_id = :type_id, numista_issue_id = :issue_id WHERE id = :id");
+		L"UPDATE coins SET numista_title = CASE WHEN :title IS NOT NULL THEN :title"
+		L"                                     WHEN numista_type_id IS :type_id THEN numista_title END,"
+		L"       numista_type_id = :type_id, numista_issue_id = :issue_id WHERE id = :id");
 	SetIntOrNull(q->ParamByName(L"type_id"),  ATypeId);
 	SetIntOrNull(q->ParamByName(L"issue_id"), AIssueId);
+	SetText(q->ParamByName(L"title"), ATypeId != 0 ? ATitle : String());
 	q->ParamByName(L"id")->AsInteger = ACoinId;
 	q->ExecSQL();
 }
