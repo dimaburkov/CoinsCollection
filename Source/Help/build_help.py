@@ -149,6 +149,17 @@ the type details and photos — the type photos and your own photos of the item 
 <p>A new country (for example <i>Roman Empire</i>) appears under [[ui:No continent|Без континенту]]: set its continent and
 “extinct” in [[page:references|Reference lists]]. Years can be a range (<code>174–179</code>) and before Christ (<code>44 BC</code>).
 A price in another currency than UAH is added to the comment.</p>
+<h3>The coin is already in the program (from uCoin)</h3>
+<p>The column [[ui:In the program|У програмі]] shows what happens to each item:</p>
+<ul>
+<li><b>Link to …</b> — the same coin is already in the program: it is linked with the item (✓, details, photos), no second coin.
+It is found by the Numista type or by the catalogue number with the year and country; a number without the sub-number
+also counts (<code>C# 118</code> in uCoin = <code>C# 118.3</code> on Numista).</li>
+<li><b>new coin</b> — a new coin is added. If the coin is in fact in the program (other number, other name), select the row and press
+[[ui:Coin in the program...|Монета в програмі...]] (or double-click the column [[ui:In the program|У програмі]]) and choose it:
+coins of the same number come first, then of the same denomination. The first line, <i>new coin</i>, undoes the choice.</li>
+<li><b>ambiguous</b> — several coins fit: choose one the same way, otherwise the item is skipped.</li>
+</ul>
 <div class="note">Coins imported from Numista are kept when you import a uCoin file again.</div>
 """
 T['import', 'uk'] = u"""
@@ -188,6 +199,17 @@ T['import', 'uk'] = u"""
 <p>Нова країна (наприклад <i>Roman Empire</i>) з'являється в [[ui:No continent|Без континенту]]: вкажіть її континент і
 «зникла держава» в [[page:references|Довідниках]]. Роки можуть бути діапазоном (<code>174–179</code>) і до нашої ери (<code>44 до н. е.</code>).
 Ціна в іншій валюті, ніж гривня, додається до коментаря.</p>
+<h3>Монета вже є в програмі (з uCoin)</h3>
+<p>Колонка [[ui:In the program|У програмі]] показує, що буде з кожним предметом:</p>
+<ul>
+<li><b>Пов'язати з …</b> — така монета вже є в програмі: її буде пов'язано з предметом (✓, характеристики, фото), без другої монети.
+Вона знаходиться за типом Numista або за номером у каталозі з роком і країною; номер без підномера теж підходить
+(<code>C# 118</code> в uCoin = <code>C# 118.3</code> на Numista).</li>
+<li><b>нова монета</b> — додасться нова монета. Якщо насправді монета в програмі є (інший номер, інша назва), виділіть рядок,
+натисніть [[ui:Coin in the program...|Монета в програмі...]] (або двічі клацніть колонку [[ui:In the program|У програмі]]) і виберіть її:
+спершу — монети того ж номера, потім — того ж номіналу. Перший рядок, <i>нова монета</i>, скасовує вибір.</li>
+<li><b>неоднозначно</b> — підходить кілька монет: виберіть одну так само, інакше предмет буде пропущено.</li>
+</ul>
 <div class="note">Монети, імпортовані з Numista, зберігаються при повторному імпорті файлу uCoin.</div>
 """
 
