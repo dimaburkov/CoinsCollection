@@ -3465,8 +3465,7 @@ Graphics::TBitmap *TfmMain::Thumbnail(const String &AFile, int ASize)
 			thumb->SetSize(std::max(1, (int)(w * scale)), std::max(1, (int)(h * scale)));
 			thumb->Canvas->Brush->Color = dgItems->Color;
 			thumb->Canvas->FillRect(TRect(0, 0, thumb->Width, thumb->Height));
-			SetStretchBltMode(thumb->Canvas->Handle, HALFTONE);
-			thumb->Canvas->StretchDraw(TRect(0, 0, thumb->Width, thumb->Height), picture->Graphic);
+			SmoothStretchDraw(thumb->Canvas, TRect(0, 0, thumb->Width, thumb->Height), picture->Graphic);
 		}
 	}
 	catch (Exception &)

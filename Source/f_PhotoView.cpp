@@ -216,9 +216,12 @@ void __fastcall TfmPhotoView::ViewPaint(TObject *Sender)
 		canvas->TextOut((FView->Width - canvas->TextWidth(text)) / 2, (FView->Height - canvas->TextHeight(text)) / 2, text);
 		return;
 	}
-	SetStretchBltMode(canvas->Handle, HALFTONE);
-	SetBrushOrgEx(canvas->Handle, 0, 0, nullptr);
-	canvas->StretchDraw(ImageRect(), FBitmap.get());
+	// Уменьшение — со сглаживанием (задача 42); увеличение — как есть: видны пиксели снимка,
+	// и перерисовка при прокрутке крупного масштаба не тормозит.
+	if (Scale() < 1.0)
+		SmoothStretchDraw(canvas, ImageRect(), FBitmap.get());
+	else
+		canvas->StretchDraw(ImageRect(), FBitmap.get());
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmPhotoView::SideClick(TObject *Sender)

@@ -74,5 +74,9 @@ private:
 // со сглаживанием (HALFTONE). Сам TImage со Stretch уменьшает без сглаживания — «зерно».
 // nullptr / пустая картинка — рамка пустая.
 void ShowFittedPhoto(TImage *AImage, TGraphic *AGraphic);
+// StretchDraw со сглаживанием (задача 42): TCanvas::StretchDraw для TBitmap (и JPEG — через него)
+// сам ставит STRETCH_DELETESCANS и отменяет HALFTONE — уменьшение выходит «зернистым». Здесь
+// картинка рисуется 1:1 во временный bitmap (фон — кисть ACanvas) и уменьшается StretchBlt с HALFTONE.
+void SmoothStretchDraw(TCanvas *ACanvas, const TRect &ARect, TGraphic *AGraphic);
 //---------------------------------------------------------------------------
 #endif
