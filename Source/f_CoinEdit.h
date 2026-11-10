@@ -96,6 +96,8 @@ __published:	// IDE-managed Components
 	TMemo *mmComment;
 	TButton *btnOK;
 	TButton *btnCancel;
+	TLabel *lblList;
+	TComboBox *cbList;
 	TGroupBox *gbPhotos;
 	TLabel *lblObverse;
 	TPanel *pnlObverse;

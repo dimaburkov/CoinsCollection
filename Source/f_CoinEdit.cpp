@@ -157,6 +157,12 @@ void TfmCoinEdit::LoadFrom(const TCoinRecord &R)
 	edLabel->Text          = R.LabelText;
 	edSwap->Text           = R.SwapInfo;
 	mmComment->Text        = R.Comment;
+
+	// Список экземпляра (задача 47): коллекция / на обмен.
+	cbList->Items->Clear();
+	cbList->Items->Add(Tr(L"CoinEdit.List.Collection"));
+	cbList->Items->Add(Tr(L"CoinEdit.List.Swap"));
+	cbList->ItemIndex = R.List == L"swap" ? 1 : 0;
 }
 //---------------------------------------------------------------------------
 // Число с разделителем из настроек Windows; точка тоже принимается.
@@ -262,6 +268,7 @@ void TfmCoinEdit::SaveTo(TCoinRecord &R) const
 	R.LabelText       = edLabel->Text.Trim();
 	R.SwapInfo        = edSwap->Text.Trim();
 	R.Comment         = mmComment->Text.Trim();
+	R.List            = cbList->ItemIndex == 1 ? L"swap" : L"";
 }
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------

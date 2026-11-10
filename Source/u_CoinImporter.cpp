@@ -36,11 +36,17 @@ namespace
 	const wchar_t *const cGrade          = L"Grade";
 	const wchar_t *const cLabel          = L"Label";
 	const wchar_t *const cComment        = L"Comment";
+	// Список обмена (задача 47): своя оценка и заметки для партнёров.
+	const wchar_t *const cSwapValue      = L"Value, UAH";
+	const wchar_t *const cInformation    = L"Information";
+	const wchar_t *const cReserve        = L"Reserve";
+	const wchar_t *const cPrivateInfo    = L"Information (Private)";
 
 	const wchar_t *const cRequired[] = { cCountry, cDenomination };
 
-	// Колонки, которые uCoin не переводит, — признак экспорта uCoin на другом языке.
-	const wchar_t *const cUntranslated[] = { cVariety, cGradingCompany, cGradingNumber };
+	// Колонка, которую uCoin не переводит, — признак экспорта uCoin на другом языке; есть в экспорте
+	// коллекции, обмена и желаемого (задача 47).
+	const wchar_t *const cUntranslated[] = { cVariety };
 	//-----------------------------------------------------------------------
 	// Язык заголовков неанглийского экспорта uCoin: ключ перевода названия языка.
 	String HeaderLanguage(const std::vector<String> &AHeader)
@@ -92,10 +98,19 @@ namespace
 	}
 	//-----------------------------------------------------------------------
 	// Дата Excel — число дней от 30.12.1899 (как TDateTime); 0 / пусто -> нет.
+	// В списке обмена uCoin (задача 47) — текст «дд.мм.гггг».
 	TDateTime ParseDate(const String &AText, const String &AHeader)
 	{
 		if (AText.IsEmpty())
 			return 0.0;
+		if (AText.Length() == 10 && AText[3] == L'.' && AText[6] == L'.')
+		{
+			TDateTime date;
+			if (TryEncodeDate((Word)StrToIntDef(AText.SubString(7, 4), 0), (Word)StrToIntDef(AText.SubString(4, 2), 0),
+				(Word)StrToIntDef(AText.SubString(1, 2), 0), date))
+				return date;
+			throw ERowError(Format(Tr(L"Import.Error.BadDate"), ARRAYOFCONST((AHeader, AText))));
+		}
 		double value = 0.0;
 		if (!TryStrToFloat(AText, value, TFormatSettings::Invariant()) || value < 0 || value > 2958465)
 			throw ERowError(Format(Tr(L"Import.Error.BadDate"), ARRAYOFCONST((AHeader, AText))));
@@ -114,7 +129,8 @@ namespace
 }
 //---------------------------------------------------------------------------
 TCoinImporter::TCoinImporter(const std::vector<TCondition> &AConditions)
-	: FDataRows(0)
+	: FDataRows(0),
+	  FKind(ufCollection)
 {
 	for (size_t i = 0; i < AConditions.size(); ++i)
 		FConditionCodes.insert(AConditions[i].Code.UpperCase());
@@ -141,6 +157,7 @@ std::vector<TCoinRecord> TCoinImporter::Parse(TXlsxSource &ASource)
 	FErrors.clear();
 	FColumns.clear();
 	FDataRows = 0;
+	FKind = ufCollection;
 
 	std::vector<TCoinRecord> result;
 	if (ASource.RowCount() == 0)
@@ -154,6 +171,13 @@ std::vector<TCoinRecord> TCoinImporter::Parse(TXlsxSource &ASource)
 		if (!name.IsEmpty() && FColumns.find(name) == FColumns.end())
 			FColumns[name] = (int)i;
 	}
+	// Вид файла (задача 47): у коллекции есть период; у обмена — заметки и бронь; у желаемого —
+	// номер без количества.
+	if (Column(cPeriod) < 0 && (Column(cReserve) >= 0 || Column(cInformation) >= 0))
+		FKind = ufSwap;
+	else if (Column(cPeriod) < 0 && Column(cNumber) >= 0 && Column(cQuantity) < 0)
+		FKind = ufWish;
+
 	for (const wchar_t *required : cRequired)
 		if (Column(required) < 0)
 		{
@@ -228,6 +252,21 @@ void TCoinImporter::ParseRow(const std::vector<String> &ARow, TCoinRecord &R) co
 	R.Grade           = Cell(ARow, cGrade);
 	R.LabelText       = NumberAsText(Cell(ARow, cLabel));
 	R.Comment         = Cell(ARow, cComment);
+	if (FKind == ufSwap)
+	{
+		// Обмен: оценка — «Value, UAH»; заметка, бронь и приватная заметка — в комментарий экземпляра.
+		R.List            = L"swap";
+		R.CatalogValueUah = ParseNumber(Cell(ARow, cSwapValue), cSwapValue);
+		String comment = Cell(ARow, cInformation);
+		const String reserve = Cell(ARow, cReserve);
+		if (!reserve.IsEmpty())
+			comment += (comment.IsEmpty() ? String() : String(L"; ")) + reserve;
+		const String privateInfo = Cell(ARow, cPrivateInfo);
+		if (!privateInfo.IsEmpty())
+			comment += (comment.IsEmpty() ? String() : String(L"; "))
+				+ Format(Tr(L"Import.Swap.Private"), ARRAYOFCONST((privateInfo)));
+		R.Comment = comment;
+	}
 
 	if (R.Quantity < 1)
 		throw ERowError(Format(Tr(L"Import.Error.BadNumber"), ARRAYOFCONST((String(cQuantity), IntToStr(R.Quantity)))));

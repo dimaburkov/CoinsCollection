@@ -74,7 +74,8 @@ void TDatabase::EnsureSchema()
 		if (version < 10) { MigrateTo10(); version = 10; }
 		if (version < 11) { MigrateTo11(); version = 11; }
 		if (version < 12) { MigrateTo12(); version = 12; }
-		// if (version < 13) { MigrateTo13(); version = 13; }
+		if (version < 13) { MigrateTo13(); version = 13; }
+		// if (version < 14) { MigrateTo14(); version = 14; }
 
 		// PRAGMA не принимает параметры; version — целое из кода.
 		FConnection->ExecSQL(L"PRAGMA user_version = " + IntToStr(version));
@@ -345,6 +346,12 @@ void TDatabase::MigrateTo11()
 void TDatabase::MigrateTo12()
 {
 	FConnection->ExecSQL(L"ALTER TABLE coins ADD COLUMN numista_title TEXT");
+}
+//---------------------------------------------------------------------------
+// v13 (задача 47): список экземпляра — NULL — коллекция, 'swap' — на обмен, 'wish' — желаемое (задача 48).
+void TDatabase::MigrateTo13()
+{
+	FConnection->ExecSQL(L"ALTER TABLE coin_items ADD COLUMN list TEXT");
 }
 //---------------------------------------------------------------------------
 // Справочники с начальным составом (u_SeedData). «Extinct states» — не континент:

@@ -49,7 +49,7 @@
 | `u_CoinRepository` | Коллекция: чтение, сохранение, удаление, импорт uCoin с переносом связей и фото |
 | `u_LookupRepository` | Справочники: страны, периоды, валюты, состояния, эмитенты |
 | `u_PhotoRepository` | Фото: файлы `Photos\*.jpg`, таблица `coin_photos` |
-| `u_ImportSource`, `u_CoinImporter` | Чтение экспорта uCoin `.xlsx` |
+| `u_ImportSource`, `u_CoinImporter` | Чтение экспорта uCoin `.xlsx`; вид файла по заголовку (`TUcoinFile`, задача 47): коллекция — есть `Period`; обмен — `Reserve` / `Information` без `Period` (даты — текст `дд.мм.гггг`, оценка — `Value, UAH`); желаемое — `Number` без `Quantity`. Обмен — `TCoinRepository::SyncList` (пробный проход с откатом -> вопрос -> синхронизация) |
 | `u_NumistaClient` | HTTP к Numista API (ключ, OAuth, счётчик запросов, кэш, подпись программы, загрузка картинок) |
 | `u_NumistaMatcher` | Поиск типов и выпусков, эмитенты, `getType` |
 | `u_NumistaUploader` | Выгрузка экземпляров в коллекцию Numista |
@@ -129,6 +129,7 @@
 | 10 | 20 | `coins.year_to` — диапазон лет, `coin_items.origin` — монеты из Numista |
 | 11 | 34 | `numista_prices` — оценки цен выпуска по состояниям (строка на выпуск и валюту) |
 | 12 | 39 | `coins.numista_title` — название типа Numista на момент связи (показ: `numista_types.title`, иначе это поле) |
+| 13 | 47 | `coin_items.list` — список экземпляра: NULL — коллекция, `swap` — обмен (`wish` — желаемое, задача 48). Импорт коллекции (`ReplaceAll`) удаляет только `list IS NULL`; монеты с экземплярами обмена остаются со своими связями и фото |
 
 **Как добавить версию:**
 

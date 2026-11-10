@@ -37,6 +37,24 @@ how to fix it and does not change the collection.</div>
 </ul>
 <p>The result shows how many links and photos were kept and lost. Photos of coins that are no longer in the file are moved to <code>Photos\_before-import-&lt;date&gt;\</code>.</p>
 <div class="note">Countries are matched by name. If you rename a country in <a href="references.html">Reference lists</a>, the old uCoin name will appear again after the next import.</div>
+<h2>Swap list from uCoin</h2>
+<p>On uCoin open your swap list and export it to Excel (the site in English), then use the same command
+<span class="ui">File → Import from uCoin (.xlsx)</span> — the program recognizes the swap list by its columns.</p>
+<ul>
+<li>The coins go to the node <span class="ui">For swap</span>; the collection does not change. A coin that is also in the collection is the same coin
+(the column <span class="ui">Swap</span> shows it); a coin that is only for swap is a new coin.</li>
+<li>The swap export has no period: it is taken from a coin of the same country with the same catalogue number, otherwise it stays empty
+(choose it in the coin card).</li>
+<li>Information, reserve and the private note go to the item comment.</li>
+<li>A repeated import updates the swap list: new items are added, changed ones are updated; for items that are not in the file
+the program asks whether to remove them from the swap list.</li>
+<li>A coin for swap gets the Numista link at once, without requests, from a linked coin of the same country with the same catalogue number:
+the type, the issue (if it is already known for that year) and the catalogue pictures. The others — <span class="ui">Auto-link</span> as usual.</li>
+<li>Upload of the swap list to Numista will be in the next version.</li>
+</ul>
+<p>An item can be moved between the collection and the swap list in the coin card (<span class="ui">List</span>).
+In the node <span class="ui">For swap</span> the commands <span class="ui">Add</span> and <span class="ui">Add from sample...</span> add a coin for swap.
+A repeated import of the collection does not change the swap list.</p>
 <h2>Import from your Numista collection</h2>
 <p>Coins that you added on Numista yourself and that are not in uCoin (for example ancient coins) can be imported too:
 <span class="ui">Numista → Import from my Numista collection</span>.</p>

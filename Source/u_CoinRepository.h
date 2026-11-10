@@ -24,6 +24,20 @@ struct TImportKept
 	TImportKept() : Coins(0), Items(0), CoinsLost(0), ItemsLost(0), Photos(0) {}
 };
 //---------------------------------------------------------------------------
+// Итог синхронизации списка обмена / желаемого с файлом uCoin (SyncList, задача 47).
+struct TListSync
+{
+	int Added;         // новых экземпляров
+	int Updated;       // изменились (количество, оценка, дата, комментарий)
+	int Unchanged;
+	int Missing;       // в программе есть, в файле нет
+	int Removed;       // из них удалены
+	int NewCoins;      // монет создано
+	int InCollection;  // экземпляров у монет, которые есть и в коллекции
+	int NoPeriod;      // строк без периода: монеты с тем же номером в стране нет
+	TListSync() : Added(0), Updated(0), Unchanged(0), Missing(0), Removed(0), NewCoins(0), InCollection(0), NoPeriod(0) {}
+};
+//---------------------------------------------------------------------------
 class TCoinRepository
 {
 public:
@@ -56,8 +70,16 @@ public:
 	// фото без пары — в AKept->LostPhotos. AKept — итог переноса (может быть nullptr).
 	int  ReplaceAll(const std::vector<TCoinRecord> &ARecords, TImportKept *AKept = nullptr);
 
-	// Число экземпляров в коллекции.
-	int  ItemCount();
+	// Список обмена (AList = "swap") из файла uCoin (задача 47). Монета — как в FindCoin; периода в
+	// файле нет — период монеты той же страны с тем же номером, иначе пустой период страны.
+	// Экземпляр списка совпадает по монете и состоянию — обновляется, нет — добавляется; экземпляры
+	// списка, которых нет в файле, — AResult.Missing, удаляются при ADeleteMissing. Коллекция не меняется.
+	// AApply = false — пробный проход (всё откатывается) для итога перед вопросом.
+	void SyncList(const std::vector<TCoinRecord> &ARecords, const String &AList, bool ADeleteMissing, bool AApply,
+		TListSync &AResult);
+
+	// Число экземпляров списка: "" — коллекция (задача 47), "swap" — обмен.
+	int  ItemCount(const String &AList = String());
 	// Число экземпляров монеты ACoinId.
 	int  ItemCount(int ACoinId);
 
@@ -75,6 +97,8 @@ public:
 	// Выпуски типа Numista (getIssues) в numista_issues — вставка или обновление
 	// по id (задача 13c). Возвращает число выпусков.
 	int  SaveNumistaIssues(int ATypeId, const std::vector<TNumistaIssue> &AIssues);
+	// Выпуск типа с годом AYear из numista_issues (задача 47); нет или несколько — 0.
+	int  FindStoredIssue(int ATypeId, int AYear);
 	// Характеристики типа Numista (getType) в numista_types (задача 13d).
 	void SaveNumistaType(const TNumistaTypeInfo &AType);
 	// false — тип не загружен.
@@ -93,6 +117,8 @@ private:
 	int  FindCoin(int APeriodId, int ACurrencyId, const TCoinRecord &ARecord);
 	void WriteCoin(int APeriodId, int ACurrencyId, TCoinRecord &ARecord);
 	void WriteItem(int AConditionId, TCoinRecord &ARecord);
+	// Удалить экземпляр и монету без экземпляров (внутри транзакции); файлы фото — в AFiles.
+	void DeleteItemRows(int AId, std::vector<String> &AFiles);
 };
 //---------------------------------------------------------------------------
 #endif

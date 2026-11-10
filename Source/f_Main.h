@@ -29,6 +29,8 @@ struct TPhotoEdits;
 class TNumistaClient;
 class TNumistaMatcher;
 //---------------------------------------------------------------------------
+struct TImportError;
+//---------------------------------------------------------------------------
 class TfmMain : public TForm
 {
 __published:	// IDE-managed Components
@@ -235,7 +237,7 @@ private:	// User declarations
 	// icCheck — флажок отметки, icNumista — N# (задача 12a), icUploaded — выгружен в коллекцию Numista (задача 13),
 	// icRarity — индекс редкости (задача 13a), icMintage — тираж выпуска (задача 13c),
 	// icComposition — металл типа (задача 13d), icNumistaPrice — оценка Numista для состояния (задача 34).
-	enum TItemColumn { icCheck, icCountry, icPeriod, icCurrency, icDenomination, icSubject, icNumista, icUploaded, icRarity,
+	enum TItemColumn { icCheck, icCountry, icPeriod, icCurrency, icDenomination, icSubject, icNumista, icUploaded, icSwap, icRarity,
 		icMintage,
 		icComposition, icYear, icCondition, icValue, icNumistaPrice, icObverse, icReverse, icCount };
 
@@ -249,13 +251,14 @@ private:	// User declarations
 	// Две колонки: drPeriod … drIssueComment — всегда («—», если пусто); со drWeight — характеристики
 	// типа Numista (задача 13d), пустые не показываются. Металл — только в таблице.
 	// drPrices — цены Numista (задача 34), только если цены включены.
-	enum TDetailRowIndex { drPeriod, drCurrency, drRuler, drSubject, drNumber, drNumista, drNumistaItem, drIssueComment,
+	enum TDetailRowIndex { drPeriod, drCurrency, drRuler, drSubject, drNumber, drNumista, drNumistaItem, drSwap, drIssueComment,
 		drPrices, drWeight, drSize, drShape, drTechnique, drSeries, drCommemorated, drTypeYears, drMints, drCategory,
 		drDemonetized, drCount };
 
 	// Узел дерева навигации: что он отбирает.
 	// nkChecked — отмеченные экземпляры из любых стран (задача 13e).
-	enum TNavKind { nkAll, nkContinent, nkNoContinent, nkExtinct, nkCountry, nkChecked };
+	// nkSwap — список обмена (задача 47); остальные узлы, кроме nkChecked, — только коллекция.
+	enum TNavKind { nkAll, nkContinent, nkNoContinent, nkExtinct, nkCountry, nkChecked, nkSwap };
 	struct TNavNode
 	{
 		int    Kind;   // TNavKind
@@ -276,6 +279,11 @@ private:	// User declarations
 	std::vector<TNavNode>            FNav;             // узлы дерева; TTreeNode::Data = индекс
 	bool                             FBuildingTree;    // перестройка дерева — не фильтровать на каждом OnChange
 	TTreeNode                       *FCheckedNode;     // узел «Отмеченные» (счётчик меняется без перестройки дерева)
+	// Обмен (задача 47): монета -> количество на обмен / в коллекции; экземпляров в коллекции и в обмене.
+	std::map<int, int>               FSwapQty;
+	std::map<int, int>               FCollectionQty;
+	int                              FCollectionCount;
+	int                              FSwapCount;
 	std::vector<int>                 FColumns;         // видимые колонки сетки (TItemColumn)
 	// Ширины колонок (задачи 27, 34a): FColWidths — естественная (по умолчанию или заданная мышью),
 	// FUserWidth — задана мышью (программа её не меняет), FFitWidth — последняя, заданная подгонкой (0 — нет).
@@ -320,6 +328,13 @@ private:	// User declarations
 	void ApplyTexts();
 
 	void LoadItems();
+	// Импорт списка обмена uCoin (задача 47): итог пробного прохода -> вопрос -> копия БД -> синхронизация.
+	void ImportSwapList(const String &AFileName, const std::vector<TCoinRecord> &ARecords,
+		const std::vector<TImportError> &AErrors, int ADataRows);
+	// Связь монет обмена с Numista из того, что уже в базе (задача 47): возвращает число связанных.
+	int  LinkSwapFromCache(int &AWithIssue);
+	// Список нового экземпляра по узлу дерева (задача 47): «На обмін» — обмен.
+	String NewItemList(const TCoinRecord *ASample = nullptr) const;
 	void BuildTree();
 	TTreeNode *AddNavNode(TTreeNode *AParent, int AKind, int AId, const String &AName, int ACount);
 	const TNavNode *CurrentNode() const;
@@ -328,6 +343,8 @@ private:	// User declarations
 	void UpdateColumns();
 	void SyncUserWidths();
 	// Задача 41: колонки по [Grid] ini и обратно, меню колонок, высота строк, миниатюры.
+	// Колонка «Обмін» (задача 47): у коллекции — сколько той же монеты на обмен, у обмена — сколько в коллекции.
+	int  SwapKey(const TCoinRecord &ARecord) const;
 	void LoadGridSettings();
 	void SaveGridSettings();
 	// Задача 44: окно, панели и ширины колонок, заданные мышью, — из [Window] / [Grid] Widths и обратно.
