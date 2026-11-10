@@ -171,6 +171,9 @@ __fastcall TfmMain::TfmMain(TComponent* Owner)
 	FHeaderDownCol = -1;
 	FColumnMoved   = false;
 	FNormalBounds  = TRect(0, 0, 0, 0);
+	FMenuColumn    = -1;
+	for (int c = 0; c < icCount; ++c)
+		FAlign[c] = DefaultAlign(c);
 	LoadGridSettings();	// задача 41: колонки и высота строк из [Grid]
 	// Строки подробностей — до колонок: смена ColCount вызывает OnSelectCell → ShowDetails.
 	CreateDetailRows();
@@ -2043,8 +2046,9 @@ void __fastcall TfmMain::dgItemsContextPopup(TObject *Sender, const TPoint &Mous
 	Handled = true;
 	if (Column(col) != icCheck)
 	{
-		// Остальные колонки — меню «Стовпці» и высота строк (задача 41).
+		// Остальные колонки — меню «Стовпці» и высота строк (задача 41), выравнивание этой колонки (задача 46).
 		const TPoint pt = dgItems->ClientToScreen(MousePos);
+		FMenuColumn = Column(col);
 		ColumnsMenuPopup(nullptr);
 		FColumnsMenu->Popup(pt.X, pt.Y);
 		return;
@@ -3249,14 +3253,12 @@ void TfmMain::ApplyFilter()
 // пользователем мышью, запоминаются по логическим колонкам.
 void TfmMain::UpdateColumns()
 {
-	const TNavNode *node = CurrentNode();
-	const bool showCountry = !node || node->Kind != nkCountry;
+	// «Країна» и «Сюжет» — как отмечено в меню, без скрытия при выбранной стране (задача 46).
 	const bool showPrice = AppConfig().NumistaLoadPrices;	// задача 34
 	std::vector<int> columns;
 	for (size_t i = 0; i < FOrder.size(); ++i)	// в порядке пользователя (задача 42)
 		if (const int c = FOrder[i])
-			if ((c != icCountry || showCountry) && (c != icSubject || !showCountry) && (c != icNumistaPrice || showPrice)
-				&& FColumnOn[c])
+			if ((c != icNumistaPrice || showPrice) && FColumnOn[c])
 				columns.push_back(c);
 	columns.insert(columns.begin(), icCheck);
 	if (columns == FColumns && dgItems->ColCount == (int)columns.size())
@@ -3377,6 +3379,23 @@ void TfmMain::LoadGridSettings()
 	hidden->CommaText = AppConfig().GridHidden;
 	for (int c = 0; c < icCount; ++c)
 		FColumnOn[c] = c == icCheck || c == icDenomination || hidden->IndexOf(cColumnIni[c]) < 0;
+	// Выравнивание (задача 46): "ключ:l|c|r"; неизвестное — по умолчанию.
+	std::unique_ptr<TStringList> align(new TStringList());
+	align->CommaText = AppConfig().GridAlign;
+	for (int c = 0; c < icCount; ++c)
+		FAlign[c] = DefaultAlign(c);
+	for (int i = 0; i < align->Count; ++i)
+	{
+		const String item = align->Strings[i];
+		const int colon = item.Pos(L":");
+		if (colon <= 1 || colon + 1 > item.Length())
+			continue;
+		const wchar_t code = item[colon + 1];
+		for (int c = icCountry; c < icCount; ++c)
+			if (item.SubString(1, colon - 1) == cColumnIni[c] && (code == L'l' || code == L'c' || code == L'r')
+				&& c != icObverse && c != icReverse)
+				FAlign[c] = code;
+	}
 	// Ширины, заданные мышью (задача 44).
 	const std::map<String, int> &widths = AppConfig().GridWidths;
 	for (int c = icCountry; c < icCount; ++c)
@@ -3419,6 +3438,11 @@ void TfmMain::SaveGridSettings()
 	AppConfig().GridHidden    = hidden;
 	AppConfig().GridRowHeight = dgItems->DefaultRowHeight;
 	AppConfig().GridOrder     = custom ? order : String();
+	String align;
+	for (int c = icCountry; c < icCount; ++c)
+		if (FAlign[c] != DefaultAlign(c))
+			align += (align.IsEmpty() ? String() : String(L",")) + cColumnIni[c] + L":" + String(FAlign[c]);
+	AppConfig().GridAlign     = align;
 	StoreColumnWidths();
 	AppConfig().Save();
 }
@@ -3476,6 +3500,23 @@ void __fastcall TfmMain::ColumnsMenuPopup(TObject *Sender)
 		heights->Add(item);
 	}
 	FColumnsMenu->Items->Add(heights);
+	TMenuItem *align = new TMenuItem(FColumnsMenu);
+	align->Caption = Tr(L"Main.Columns.Align");
+	align->Enabled = FMenuColumn > icCheck && FMenuColumn < icCount && FMenuColumn != icObverse && FMenuColumn != icReverse;
+	const wchar_t *const alignKeys[] = { L"Main.Columns.AlignLeft", L"Main.Columns.AlignCenter", L"Main.Columns.AlignRight" };
+	const wchar_t alignCodes[] = { L'l', L'c', L'r' };
+	for (int i = 0; i < 3 && align->Enabled; ++i)
+	{
+		TMenuItem *item = new TMenuItem(FColumnsMenu);
+		item->Caption    = Tr(alignKeys[i]);
+		item->RadioItem  = true;
+		item->GroupIndex = 2;
+		item->Checked    = FAlign[FMenuColumn] == alignCodes[i];
+		item->Tag        = alignCodes[i];
+		item->OnClick    = AlignMenuClick;
+		align->Add(item);
+	}
+	FColumnsMenu->Items->Add(align);
 	TMenuItem *defaults = new TMenuItem(FColumnsMenu);
 	defaults->Caption = Tr(L"Main.Columns.Default");
 	defaults->OnClick = DefaultColumnsClick;
@@ -3491,6 +3532,28 @@ void __fastcall TfmMain::ColumnMenuClick(TObject *Sender)
 		SetRowHeight(cRowHeights[1]);
 	UpdateColumns();
 	UpdateRowCount();
+	dgItems->Invalidate();
+	SaveGridSettings();
+}
+//---------------------------------------------------------------------------
+// Выравнивание (задача 46): числа — справа, ✓ и миниатюры — по центру, текст — слева.
+wchar_t TfmMain::DefaultAlign(int AColumn)
+{
+	switch (AColumn)
+	{
+		case icYear: case icValue: case icNumista: case icRarity: case icMintage: case icNumistaPrice:
+			return L'r';
+		case icUploaded: case icObverse: case icReverse:
+			return L'c';
+	}
+	return L'l';
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::AlignMenuClick(TObject *Sender)
+{
+	if (FMenuColumn <= icCheck || FMenuColumn >= icCount)
+		return;
+	FAlign[FMenuColumn] = (wchar_t)static_cast<TMenuItem *>(Sender)->Tag;
 	dgItems->Invalidate();
 	SaveGridSettings();
 }
@@ -3513,6 +3576,7 @@ void __fastcall TfmMain::DefaultColumnsClick(TObject *Sender)
 		FOrder.push_back(c);
 		FColWidths[c] = cDefaultWidths[c];	// и ширины по умолчанию (задача 44)
 		FUserWidth[c] = false;
+		FAlign[c]     = DefaultAlign(c);	// и выравнивание (задача 46)
 	}
 	SetRowHeight(cRowHeights[0]);
 	UpdateColumns();
@@ -3805,12 +3869,14 @@ void __fastcall TfmMain::dgItemsDrawCell(TObject *Sender, int ACol, int ARow,
 		r.right -= 14;
 	}
 
+	// Выравнивание колонки (задача 46) — и у заголовка.
 	UINT flags = DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX;
-	if (ARow > 0 && (column == icYear || column == icValue || column == icNumista || column == icRarity
-		|| column == icMintage || column == icNumistaPrice))
+	if (FAlign[column] == L'r')
 		flags |= DT_RIGHT;
+	else if (FAlign[column] == L'c')
+		flags |= DT_CENTER;
 	if (column == icUploaded)
-		flags = (flags & ~DT_END_ELLIPSIS) | DT_CENTER;
+		flags &= ~DT_END_ELLIPSIS;
 	// Тип связан, выпуск не определён — N# серым.
 	if (ARow > 0 && column == icNumista && ARow - 1 < (int)FItems.size()
 		&& FItems[ARow - 1].NumistaIssueId == 0 && !State.Contains(gdSelected))
@@ -3821,8 +3887,16 @@ void __fastcall TfmMain::dgItemsDrawCell(TObject *Sender, int ACol, int ARow,
 		? TitleExtra(FItems[ARow - 1]) : String();
 	if (!extra.IsEmpty())
 	{
-		RECT measure = r;
-		DrawTextW(canvas->Handle, text.c_str(), -1, &measure, (flags & ~DT_END_ELLIPSIS) | DT_CALCRECT);
+		// По центру / справа — номинал и добавка одной строкой (задача 46); не помещаются — от левого края.
+		const UINT leftFlags = flags & ~(DT_CENTER | DT_RIGHT);
+		RECT measure = r, measureExtra = r;
+		DrawTextW(canvas->Handle, text.c_str(), -1, &measure, (leftFlags & ~DT_END_ELLIPSIS) | DT_CALCRECT);
+		DrawTextW(canvas->Handle, extra.c_str(), -1, &measureExtra, (leftFlags & ~DT_END_ELLIPSIS) | DT_CALCRECT);
+		const int total = (measure.right - measure.left) + 6 + (measureExtra.right - measureExtra.left);
+		if (FAlign[column] != L'l' && total < r.right - r.left)
+			r.left += FAlign[column] == L'r' ? (r.right - r.left) - total : ((r.right - r.left) - total) / 2;
+		measure.right = r.left + (measure.right - measure.left);
+		flags = leftFlags;
 		DrawTextW(canvas->Handle, text.c_str(), -1, &r, flags);
 		RECT rest = r;
 		rest.left = measure.right + 6;

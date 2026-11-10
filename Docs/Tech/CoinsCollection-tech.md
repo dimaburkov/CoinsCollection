@@ -101,6 +101,7 @@
 | `[Numista] LoadPrices`, `PriceCurrency`, `PriceDays` | Цены Numista (задача 34): включены (0 по умолчанию), валюта (UAH), обновлять старше N дней (90) |
 | `[Grid] Hidden`, `RowHeight` | Список монет (задача 41): скрытые колонки — ключи через запятую (по умолчанию `obverse,reverse`), высота строк 18 / 40 / 64 |
 | `[Grid] Order` | Порядок колонок, перетаскивание мышью (задача 42): ключи всех колонок через запятую; пусто — по умолчанию; неизвестные ключи пропускаются, недостающие — после соседа слева по умолчанию |
+| `[Grid] Align` | Выравнивание колонок (задача 46): `ключ:l|c|r` через запятую, только отличные от умолчания (числа — справа, ✓ и миниатюры — по центру, текст — слева); «Типові стовпці» очищает |
 | `[Grid] Widths` | Ширины колонок, заданные мышью (задача 44): `ключ:ширина` через запятую; остальные подгоняются под окно; миниатюры не пишутся (по высоте строк); «Типові стовпці» очищает |
 | `[Window] Left`, `Top`, `Width`, `Height`, `Maximized`, `TreeWidth`, `DetailsHeight`, `PixelsPerInch` | Главное окно (задача 44): обычные положение и размер (и у развёрнутого — `GetWindowPlacement`), развёрнуто, ширина дерева, высота подробностей; пишется при закрытии. Не видно на мониторах (часть меньше 100×50) — по центру; больше рабочей области — уменьшается. Размеры записаны при `PixelsPerInch` — при другом масштабе пересчитываются при загрузке. Развёрнутое при старте: VCL создаёт окно с обычным размером из .dfm (`ClientWidth`/`ClientHeight`, `TCustomForm.CreateParams`) — обычный размер ставится в `TfmMain::CreateWnd` (`SetWindowPlacement`) |
 | `[Windows] NumistaChoose`, `NumistaSales`, `NumistaImport`, `PhotoView` | Размеры окон с таблицами, `ШиринаxВысота` (задача 44): `TAppConfig::RestoreFormSize` в конструкторе, `StoreFormSize` после `ShowModal`; положение — по центру главного окна |
@@ -188,10 +189,15 @@
 
 **Публикация на GitHub** (репозиторий публичный, лицензия MIT; README — страница загрузки)
 
-- Текст релиза — `Setup/ReleaseNotes/<версия>.md` (en + uk, что нового, установка, SmartScreen, SHA-256).
-- SHA-256 инсталлятора: PowerShell `Get-FileHash Setup\Output\CoinsCollection-Setup-a.b.c.exe` — вписать в текст релиза (после финальной сборки: каждая сборка меняет сумму).
-- github.com → репозиторий → **Releases → Draft a new release**: тег `va.b.c` на коммите master, заголовок «Coins Collection a.b.c», описание — из `ReleaseNotes`, в *Assets* — инсталлятор из `Setup\Output\`. **Publish release**.
-- Ссылка для пользователей всегда одна: https://github.com/dimaburkov/CoinsCollection/releases/latest
+Чек-лист (задача 46; `Setup\build-setup.bat` печатает его в конце вместе с SHA-256):
+
+1. Текст релиза — `Setup/ReleaseNotes/<версия>.md` (en + uk, что нового, установка, SmartScreen, SHA-256).
+2. SHA-256 инсталлятора — из вывода `build-setup.bat` (или PowerShell `Get-FileHash Setup\Output\CoinsCollection-Setup-a.b.c.exe`) — вписать в текст релиза. После финальной сборки: каждая сборка меняет сумму.
+3. github.com → репозиторий → **Releases → Draft a new release**: тег `va.b.c` на коммите master, заголовок «Coins Collection a.b.c — <главное>», описание — из `ReleaseNotes`.
+4. **В *Assets* — инсталлятор** `Setup\Output\CoinsCollection-Setup-a.b.c.exe` (перетащить в поле «Attach binaries»), дождаться загрузки. **Publish release**.
+5. После Publish: на странице релиза в *Assets* есть инсталлятор, скачивается, SHA-256 скачанного совпадает с текстом. Забыли файл — **Edit** → «Attach binaries» → **Update release**.
+
+Ссылка для пользователей всегда одна: https://github.com/dimaburkov/CoinsCollection/releases/latest
 
 **Проверка на «чистом» компьютере** (без RAD Studio) — перед первой раздачей и после изменений сборки: установка, первый запуск, импорт uCoin, подключение Numista, установка поверх, удаление.
 

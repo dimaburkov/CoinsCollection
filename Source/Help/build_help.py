@@ -226,11 +226,11 @@ The number in brackets is the number of items.</p>
 <table>
 <tr><th>Column</th><th>Meaning</th></tr>
 <tr><td>☐</td><td>Check box for mass operations ([[page:checks|Checking coins]]).</td></tr>
-<tr><td>Country, Period, Currency, Denomination</td><td>From uCoin. Country is hidden when one country is selected in the tree.
+<tr><td>Country, Period, Currency, Denomination</td><td>From uCoin.
 For a coin linked with Numista, the denomination is followed (in grey) by what the Numista title adds: the ruler, the variety
 or the legend — for example <i>1 Denarius</i> <span style="color:gray">Crispina (CONCORDIA)</span>,
 <i>10 lekë</i> <span style="color:gray">Non-magnetic</span>. Commemorative coins with a subject do not get it.</td></tr>
-<tr><td>[[ui:Subject|Сюжет]]</td><td>Subject of a commemorative coin (from uCoin or the coin card); shown instead of Country when one country is selected. The column takes the free width of the list;
+<tr><td>[[ui:Subject|Сюжет]]</td><td>Subject of a commemorative coin (from uCoin or the coin card). The column takes the free width of the list;
 after you change its width with the mouse, it keeps your width.</td></tr>
 <tr><td>#Numista</td><td>Numista type number (N#). Grey — the issue is not chosen yet.</td></tr>
 <tr><td>✓</td><td>The item is uploaded to your Numista collection.</td></tr>
@@ -246,9 +246,10 @@ after you change its width with the mouse, it keeps your width.</td></tr>
 [[ui:Row height|Висота рядків]] — normal, medium or large, [[ui:Default columns|Типові стовпці]] — back to the default set.
 The columns [[ui:Obverse|Аверс]] and [[ui:Reverse|Реверс]] show small photos of the coin: your photo, otherwise the catalogue picture;
 double-click a photo to open the photo viewer. Drag a column header with the mouse to move the column
-(the check box column always stays first). The choice and the order are remembered.</p>
+(the check box column always stays first). [[ui:Alignment|Вирівнювання]] — left, center or right for the column under the mouse.
+The choice, the order and the alignment are remembered.</p>
 <p>The program remembers the size and position of the window, the width of the country tree, the height of the details
-and the column widths you set with the mouse; [[ui:Default columns|Типові стовпці]] also resets the column widths.</p>
+and the column widths you set with the mouse; [[ui:Default columns|Типові стовпці]] also resets the column widths and alignment.</p>
 [[shot:01b-main-thumbnails.png|The list with the columns Obverse and Reverse, medium row height.]]
 <p>All columns fit into the window: if they do not, the text columns (country, period, currency, denomination, subject, composition)
 get narrower, long text ends with “…” (the full text is in the coin details). A column whose width you changed with the mouse
@@ -274,11 +275,11 @@ T['main-window', 'uk'] = u"""
 <table>
 <tr><th>Колонка</th><th>Значення</th></tr>
 <tr><td>☐</td><td>Позначка для масових операцій ([[page:checks|Позначки монет]]).</td></tr>
-<tr><td>[[ui:Country|Країна]], [[ui:Period|Період]], [[ui:Currency|Валюта]], [[ui:Denomination|Номінал]]</td><td>З uCoin. Країна прихована, коли в дереві вибрано одну країну.
+<tr><td>[[ui:Country|Країна]], [[ui:Period|Період]], [[ui:Currency|Валюта]], [[ui:Denomination|Номінал]]</td><td>З uCoin.
 У монети, пов'язаної з Numista, після номіналу сірим — те, що додає назва Numista: правитель, різновид чи легенда —
 наприклад <i>1 Denarius</i> <span style="color:gray">Crispina (CONCORDIA)</span>,
 <i>10 lekë</i> <span style="color:gray">Non-magnetic</span>. Пам'ятні монети із сюжетом цього не мають.</td></tr>
-<tr><td>[[ui:Subject|Сюжет]]</td><td>Сюжет пам'ятної монети (з uCoin або картки монети); показується замість Країни, коли вибрано одну країну. Колонка займає вільну ширину списку;
+<tr><td>[[ui:Subject|Сюжет]]</td><td>Сюжет пам'ятної монети (з uCoin або картки монети). Колонка займає вільну ширину списку;
 якщо змінити її ширину мишею, залишається ваша ширина.</td></tr>
 <tr><td>#Numista</td><td>Номер типу Numista (N#). Сірим — випуск ще не вибрано.</td></tr>
 <tr><td>✓</td><td>Примірник вивантажено у вашу колекцію на Numista.</td></tr>
@@ -294,9 +295,10 @@ T['main-window', 'uk'] = u"""
 [[ui:Row height|Висота рядків]] — звичайна, середня чи велика, [[ui:Default columns|Типові стовпці]] — повернути типовий набір.
 Колонки [[ui:Obverse|Аверс]] і [[ui:Reverse|Реверс]] показують мініатюри монети: ваше фото, інакше зображення з каталогу;
 подвійне клацання по мініатюрі відкриває перегляд фото. Перетягніть заголовок колонки мишею, щоб переставити колонку
-(колонка позначок завжди перша). Вибір і порядок запам'ятовуються.</p>
+(колонка позначок завжди перша). [[ui:Alignment|Вирівнювання]] — ліворуч, по центру чи праворуч для колонки під курсором.
+Вибір, порядок і вирівнювання запам'ятовуються.</p>
 <p>Програма запам'ятовує розмір і положення вікна, ширину дерева країн, висоту подробиць
-і ширини колонок, змінені мишею; [[ui:Default columns|Типові стовпці]] скидає і ширини колонок.</p>
+і ширини колонок, змінені мишею; [[ui:Default columns|Типові стовпці]] скидає і ширини колонок, і вирівнювання.</p>
 [[shot:01b-main-thumbnails.png|Список зі стовпцями Аверс і Реверс, середня висота рядків.]]
 <p>Усі колонки вміщуються у вікно: якщо ні, текстові колонки (країна, період, валюта, номінал, сюжет, метал) звужуються,
 довгий текст закінчується «…» (повний текст — у подробицях монети). Колонка, ширину якої ви змінили мишею, зберігає вашу ширину.</p>

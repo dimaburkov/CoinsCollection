@@ -290,6 +290,9 @@ private:	// User declarations
 	// Нажатие на заголовок — колонка сетки и точка: при goColMoving сетка не вызывает
 	// OnFixedCellClick, клик без перетаскивания (сортировка) ловит OnMouseUp.
 	std::vector<int>                 FOrder;
+	// Выравнивание колонок (задача 46): 'l' / 'c' / 'r'; колонка меню заголовка (правый клик).
+	wchar_t                          FAlign[icCount];
+	int                              FMenuColumn;
 	int                              FHeaderDownCol;
 	TPoint                           FHeaderDownPos;
 	bool                             FColumnMoved;
@@ -342,6 +345,8 @@ private:
 	void __fastcall ColumnMenuClick(TObject *Sender);
 	void __fastcall RowHeightMenuClick(TObject *Sender);
 	void __fastcall DefaultColumnsClick(TObject *Sender);
+	void __fastcall AlignMenuClick(TObject *Sender);
+	static wchar_t DefaultAlign(int AColumn);
 	String ThumbFile(const TCoinRecord &ARecord, int ASide, bool *AIsType = nullptr);
 	Graphics::TBitmap *Thumbnail(const String &AFile, int ASize);
 	void OpenPhotoView(int AIndex, int ASide, bool AStartWithType);
