@@ -53,6 +53,8 @@ public:
 	int       GridRowHeight;
 	// Порядок колонок (задача 42): ключи через запятую; пусто — по умолчанию.
 	String    GridOrder;
+	// Выравнивание колонок, отличное от умолчания ([Grid] Align = "ключ:l|c|r,...", задача 46).
+	String    GridAlign;
 	// Ширины колонок, заданные мышью ([Grid] Widths = "ключ:ширина,...", задача 44).
 	std::map<String, int> GridWidths;
 

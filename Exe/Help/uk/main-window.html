@@ -15,23 +15,27 @@
 <h1>Головне вікно</h1>
 <figure class="shot"><img src="../images/01-main-window.png" alt="Головне вікно." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Скриншот: images/01-main-window.png</div><figcaption>Головне вікно.</figcaption></figure>
 <h2>Дерево навігації</h2>
-<p>Ліворуч: <span class="ui">All/Усі</span>, континенти з країнами, <span class="ui">No continent/Без континенту</span>,
-<span class="ui">Extinct states/Зниклі держави</span> і <span class="ui">Checked/Позначені</span> (усі позначені монети з будь-яких країн, див. <a href="checks.html">Позначки монет</a>).
-Число в дужках — кількість примірників.</p>
+<p>Ліворуч: <span class="ui">My collection/Моя колекція</span>, континенти з країнами, <span class="ui">No continent/Без континенту</span>,
+<span class="ui">Extinct states/Зниклі держави</span>, <span class="ui">For swap/На обмін</span> (ваш список обміну, див. <a href="import.html">Імпорт з uCoin</a>)
+і <span class="ui">Checked/Позначені</span> (усі позначені монети з будь-яких країн, див. <a href="checks.html">Позначки монет</a>).
+Число в дужках — кількість примірників. Вузли колекції й підсумки в рядку стану не враховують список обміну.</p>
 <h2>Пошук</h2>
 <p>Поле пошуку на панелі інструментів фільтрує список за країною, періодом, валютою, номіналом, роком, сюжетом, різновидом, номером у каталозі, коментарем і назвою Numista (наприклад <i>Crispina</i>).</p>
 <h2>Список монет</h2>
 <table>
 <tr><th>Колонка</th><th>Значення</th></tr>
 <tr><td>☐</td><td>Позначка для масових операцій (<a href="checks.html">Позначки монет</a>).</td></tr>
-<tr><td><span class="ui">Country/Країна</span>, <span class="ui">Period/Період</span>, <span class="ui">Currency/Валюта</span>, <span class="ui">Denomination/Номінал</span></td><td>З uCoin. Країна прихована, коли в дереві вибрано одну країну.
+<tr><td><span class="ui">Country/Країна</span>, <span class="ui">Period/Період</span>, <span class="ui">Currency/Валюта</span>, <span class="ui">Denomination/Номінал</span></td><td>З uCoin.
 У монети, пов'язаної з Numista, після номіналу сірим — те, що додає назва Numista: правитель, різновид чи легенда —
 наприклад <i>1 Denarius</i> <span style="color:gray">Crispina (CONCORDIA)</span>,
 <i>10 lekë</i> <span style="color:gray">Non-magnetic</span>. Пам'ятні монети із сюжетом цього не мають.</td></tr>
-<tr><td><span class="ui">Subject/Сюжет</span></td><td>Сюжет пам'ятної монети (з uCoin або картки монети); показується замість Країни, коли вибрано одну країну. Колонка займає вільну ширину списку;
+<tr><td><span class="ui">Subject/Сюжет</span></td><td>Сюжет пам'ятної монети (з uCoin або картки монети). Колонка займає вільну ширину списку;
 якщо змінити її ширину мишею, залишається ваша ширина.</td></tr>
 <tr><td>#Numista</td><td>Номер типу Numista (N#). Сірим — випуск ще не вибрано.</td></tr>
-<tr><td>✓</td><td>Примірник вивантажено у вашу колекцію на Numista.</td></tr>
+<tr><td>✓</td><td>Примірник вивантажено у вашу колекцію на Numista; у <span class="ui">For swap/На обмін</span> — вивантажено цю ж монету з вашої колекції
+(чи вивантажено сам примірник на обмін — див. колонку <span class="ui">Swap/Обмін</span>).</td></tr>
+<tr><td><span class="ui">Swap/Обмін</span></td><td>Скільки у вас на обмін: у <span class="ui">For swap/На обмін</span> — кількість примірника, у колекції — усі примірники на обмін
+тієї ж монети. <b>✓</b> після числа — вивантажено у ваш список обміну на Numista (у колекції — усі).</td></tr>
 <tr><td><span class="ui">Rarity/Рідкість</span></td><td>Індекс рідкісності з коментаря вашої колекції на Numista (<a href="numista-upload.html">Numista: вивантаження</a>).</td></tr>
 <tr><td><span class="ui">Mintage/Тираж</span></td><td>Тираж випуску. <code>н/д</code> — у Numista тиражу немає; порожньо — ще не завантажено.</td></tr>
 <tr><td><span class="ui">Composition/Метал</span></td><td>Метал типу з Numista.</td></tr>
@@ -44,9 +48,10 @@
 <span class="ui">Row height/Висота рядків</span> — звичайна, середня чи велика, <span class="ui">Default columns/Типові стовпці</span> — повернути типовий набір.
 Колонки <span class="ui">Obverse/Аверс</span> і <span class="ui">Reverse/Реверс</span> показують мініатюри монети: ваше фото, інакше зображення з каталогу;
 подвійне клацання по мініатюрі відкриває перегляд фото. Перетягніть заголовок колонки мишею, щоб переставити колонку
-(колонка позначок завжди перша). Вибір і порядок запам'ятовуються.</p>
+(колонка позначок завжди перша). <span class="ui">Alignment/Вирівнювання</span> — ліворуч, по центру чи праворуч для колонки під курсором.
+Вибір, порядок і вирівнювання запам'ятовуються.</p>
 <p>Програма запам'ятовує розмір і положення вікна, ширину дерева країн, висоту подробиць
-і ширини колонок, змінені мишею; <span class="ui">Default columns/Типові стовпці</span> скидає і ширини колонок.</p>
+і ширини колонок, змінені мишею; <span class="ui">Default columns/Типові стовпці</span> скидає і ширини колонок, і вирівнювання.</p>
 <figure class="shot"><img src="../images/01b-main-thumbnails.png" alt="Список зі стовпцями Аверс і Реверс, середня висота рядків." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Скриншот: images/01b-main-thumbnails.png</div><figcaption>Список зі стовпцями Аверс і Реверс, середня висота рядків.</figcaption></figure>
 <p>Усі колонки вміщуються у вікно: якщо ні, текстові колонки (країна, період, валюта, номінал, сюжет, метал) звужуються,
 довгий текст закінчується «…» (повний текст — у подробицях монети). Колонка, ширину якої ви змінили мишею, зберігає вашу ширину.</p>

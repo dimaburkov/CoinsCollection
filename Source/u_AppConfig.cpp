@@ -184,6 +184,7 @@ void TAppConfig::Load()
 		GridRowHeight = 18;
 
 	GridOrder = ini->ReadString(L"Grid", L"Order", L"").Trim().LowerCase();
+	GridAlign = ini->ReadString(L"Grid", L"Align", L"").Trim().LowerCase();
 
 	// Размеры (задача 44) — к текущему масштабу экрана.
 	const int ppi = ini->ReadInteger(L"Window", L"PixelsPerInch", Screen->PixelsPerInch);
@@ -260,6 +261,7 @@ void TAppConfig::Save()
 	ini->WriteString(L"Grid", L"Hidden", GridHidden);
 	ini->WriteInteger(L"Grid", L"RowHeight", GridRowHeight);
 	ini->WriteString(L"Grid", L"Order", GridOrder);
+	ini->WriteString(L"Grid", L"Align", GridAlign);
 	String widths;
 	for (std::map<String, int>::const_iterator it = GridWidths.begin(); it != GridWidths.end(); ++it)
 		widths += (widths.IsEmpty() ? String() : String(L",")) + it->first + L":" + IntToStr(it->second);

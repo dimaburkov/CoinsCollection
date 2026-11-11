@@ -70,6 +70,7 @@ struct TCoinRecord
 	int       NumistaRarity;   // coins.numista_rarity, 0–100; -1 — не известен
 	String    NumistaQuery;    // coins.numista_query — своя фраза поиска Numista ("" — автофраза, задача 15b)
 	String    Origin;          // coin_items.origin: "" — uCoin / вручную, "numista" — импорт из Numista (задача 20)
+	String    List;            // coin_items.list: "" — коллекция, "swap" — на обмен (задача 47), "wish" — желаемое
 	// Выпуск из numista_issues (задача 13c)
 	bool      NumistaIssueLoaded;  // выпуск монеты загружен в numista_issues
 	__int64   NumistaMintage;      // тираж; -1 — не известен

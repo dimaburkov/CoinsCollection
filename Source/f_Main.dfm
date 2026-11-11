@@ -419,7 +419,17 @@ object fmMain: TfmMain
     Top = 96
     object actImport: TAction
       Category = 'File'
-      Caption = '&Import from uCoin (.xlsx)...'
+      Caption = '&Import collection from uCoin (.xlsx)...'
+      OnExecute = actImportExecute
+    end
+    object actImportSwap: TAction
+      Category = 'File'
+      Caption = 'Import &swap list from uCoin (.xlsx)...'
+      OnExecute = actImportExecute
+    end
+    object actImportWish: TAction
+      Category = 'File'
+      Caption = 'Import &wish list from uCoin (.xlsx)...'
       OnExecute = actImportExecute
     end
     object actBackup: TAction
@@ -637,6 +647,12 @@ object fmMain: TfmMain
       Caption = '&File'
       object miImport: TMenuItem
         Action = actImport
+      end
+      object miImportSwap: TMenuItem
+        Action = actImportSwap
+      end
+      object miImportWish: TMenuItem
+        Action = actImportWish
       end
       object miBackup: TMenuItem
         Action = actBackup

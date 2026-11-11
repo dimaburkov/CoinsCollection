@@ -15,23 +15,27 @@
 <h1>Main window</h1>
 <figure class="shot"><img src="../images/01-main-window.png" alt="The main window." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Screenshot: images/01-main-window.png</div><figcaption>The main window.</figcaption></figure>
 <h2>Navigation tree</h2>
-<p>On the left: <span class="ui">All</span>, continents with their countries, <span class="ui">No continent</span>,
-<span class="ui">Extinct states</span> and <span class="ui">Checked</span> (all checked coins from any country, see <a href="checks.html">Checking coins</a>).
-The number in brackets is the number of items.</p>
+<p>On the left: <span class="ui">My collection</span>, continents with their countries, <span class="ui">No continent</span>,
+<span class="ui">Extinct states</span>, <span class="ui">For swap</span> (your swap list, see <a href="import.html">Import from uCoin</a>)
+and <span class="ui">Checked</span> (all checked coins from any country, see <a href="checks.html">Checking coins</a>).
+The number in brackets is the number of items. The collection nodes and the totals in the status bar do not include the swap list.</p>
 <h2>Search</h2>
 <p>The search field on the toolbar filters the list by country, period, currency, denomination, year, subject, variety, catalogue number, comment and the Numista title (for example <i>Crispina</i>).</p>
 <h2>Coin list</h2>
 <table>
 <tr><th>Column</th><th>Meaning</th></tr>
 <tr><td>☐</td><td>Check box for mass operations (<a href="checks.html">Checking coins</a>).</td></tr>
-<tr><td>Country, Period, Currency, Denomination</td><td>From uCoin. Country is hidden when one country is selected in the tree.
+<tr><td>Country, Period, Currency, Denomination</td><td>From uCoin.
 For a coin linked with Numista, the denomination is followed (in grey) by what the Numista title adds: the ruler, the variety
 or the legend — for example <i>1 Denarius</i> <span style="color:gray">Crispina (CONCORDIA)</span>,
 <i>10 lekë</i> <span style="color:gray">Non-magnetic</span>. Commemorative coins with a subject do not get it.</td></tr>
-<tr><td><span class="ui">Subject</span></td><td>Subject of a commemorative coin (from uCoin or the coin card); shown instead of Country when one country is selected. The column takes the free width of the list;
+<tr><td><span class="ui">Subject</span></td><td>Subject of a commemorative coin (from uCoin or the coin card). The column takes the free width of the list;
 after you change its width with the mouse, it keeps your width.</td></tr>
 <tr><td>#Numista</td><td>Numista type number (N#). Grey — the issue is not chosen yet.</td></tr>
-<tr><td>✓</td><td>The item is uploaded to your Numista collection.</td></tr>
+<tr><td>✓</td><td>The item is uploaded to your Numista collection; in <span class="ui">For swap</span> — the same coin in your collection is uploaded
+(whether the item for swap is uploaded — see the column <span class="ui">Swap</span>).</td></tr>
+<tr><td><span class="ui">Swap</span></td><td>How many you have for swap: in <span class="ui">For swap</span> — the quantity of the item, in the collection — all items for swap
+of the same coin. <b>✓</b> after the number — uploaded to your Numista swap list (in the collection — all of them).</td></tr>
 <tr><td>Rarity</td><td>Rarity index from your Numista collection comment (<a href="numista-upload.html">Numista: upload</a>).</td></tr>
 <tr><td>Mintage</td><td>Mintage of the issue. <code>n/a</code> — Numista has no mintage for it; empty — not loaded yet.</td></tr>
 <tr><td>Composition</td><td>Metal of the type from Numista.</td></tr>
@@ -44,9 +48,10 @@ after you change its width with the mouse, it keeps your width.</td></tr>
 <span class="ui">Row height</span> — normal, medium or large, <span class="ui">Default columns</span> — back to the default set.
 The columns <span class="ui">Obverse</span> and <span class="ui">Reverse</span> show small photos of the coin: your photo, otherwise the catalogue picture;
 double-click a photo to open the photo viewer. Drag a column header with the mouse to move the column
-(the check box column always stays first). The choice and the order are remembered.</p>
+(the check box column always stays first). <span class="ui">Alignment</span> — left, center or right for the column under the mouse.
+The choice, the order and the alignment are remembered.</p>
 <p>The program remembers the size and position of the window, the width of the country tree, the height of the details
-and the column widths you set with the mouse; <span class="ui">Default columns</span> also resets the column widths.</p>
+and the column widths you set with the mouse; <span class="ui">Default columns</span> also resets the column widths and alignment.</p>
 <figure class="shot"><img src="../images/01b-main-thumbnails.png" alt="The list with the columns Obverse and Reverse, medium row height." onerror="this.parentNode.className+=' missing'"><div class="missing-frame">Screenshot: images/01b-main-thumbnails.png</div><figcaption>The list with the columns Obverse and Reverse, medium row height.</figcaption></figure>
 <p>All columns fit into the window: if they do not, the text columns (country, period, currency, denomination, subject, composition)
 get narrower, long text ends with “…” (the full text is in the coin details). A column whose width you changed with the mouse

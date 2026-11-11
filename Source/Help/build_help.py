@@ -124,7 +124,7 @@ countries would not get into continents and Numista search would not work. The p
 how to fix it and does not change the collection.</div>
 <h2>Import</h2>
 <ol>
-<li>[[ui:File → Import from uCoin (.xlsx)|Файл → Імпорт з uCoin (.xlsx)]] (or the [[ui:Import|Імпорт]] button) and choose the file.</li>
+<li>[[ui:File → Import collection from uCoin (.xlsx)...|Файл → Імпорт колекції з uCoin (.xlsx)...]] (or the [[ui:Import|Імпорт]] button) and choose the file.</li>
 <li>The program shows how many rows were read and which rows have errors (skipped). Confirm the import.</li>
 <li>The current collection is <b>replaced</b> by the file. A backup copy of the database is made first: <code>Db\\…before-import-&lt;date&gt;.bak</code>.</li>
 </ol>
@@ -136,6 +136,26 @@ how to fix it and does not change the collection.</div>
 </ul>
 <p>The result shows how many links and photos were kept and lost. Photos of coins that are no longer in the file are moved to <code>Photos\\_before-import-&lt;date&gt;\\</code>.</p>
 <div class="note">Countries are matched by name. If you rename a country in [[page:references|Reference lists]], the old uCoin name will appear again after the next import.</div>
+<h2>Swap list from uCoin</h2>
+<p>On uCoin open your swap list and export it to Excel (the site in English), then
+[[ui:File → Import swap list from uCoin (.xlsx)...|Файл → Імпорт списку обміну з uCoin (.xlsx)...]]. The program checks the file by its columns:
+a collection export chosen here (or a swap list chosen in the collection import) is not imported, the message names the right command.</p>
+<ul>
+<li>The coins go to the node [[ui:For swap|На обмін]]; the collection does not change. A coin that is also in the collection is the same coin
+(the column [[ui:Swap|Обмін]] shows it); a coin that is only for swap is a new coin.</li>
+<li>The swap export has no period: it is taken from a coin of the same country with the same catalogue number, otherwise it stays empty
+(choose it in the coin card). A historical state that uCoin writes as the country (<i>German Empire</i>) goes to the country and period
+from your collection (<i>Germany</i> / <i>German Empire</i>).</li>
+<li>Information, reserve and the private note go to the item comment.</li>
+<li>A repeated import updates the swap list: new items are added, changed ones are updated; for items that are not in the file
+the program asks whether to remove them from the swap list.</li>
+<li>A coin for swap gets the Numista link at once, without requests, from a linked coin of the same country with the same catalogue number:
+the type, the issue (if it is already known for that year) and the catalogue pictures. The others — [[ui:Auto-link|Автозв'язок]] as usual.</li>
+<li>Upload to your Numista swap list — [[page:numista-upload|Numista: upload]], <i>Swap list</i>.</li>
+</ul>
+<p>An item can be moved between the collection and the swap list in the coin card ([[ui:List|Список]]).
+In the node [[ui:For swap|На обмін]] the commands [[ui:Add|Додати]] and [[ui:Add from sample...|Додати за зразком...]] add a coin for swap.
+A repeated import of the collection does not change the swap list.</p>
 <h2>Import from your Numista collection</h2>
 <p>Coins that you added on Numista yourself and that are not in uCoin (for example ancient coins) can be imported too:
 [[ui:Numista → Import from my Numista collection|Numista → Імпорт з моєї колекції Numista]].</p>
@@ -174,7 +194,7 @@ T['import', 'uk'] = u"""
 а пошук на Numista не працював би. Програма розпізнає такий файл, пояснює, як виправити, і колекцію не змінює.</div>
 <h2>Імпорт</h2>
 <ol>
-<li>[[ui:File → Import from uCoin (.xlsx)|Файл → Імпорт з uCoin (.xlsx)]] (або кнопка [[ui:Import|Імпорт]]) і виберіть файл.</li>
+<li>[[ui:File → Import collection from uCoin (.xlsx)...|Файл → Імпорт колекції з uCoin (.xlsx)...]] (або кнопка [[ui:Import|Імпорт]]) і виберіть файл.</li>
 <li>Програма показує, скільки рядків прочитано і в яких рядках помилки (вони пропускаються). Підтвердьте імпорт.</li>
 <li>Поточна колекція <b>замінюється</b> файлом. Перед цим робиться копія бази: <code>Db\\…before-import-&lt;дата&gt;.bak</code>.</li>
 </ol>
@@ -186,6 +206,26 @@ T['import', 'uk'] = u"""
 </ul>
 <p>У підсумку видно, скільки зв'язків і фото збережено та втрачено. Фото монет, яких більше немає у файлі, переносяться до <code>Photos\\_before-import-&lt;дата&gt;\\</code>.</p>
 <div class="note">Країни зіставляються за назвою. Якщо перейменувати країну в [[page:references|Довідниках]], стара назва з uCoin з'явиться знову після наступного імпорту.</div>
+<h2>Список обміну з uCoin</h2>
+<p>На uCoin відкрийте свій список обміну й експортуйте його в Excel (сайт англійською), потім —
+[[ui:File → Import swap list from uCoin (.xlsx)...|Файл → Імпорт списку обміну з uCoin (.xlsx)...]]. Програма перевіряє файл за колонками:
+експорт колекції, вибраний тут (або список обміну в імпорті колекції), не імпортується — у повідомленні буде потрібна команда.</p>
+<ul>
+<li>Монети потрапляють у вузол [[ui:For swap|На обмін]]; колекція не змінюється. Монета, яка є й у колекції, — та сама монета
+(це видно в колонці [[ui:Swap|Обмін]]); монета лише на обмін — нова монета.</li>
+<li>В експорті обміну немає періоду: він береться з монети тієї ж країни з тим самим номером у каталозі, інакше лишається порожнім
+(виберіть його в картці монети). Історична держава, яку uCoin пише країною (<i>German Empire</i>), потрапляє до країни й періоду
+з вашої колекції (<i>Germany</i> / <i>German Empire</i>).</li>
+<li>Інформація, бронь і приватна примітка записуються в коментар примірника.</li>
+<li>Повторний імпорт оновлює список обміну: нові примірники додаються, змінені — оновлюються; про примірники, яких немає у файлі,
+програма питає, чи прибрати їх зі списку обміну.</li>
+<li>Монета на обмін одразу, без запитів, отримує зв'язок з Numista від пов'язаної монети тієї ж країни з тим самим номером у каталозі:
+тип, випуск (якщо він уже відомий для цього року) і зображення з каталогу. Решта — [[ui:Auto-link|Автозв'язок]], як завжди.</li>
+<li>Вивантаження у ваш список обміну на Numista — [[page:numista-upload|Numista: вивантаження]], «Список обміну».</li>
+</ul>
+<p>Примірник можна перенести між колекцією та списком обміну в картці монети ([[ui:List|Список]]).
+У вузлі [[ui:For swap|На обмін]] команди [[ui:Add|Додати]] і [[ui:Add from sample...|Додати за зразком...]] додають монету на обмін.
+Повторний імпорт колекції список обміну не змінює.</p>
 <h2>Імпорт з вашої колекції Numista</h2>
 <p>Монети, які ви самі додали на Numista і яких немає в uCoin (наприклад античні), теж можна імпортувати:
 [[ui:Numista → Import from my Numista collection|Numista → Імпорт з моєї колекції Numista]].</p>
@@ -217,23 +257,27 @@ T['import', 'uk'] = u"""
 T['main-window', 'en'] = u"""
 [[shot:01-main-window.png|The main window.]]
 <h2>Navigation tree</h2>
-<p>On the left: [[ui:All|Усі]], continents with their countries, [[ui:No continent|Без континенту]],
-[[ui:Extinct states|Зниклі держави]] and [[ui:Checked|Позначені]] (all checked coins from any country, see [[page:checks|Checking coins]]).
-The number in brackets is the number of items.</p>
+<p>On the left: [[ui:My collection|Моя колекція]], continents with their countries, [[ui:No continent|Без континенту]],
+[[ui:Extinct states|Зниклі держави]], [[ui:For swap|На обмін]] (your swap list, see [[page:import|Import from uCoin]])
+and [[ui:Checked|Позначені]] (all checked coins from any country, see [[page:checks|Checking coins]]).
+The number in brackets is the number of items. The collection nodes and the totals in the status bar do not include the swap list.</p>
 <h2>Search</h2>
 <p>The search field on the toolbar filters the list by country, period, currency, denomination, year, subject, variety, catalogue number, comment and the Numista title (for example <i>Crispina</i>).</p>
 <h2>Coin list</h2>
 <table>
 <tr><th>Column</th><th>Meaning</th></tr>
 <tr><td>☐</td><td>Check box for mass operations ([[page:checks|Checking coins]]).</td></tr>
-<tr><td>Country, Period, Currency, Denomination</td><td>From uCoin. Country is hidden when one country is selected in the tree.
+<tr><td>Country, Period, Currency, Denomination</td><td>From uCoin.
 For a coin linked with Numista, the denomination is followed (in grey) by what the Numista title adds: the ruler, the variety
 or the legend — for example <i>1 Denarius</i> <span style="color:gray">Crispina (CONCORDIA)</span>,
 <i>10 lekë</i> <span style="color:gray">Non-magnetic</span>. Commemorative coins with a subject do not get it.</td></tr>
-<tr><td>[[ui:Subject|Сюжет]]</td><td>Subject of a commemorative coin (from uCoin or the coin card); shown instead of Country when one country is selected. The column takes the free width of the list;
+<tr><td>[[ui:Subject|Сюжет]]</td><td>Subject of a commemorative coin (from uCoin or the coin card). The column takes the free width of the list;
 after you change its width with the mouse, it keeps your width.</td></tr>
 <tr><td>#Numista</td><td>Numista type number (N#). Grey — the issue is not chosen yet.</td></tr>
-<tr><td>✓</td><td>The item is uploaded to your Numista collection.</td></tr>
+<tr><td>✓</td><td>The item is uploaded to your Numista collection; in [[ui:For swap|На обмін]] — the same coin in your collection is uploaded
+(whether the item for swap is uploaded — see the column [[ui:Swap|Обмін]]).</td></tr>
+<tr><td>[[ui:Swap|Обмін]]</td><td>How many you have for swap: in [[ui:For swap|На обмін]] — the quantity of the item, in the collection — all items for swap
+of the same coin. <b>✓</b> after the number — uploaded to your Numista swap list (in the collection — all of them).</td></tr>
 <tr><td>Rarity</td><td>Rarity index from your Numista collection comment ([[page:numista-upload|Numista: upload]]).</td></tr>
 <tr><td>Mintage</td><td>Mintage of the issue. <code>n/a</code> — Numista has no mintage for it; empty — not loaded yet.</td></tr>
 <tr><td>Composition</td><td>Metal of the type from Numista.</td></tr>
@@ -246,9 +290,10 @@ after you change its width with the mouse, it keeps your width.</td></tr>
 [[ui:Row height|Висота рядків]] — normal, medium or large, [[ui:Default columns|Типові стовпці]] — back to the default set.
 The columns [[ui:Obverse|Аверс]] and [[ui:Reverse|Реверс]] show small photos of the coin: your photo, otherwise the catalogue picture;
 double-click a photo to open the photo viewer. Drag a column header with the mouse to move the column
-(the check box column always stays first). The choice and the order are remembered.</p>
+(the check box column always stays first). [[ui:Alignment|Вирівнювання]] — left, center or right for the column under the mouse.
+The choice, the order and the alignment are remembered.</p>
 <p>The program remembers the size and position of the window, the width of the country tree, the height of the details
-and the column widths you set with the mouse; [[ui:Default columns|Типові стовпці]] also resets the column widths.</p>
+and the column widths you set with the mouse; [[ui:Default columns|Типові стовпці]] also resets the column widths and alignment.</p>
 [[shot:01b-main-thumbnails.png|The list with the columns Obverse and Reverse, medium row height.]]
 <p>All columns fit into the window: if they do not, the text columns (country, period, currency, denomination, subject, composition)
 get narrower, long text ends with “…” (the full text is in the coin details). A column whose width you changed with the mouse
@@ -265,23 +310,27 @@ estimate of the shown coins (estimate × quantity) and how many of them have no 
 T['main-window', 'uk'] = u"""
 [[shot:01-main-window.png|Головне вікно.]]
 <h2>Дерево навігації</h2>
-<p>Ліворуч: [[ui:All|Усі]], континенти з країнами, [[ui:No continent|Без континенту]],
-[[ui:Extinct states|Зниклі держави]] і [[ui:Checked|Позначені]] (усі позначені монети з будь-яких країн, див. [[page:checks|Позначки монет]]).
-Число в дужках — кількість примірників.</p>
+<p>Ліворуч: [[ui:My collection|Моя колекція]], континенти з країнами, [[ui:No continent|Без континенту]],
+[[ui:Extinct states|Зниклі держави]], [[ui:For swap|На обмін]] (ваш список обміну, див. [[page:import|Імпорт з uCoin]])
+і [[ui:Checked|Позначені]] (усі позначені монети з будь-яких країн, див. [[page:checks|Позначки монет]]).
+Число в дужках — кількість примірників. Вузли колекції й підсумки в рядку стану не враховують список обміну.</p>
 <h2>Пошук</h2>
 <p>Поле пошуку на панелі інструментів фільтрує список за країною, періодом, валютою, номіналом, роком, сюжетом, різновидом, номером у каталозі, коментарем і назвою Numista (наприклад <i>Crispina</i>).</p>
 <h2>Список монет</h2>
 <table>
 <tr><th>Колонка</th><th>Значення</th></tr>
 <tr><td>☐</td><td>Позначка для масових операцій ([[page:checks|Позначки монет]]).</td></tr>
-<tr><td>[[ui:Country|Країна]], [[ui:Period|Період]], [[ui:Currency|Валюта]], [[ui:Denomination|Номінал]]</td><td>З uCoin. Країна прихована, коли в дереві вибрано одну країну.
+<tr><td>[[ui:Country|Країна]], [[ui:Period|Період]], [[ui:Currency|Валюта]], [[ui:Denomination|Номінал]]</td><td>З uCoin.
 У монети, пов'язаної з Numista, після номіналу сірим — те, що додає назва Numista: правитель, різновид чи легенда —
 наприклад <i>1 Denarius</i> <span style="color:gray">Crispina (CONCORDIA)</span>,
 <i>10 lekë</i> <span style="color:gray">Non-magnetic</span>. Пам'ятні монети із сюжетом цього не мають.</td></tr>
-<tr><td>[[ui:Subject|Сюжет]]</td><td>Сюжет пам'ятної монети (з uCoin або картки монети); показується замість Країни, коли вибрано одну країну. Колонка займає вільну ширину списку;
+<tr><td>[[ui:Subject|Сюжет]]</td><td>Сюжет пам'ятної монети (з uCoin або картки монети). Колонка займає вільну ширину списку;
 якщо змінити її ширину мишею, залишається ваша ширина.</td></tr>
 <tr><td>#Numista</td><td>Номер типу Numista (N#). Сірим — випуск ще не вибрано.</td></tr>
-<tr><td>✓</td><td>Примірник вивантажено у вашу колекцію на Numista.</td></tr>
+<tr><td>✓</td><td>Примірник вивантажено у вашу колекцію на Numista; у [[ui:For swap|На обмін]] — вивантажено цю ж монету з вашої колекції
+(чи вивантажено сам примірник на обмін — див. колонку [[ui:Swap|Обмін]]).</td></tr>
+<tr><td>[[ui:Swap|Обмін]]</td><td>Скільки у вас на обмін: у [[ui:For swap|На обмін]] — кількість примірника, у колекції — усі примірники на обмін
+тієї ж монети. <b>✓</b> після числа — вивантажено у ваш список обміну на Numista (у колекції — усі).</td></tr>
 <tr><td>[[ui:Rarity|Рідкість]]</td><td>Індекс рідкісності з коментаря вашої колекції на Numista ([[page:numista-upload|Numista: вивантаження]]).</td></tr>
 <tr><td>[[ui:Mintage|Тираж]]</td><td>Тираж випуску. <code>н/д</code> — у Numista тиражу немає; порожньо — ще не завантажено.</td></tr>
 <tr><td>[[ui:Composition|Метал]]</td><td>Метал типу з Numista.</td></tr>
@@ -294,9 +343,10 @@ T['main-window', 'uk'] = u"""
 [[ui:Row height|Висота рядків]] — звичайна, середня чи велика, [[ui:Default columns|Типові стовпці]] — повернути типовий набір.
 Колонки [[ui:Obverse|Аверс]] і [[ui:Reverse|Реверс]] показують мініатюри монети: ваше фото, інакше зображення з каталогу;
 подвійне клацання по мініатюрі відкриває перегляд фото. Перетягніть заголовок колонки мишею, щоб переставити колонку
-(колонка позначок завжди перша). Вибір і порядок запам'ятовуються.</p>
+(колонка позначок завжди перша). [[ui:Alignment|Вирівнювання]] — ліворуч, по центру чи праворуч для колонки під курсором.
+Вибір, порядок і вирівнювання запам'ятовуються.</p>
 <p>Програма запам'ятовує розмір і положення вікна, ширину дерева країн, висоту подробиць
-і ширини колонок, змінені мишею; [[ui:Default columns|Типові стовпці]] скидає і ширини колонок.</p>
+і ширини колонок, змінені мишею; [[ui:Default columns|Типові стовпці]] скидає і ширини колонок, і вирівнювання.</p>
 [[shot:01b-main-thumbnails.png|Список зі стовпцями Аверс і Реверс, середня висота рядків.]]
 <p>Усі колонки вміщуються у вікно: якщо ні, текстові колонки (країна, період, валюта, номінал, сюжет, метал) звужуються,
 довгий текст закінчується «…» (повний текст — у подробицях монети). Колонка, ширину якої ви змінили мишею, зберігає вашу ширину.</p>
@@ -694,6 +744,15 @@ Which of these fields are sent — [[page:numista-connect|Numista settings]], ta
 <li>Uploaded items get ✓ and are not sent again.</li>
 <li>An item that you have already added on the Numista website is not duplicated: it is linked with that item and gets ✓.</li>
 </ul>
+<h3>Swap list</h3>
+<p>Items of the node [[ui:For swap|На обмін]] are uploaded the same way, with the mark <i>for swap</i>: on Numista they are items of
+your collection that appear in your swap list. The swap note (for example <i>VF-, 50% of price</i>) becomes the public comment
+that other collectors see; a note marked <i>private:</i> stays in the private comment.</p>
+<ul>
+<li>Moving an uploaded item between the collection and the swap list in the coin card ([[ui:List|Список]]) changes the mark on Numista too.</li>
+<li>Import from your Numista collection puts items marked for swap into [[ui:For swap|На обмін]].</li>
+<li>A repeated import of the uCoin swap list asks whether uploaded items that are no longer in the file should be removed on Numista too.</li>
+</ul>
 <h2>Private comment</h2>
 <p>The program writes the comment as attributes <code>Code:value</code> separated by <code>;</code>:</p>
 <table>
@@ -716,6 +775,15 @@ T['numista-upload', 'uk'] = u"""
 <ul>
 <li>Вивантажені примірники отримують ✓ і повторно не надсилаються.</li>
 <li>Примірник, який ви вже додали на сайті Numista, не дублюється: його пов'язано з тим предметом, і він отримує ✓.</li>
+</ul>
+<h3>Список обміну</h3>
+<p>Примірники вузла [[ui:For swap|На обмін]] вивантажуються так само, з позначкою <i>на обмін</i>: на Numista це предмети
+вашої колекції, які з'являються у вашому списку обміну. Примітка для обміну (наприклад <i>VF-, 50% of price</i>) стає публічним коментарем,
+який бачать інші колекціонери; примітка з позначкою <i>приватно:</i> лишається в приватному коментарі.</p>
+<ul>
+<li>Перенесення вивантаженого примірника між колекцією та списком обміну в картці монети ([[ui:List|Список]]) змінює позначку й на Numista.</li>
+<li>Імпорт з вашої колекції Numista кладе предмети з позначкою обміну у вузол [[ui:For swap|На обмін]].</li>
+<li>Повторний імпорт списку обміну uCoin питає, чи видалити й на Numista вивантажені примірники, яких більше немає у файлі.</li>
 </ul>
 <h2>Приватний коментар</h2>
 <p>Програма записує коментар як атрибути <code>Код:значення</code> через <code>;</code>:</p>
@@ -1034,7 +1102,7 @@ After each step it says what you should see. Something different — [[ui:Help �
 <h2>2. Import from uCoin</h2>
 <ol>
 <li>On uCoin switch the site to English and export your collection to Excel ([[page:import|Import from uCoin]]).</li>
-<li>[[ui:File → Import from uCoin (.xlsx)|Файл → Імпорт з uCoin (.xlsx)]]. <b>Expected:</b> the number of rows and errors, then
+<li>[[ui:File → Import collection from uCoin (.xlsx)...|Файл → Імпорт колекції з uCoin (.xlsx)...]]. <b>Expected:</b> the number of rows and errors, then
 the countries in the tree on the left, the coins in the list.</li>
 <li>Try an export made in Russian or Ukrainian. <b>Expected:</b> a message that the file is not in English and how to fix it;
 the collection is not changed.</li>
@@ -1106,7 +1174,7 @@ T['testing', 'uk'] = u"""
 <h2>2. Імпорт з uCoin</h2>
 <ol>
 <li>На uCoin перемкніть сайт на English і експортуйте колекцію в Excel ([[page:import|Імпорт з uCoin]]).</li>
-<li>[[ui:File → Import from uCoin (.xlsx)|Файл → Імпорт з uCoin (.xlsx)]]. <b>Очікується:</b> кількість рядків і помилок, потім
+<li>[[ui:File → Import collection from uCoin (.xlsx)...|Файл → Імпорт колекції з uCoin (.xlsx)...]]. <b>Очікується:</b> кількість рядків і помилок, потім
 країни в дереві ліворуч, монети в списку.</li>
 <li>Спробуйте експорт російською чи українською. <b>Очікується:</b> повідомлення, що файл не англійською, і як це виправити;
 колекцію не змінено.</li>

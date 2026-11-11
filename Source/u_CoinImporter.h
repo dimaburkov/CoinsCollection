@@ -14,6 +14,9 @@
 //---------------------------------------------------------------------------
 class TXlsxSource;
 //---------------------------------------------------------------------------
+// Какой экспорт uCoin (задача 47): коллекция, список обмена, список желаемого — по заголовку.
+enum TUcoinFile { ufCollection, ufSwap, ufWish };
+//---------------------------------------------------------------------------
 struct TImportError
 {
 	int    Row;       // номер строки в листе Excel
@@ -35,12 +38,15 @@ public:
 	const std::vector<TImportError> &Errors() const { return FErrors; }
 	// Число строк данных (без заголовка и полностью пустых) последнего Parse().
 	int DataRowCount() const { return FDataRows; }
+	// Вид файла последнего Parse(): у обмена записи с List = "swap".
+	TUcoinFile Kind() const { return FKind; }
 
 private:
 	std::set<String>          FConditionCodes;
 	std::map<String, int>     FColumns;      // заголовок (в верхнем регистре) -> индекс колонки
 	std::vector<TImportError> FErrors;
 	int                       FDataRows;
+	TUcoinFile                FKind;
 
 	int    Column(const String &AHeader) const;
 	String Cell(const std::vector<String> &ARow, const String &AHeader) const;

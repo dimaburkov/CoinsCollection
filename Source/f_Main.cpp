@@ -49,7 +49,8 @@ namespace
 	const wchar_t *const cColumnKeys[] =
 	{
 		L"", L"Main.Column.Country", L"Main.Column.Period", L"Main.Column.Currency", L"Main.Column.Denomination",
-		L"Main.Column.Subject", L"Main.Column.Numista", L"Main.Column.Uploaded", L"Main.Column.Rarity", L"Main.Column.Mintage",
+		L"Main.Column.Subject", L"Main.Column.Numista", L"Main.Column.Uploaded", L"Main.Column.Swap", L"Main.Column.Rarity",
+		L"Main.Column.Mintage",
 		L"Main.Column.Composition",
 		L"Main.Column.Year", L"Main.Column.Condition", L"Main.Column.Value", L"Main.Column.NumistaPrice",
 		L"Main.Column.Obverse", L"Main.Column.Reverse"
@@ -57,7 +58,7 @@ namespace
 	// Ключи колонок в [Grid] Hidden ini (задача 41; порядок = TItemColumn).
 	const wchar_t *const cColumnIni[] =
 	{
-		L"", L"country", L"period", L"currency", L"denomination", L"subject", L"numista", L"uploaded", L"rarity",
+		L"", L"country", L"period", L"currency", L"denomination", L"subject", L"numista", L"uploaded", L"swap", L"rarity",
 		L"mintage", L"composition", L"year", L"condition", L"value", L"numistaprice", L"obverse", L"reverse"
 	};
 	// Высоты строк (задача 41): обычная / средняя / большая.
@@ -104,14 +105,15 @@ namespace
 	// Ширина колонок по умолчанию (порядок = TItemColumn).
 	// Auto-link checked: больше стольких монет — подтверждение.
 	const int cConfirmCheckCoins = 10;
-	const int cDefaultWidths[] = { 22, 130, 160, 120, 200, 120, 70, 24, 63, 85, 120, 50, 58, 85, 95, 46, 46 };
+	const int cDefaultWidths[] = { 22, 130, 160, 120, 200, 120, 70, 24, 50, 63, 85, 120, 50, 58, 85, 95, 46, 46 };
 	// Наименьшая ширина колонки «Сюжет», растянутой на свободное место (задача 27).
 	const int cMinSubjectWidth = 90;
 	// Подписи строк панели подробностей (порядок = TDetailRowIndex).
 	const wchar_t *const cDetailKeys[] =
 	{
 		L"Main.Details.Period", L"Main.Details.Currency", L"Main.Details.Ruler", L"Main.Details.Subject",
-		L"Main.Details.Number", L"Main.Details.Numista", L"Main.Details.NumistaItem", L"Main.Details.IssueComment",
+		L"Main.Details.Number", L"Main.Details.Numista", L"Main.Details.NumistaItem", L"Main.Details.Swap",
+		L"Main.Details.IssueComment",
 		L"Main.Details.Prices", L"Main.Details.Weight", L"Main.Details.Size", L"Main.Details.Shape", L"Main.Details.Technique",
 		L"Main.Details.Series", L"Main.Details.Commemorated", L"Main.Details.TypeYears", L"Main.Details.Mints",
 		L"Main.Details.Category", L"Main.Details.Demonetized"
@@ -168,9 +170,13 @@ __fastcall TfmMain::TfmMain(TComponent* Owner)
 		FFitWidth[c]  = 0;
 	}
 	FColumnsMenu   = nullptr;
+	FCollectionCount = FSwapCount = 0;
 	FHeaderDownCol = -1;
 	FColumnMoved   = false;
 	FNormalBounds  = TRect(0, 0, 0, 0);
+	FMenuColumn    = -1;
+	for (int c = 0; c < icCount; ++c)
+		FAlign[c] = DefaultAlign(c);
 	LoadGridSettings();	// задача 41: колонки и высота строк из [Grid]
 	// Строки подробностей — до колонок: смена ColCount вызывает OnSelectCell → ShowDetails.
 	CreateDetailRows();
@@ -545,9 +551,12 @@ void __fastcall TfmMain::actImportExecute(TObject *Sender)
 {
 	const String title = Tr(L"Import.Title");
 	const String nl = L"\r\n";
+	// Что импортируем — по команде меню (задача 47a): коллекция, список обмена, список желаемого.
+	const TUcoinFile expected = Sender == actImportSwap ? ufSwap : Sender == actImportWish ? ufWish : ufCollection;
 
 	std::unique_ptr<TOpenDialog> dialog(new TOpenDialog(this));
-	dialog->Title      = title;
+	dialog->Title      = StringReplace(StripHotkey((expected == ufSwap ? actImportSwap
+		: expected == ufWish ? actImportWish : actImport)->Caption), L"...", L"", TReplaceFlags()).Trim();
 	dialog->Filter     = Tr(L"Import.FileFilter");
 	dialog->DefaultExt = L"xlsx";
 	dialog->InitialDir = TAppConfig::ExeDir();
@@ -559,6 +568,7 @@ void __fastcall TfmMain::actImportExecute(TObject *Sender)
 	std::vector<TCoinRecord> records;
 	std::vector<TImportError> errors;
 	int dataRows = 0;
+	TUcoinFile kind = ufCollection;
 	const TCursor oldCursor = Screen->Cursor;
 	Screen->Cursor = crHourGlass;
 	std::unique_ptr<TProgress> progress(new TProgress(this, title, 0));
@@ -571,6 +581,7 @@ void __fastcall TfmMain::actImportExecute(TObject *Sender)
 		records  = importer.Parse(source);
 		errors   = importer.Errors();
 		dataRows = importer.DataRowCount();
+		kind     = importer.Kind();
 		progress.reset();
 		Screen->Cursor = oldCursor;
 	}
@@ -579,6 +590,27 @@ void __fastcall TfmMain::actImportExecute(TObject *Sender)
 		progress.reset();
 		Screen->Cursor = oldCursor;
 		Application->MessageBox((Tr(L"Import.Error.Read") + nl + nl + e.Message).c_str(), title.c_str(), MB_OK | MB_ICONERROR);
+		return;
+	}
+
+	// Файл не той команды (задача 47a): вид — по колонкам заголовка, подсказать нужную команду.
+	if (kind != expected)
+	{
+		const wchar_t *const kindKeys[] = { L"Import.Kind.Collection", L"Import.Kind.Swap", L"Import.Kind.Wish" };
+		TAction *const commands[] = { actImport, actImportSwap, actImportWish };
+		Application->MessageBox(Format(Tr(L"Import.WrongFile"), ARRAYOFCONST((ExtractFileName(dialog->FileName),
+			Tr(kindKeys[kind]), StripHotkey(commands[kind]->Caption)))).c_str(), title.c_str(), MB_OK | MB_ICONWARNING);
+		return;
+	}
+	// Список желаемого — задача 48; список обмена — свой путь (задача 47).
+	if (kind == ufWish)
+	{
+		Application->MessageBox(Tr(L"Import.Wish.Later").c_str(), title.c_str(), MB_OK | MB_ICONINFORMATION);
+		return;
+	}
+	if (kind == ufSwap)
+	{
+		ImportSwapList(dialog->FileName, records, errors, dataRows);
 		return;
 	}
 
@@ -602,6 +634,9 @@ void __fastcall TfmMain::actImportExecute(TObject *Sender)
 	const int current = FRepository->ItemCount();
 	if (current > 0)
 		text += nl + nl + Format(Tr(L"Import.Confirm.Replace"), ARRAYOFCONST((current)));
+	const int swapCount = FRepository->ItemCount(L"swap");	// задача 47: обмен импорт коллекции не трогает
+	if (swapCount > 0)
+		text += nl + Format(Tr(L"Import.Confirm.SwapKept"), ARRAYOFCONST((swapCount)));
 	const int photos = FPhotos->PhotoCount();
 	if (photos > 0)
 		text += nl + Format(Tr(L"Import.Confirm.Photos"), ARRAYOFCONST((photos)));
@@ -654,6 +689,196 @@ void __fastcall TfmMain::actImportExecute(TObject *Sender)
 	Application->MessageBox(done.c_str(), title.c_str(), MB_OK | MB_ICONINFORMATION);
 }
 //---------------------------------------------------------------------------
+// Список обмена uCoin (задача 47): пробный проход показывает, что изменится; экземпляров, которых
+// нет в файле, — вопрос «удалить из обмена?». Коллекция не меняется.
+void TfmMain::ImportSwapList(const String &AFileName, const std::vector<TCoinRecord> &ARecords,
+	const std::vector<TImportError> &AErrors, int ADataRows)
+{
+	const String title = Tr(L"Import.Swap.Title");
+	const String nl = L"\r\n";
+	String text = ExtractFileName(AFileName) + nl + nl
+		+ Format(Tr(L"Import.Summary.Rows"),   ARRAYOFCONST((ADataRows))) + nl
+		+ Format(Tr(L"Import.Summary.Items"),  ARRAYOFCONST(((int)ARecords.size()))) + nl
+		+ Format(Tr(L"Import.Summary.Errors"), ARRAYOFCONST(((int)AErrors.size())));
+	if (!AErrors.empty())
+	{
+		text += nl + nl + Tr(L"Import.Summary.FirstErrors");
+		for (size_t i = 0; i < AErrors.size() && i < 10; ++i)
+			text += nl + Format(Tr(L"Import.ErrorLine"), ARRAYOFCONST((AErrors[i].Row, AErrors[i].Message)));
+	}
+	if (ARecords.empty())
+	{
+		Application->MessageBox((text + nl + nl + Tr(L"Import.Nothing")).c_str(), title.c_str(), MB_OK | MB_ICONWARNING);
+		return;
+	}
+
+	TListSync plan;
+	const TCursor oldCursor = Screen->Cursor;
+	Screen->Cursor = crHourGlass;
+	try
+	{
+		FRepository->SyncList(ARecords, L"swap", false, false, plan);
+		Screen->Cursor = oldCursor;
+	}
+	catch (Exception &e)
+	{
+		Screen->Cursor = oldCursor;
+		Application->MessageBox((Tr(L"Import.Error.Failed") + nl + nl + e.Message).c_str(), title.c_str(), MB_OK | MB_ICONERROR);
+		return;
+	}
+	text += nl + nl + Format(Tr(L"Import.Swap.Plan"), ARRAYOFCONST((plan.Added, plan.Updated, plan.Unchanged))) + nl
+		+ Format(Tr(L"Import.Swap.Coins"), ARRAYOFCONST((plan.InCollection, plan.NewCoins)));
+	if (plan.NoPeriod > 0)
+		text += nl + Format(Tr(L"Import.Swap.NoPeriod"), ARRAYOFCONST((plan.NoPeriod)));
+	text += nl + Tr(L"Import.Swap.CollectionKept");
+
+	bool deleteMissing = false;
+	if (plan.Missing > 0)
+	{
+		text += nl + nl + Format(Tr(L"Import.Swap.Missing"), ARRAYOFCONST((plan.Missing)));
+		const int answer = Application->MessageBox(text.c_str(), title.c_str(), MB_YESNOCANCEL | MB_ICONQUESTION | MB_DEFBUTTON2);
+		if (answer == IDCANCEL)
+			return;
+		deleteMissing = answer == IDYES;
+	}
+	else if (!Confirm(text + nl + nl + Tr(L"Import.Swap.Question"), title))
+		return;
+	// Удаляемые из обмена, которые выгружены на Numista (задача 47a): удалить и там?
+	bool deleteOnNumista = false;
+	if (deleteMissing && !plan.MissingNumista.empty())
+		deleteOnNumista = Application->MessageBox(Format(Tr(L"Import.Swap.DeleteNumista"),
+			ARRAYOFCONST(((int)plan.MissingNumista.size()))).c_str(), title.c_str(),
+			MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) == IDYES;
+
+	TListSync done;
+	Screen->Cursor = crHourGlass;
+	try
+	{
+		if (FRepository->ItemCount() + FRepository->ItemCount(L"swap") > 0)
+			FDatabase->Backup(L"before-import-" + FormatDateTime(L"yyyymmdd-hhnnss", Now()));
+		FRepository->SyncList(ARecords, L"swap", deleteMissing, true, done);
+		Screen->Cursor = oldCursor;
+	}
+	catch (Exception &e)
+	{
+		Screen->Cursor = oldCursor;
+		Application->MessageBox((Tr(L"Import.Error.Failed") + nl + nl + e.Message).c_str(), title.c_str(), MB_OK | MB_ICONERROR);
+		return;
+	}
+
+	int deletedOnNumista = 0;
+	String numistaError;
+	if (deleteOnNumista)
+	{
+		try
+		{
+			TNumistaClient client;
+			client.Authorize();
+			for (size_t i = 0; i < done.MissingNumista.size(); ++i)
+			{
+				client.DeleteCollectedItem(done.MissingNumista[i]);
+				++deletedOnNumista;
+			}
+		}
+		catch (Exception &e)
+		{
+			numistaError = e.Message;
+		}
+	}
+
+	LoadItems();
+	int withIssue = 0;
+	const int fromCache = LinkSwapFromCache(withIssue);
+	if (fromCache > 0)
+		LoadItems();
+	// Показать список обмена.
+	for (int i = 0; i < tvNav->Items->Count; ++i)
+		if (FNav[(NativeInt)tvNav->Items->Item[i]->Data].Kind == nkSwap)
+			tvNav->Selected = tvNav->Items->Item[i];
+	String message = Format(Tr(L"Import.Swap.Done"), ARRAYOFCONST((done.Added, done.Updated, done.Removed, FSwapCount)));
+	if (fromCache > 0)
+		message += nl + Format(Tr(L"Import.Swap.Linked"), ARRAYOFCONST((fromCache, withIssue)));
+	if (deleteOnNumista)
+		message += nl + Format(Tr(L"Import.Swap.DeletedNumista"), ARRAYOFCONST((deletedOnNumista)))
+			+ (numistaError.IsEmpty() ? String() : nl + numistaError);
+	Application->MessageBox(message.c_str(), title.c_str(), MB_OK | MB_ICONINFORMATION);
+}
+//---------------------------------------------------------------------------
+// Без запросов к Numista: тип — от монеты той же страны с тем же номером (несколько типов — по годам
+// типа из numista_types; не однозначно — не связывать); выпуск — из numista_issues по году; фото типа
+// из Numista — копия с монеты того же типа. Характеристики и цены уже в базе по типу и выпуску.
+int TfmMain::LinkSwapFromCache(int &AWithIssue)
+{
+	AWithIssue = 0;
+	const std::map<String, std::set<int> > numberTypes = NumberTypes();
+	std::map<int, int> photoSource;	// тип -> монета с фото типа из Numista (0 — нет)
+	std::set<int> seen;
+	int linked = 0;
+	for (size_t i = 0; i < FAll.size(); ++i)
+	{
+		const TCoinRecord &r = FAll[i];
+		if (r.List != L"swap" || r.NumistaTypeId != 0 || !r.NumistaQuery.IsEmpty() || !seen.insert(r.CoinId).second)
+			continue;
+		const std::map<String, std::set<int> >::const_iterator found = numberTypes.find(NumberKey(r));
+		if (found == numberTypes.end())
+			continue;
+		int typeId = 0, fits = 0;
+		for (int candidate : found->second)
+		{
+			TNumistaTypeInfo info;
+			const bool known = FRepository->LoadNumistaType(candidate, info) && info.MinYear != 0;
+			const int maxYear = known && info.MaxYear != 0 ? info.MaxYear : info.MinYear;
+			// Годы типа неизвестны — подходит, только если тип у номера один.
+			if (known ? (r.Year == 0 || (info.MinYear <= r.Year && r.Year <= maxYear)) : found->second.size() == 1)
+			{
+				typeId = candidate;
+				++fits;
+			}
+		}
+		if (fits != 1)
+			continue;
+
+		const int issueId = FRepository->FindStoredIssue(typeId, r.Year);
+		FRepository->SetCoinNumista(r.CoinId, typeId, issueId, KnownNumistaTitle(typeId));
+		++linked;
+		if (issueId != 0)
+			++AWithIssue;
+
+		// Фото типа из Numista — с монеты того же типа (у которой они есть), если у этой фото типа нет.
+		if (!photoSource.count(typeId))
+		{
+			photoSource[typeId] = 0;
+			for (size_t k = 0; k < FAll.size() && photoSource[typeId] == 0; ++k)
+				if (FAll[k].NumistaTypeId == typeId && FAll[k].CoinId != r.CoinId
+					&& (FPhotos->CoinPhotoSource(FAll[k].CoinId, psObverse) == L"numista"
+						|| FPhotos->CoinPhotoSource(FAll[k].CoinId, psReverse) == L"numista"))
+					photoSource[typeId] = FAll[k].CoinId;
+		}
+		const int source = photoSource[typeId];
+		for (int s = 0; s < 2 && source != 0; ++s)
+		{
+			const TPhotoSide side = (TPhotoSide)s;
+			if (FPhotos->CoinPhotoSource(source, side) != L"numista" || !FPhotos->CoinPhotoSource(r.CoinId, side).IsEmpty())
+				continue;
+			try
+			{
+				String copyright;
+				const String file = FPhotos->PhotoFile(0, source, side, nullptr, &copyright);
+				if (file.IsEmpty())
+					continue;
+				std::unique_ptr<TPicture> picture(new TPicture());
+				picture->LoadFromFile(file);
+				FPhotos->SetCoinPhoto(r.CoinId, side, picture->Graphic, L"numista", copyright);
+			}
+			catch (Exception &)
+			{
+				// фото не скопировалось — связь остаётся, фото загрузится из Numista позже
+			}
+		}
+	}
+	return linked;
+}
+//---------------------------------------------------------------------------
 bool TfmMain::Confirm(const String &AText, const String &ACaption)
 {
 	return Application->MessageBox(AText.c_str(), ACaption.c_str(),
@@ -696,6 +921,7 @@ bool TfmMain::SaveRecord(TCoinRecord &ARecord)
 void __fastcall TfmMain::actAddExecute(TObject *Sender)
 {
 	TCoinRecord record;
+	record.List = NewItemList();	// узел «На обмін» — сразу на обмен (задача 47)
 	TPhotoEdits photos;
 	if (!TfmCoinEdit::Execute(this, *FRepository, *FPhotos, record, photos) || !SaveRecord(record))
 		return;
@@ -736,6 +962,7 @@ void __fastcall TfmMain::actAddSampleExecute(TObject *Sender)
 	record.Grade           = sample.Grade;
 	record.LabelText       = sample.LabelText;
 	record.Comment         = sample.Comment;
+	record.List            = NewItemList(&sample);
 
 	TPhotoEdits photos;
 	if (!TfmCoinEdit::Execute(this, *FRepository, *FPhotos, record, photos, true) || !SaveRecord(record))
@@ -743,6 +970,17 @@ void __fastcall TfmMain::actAddSampleExecute(TObject *Sender)
 	ApplyPhotoEdits(photos, record);
 	LoadItems();
 	SelectId(record.Id);
+}
+//---------------------------------------------------------------------------
+// Узел «На обмін» — обмен; «Позначені» — как у образца; остальные — коллекция.
+String TfmMain::NewItemList(const TCoinRecord *ASample) const
+{
+	const TNavNode *node = CurrentNode();
+	if (node && node->Kind == nkSwap)
+		return L"swap";
+	if (node && node->Kind == nkChecked && ASample)
+		return ASample->List;
+	return String();
 }
 //---------------------------------------------------------------------------
 // В поле поиска Ctrl+Ins — копирование текста, команда выключена.
@@ -758,10 +996,26 @@ void __fastcall TfmMain::actEditExecute(TObject *Sender)
 		return;
 
 	TCoinRecord record = FItems[index];
+	const String oldList = record.List;
 	TPhotoEdits photos;
 	if (TfmCoinEdit::Execute(this, *FRepository, *FPhotos, record, photos) && SaveRecord(record))
 	{
 		ApplyPhotoEdits(photos, record);
+		// Выгруженный экземпляр перенесён между коллекцией и обменом — отметка на Numista (задача 47a).
+		if (record.NumistaItemId != 0 && record.List != oldList)
+		{
+			try
+			{
+				TNumistaClient client;
+				client.Authorize();
+				client.EditCollectedItemSwap(record.NumistaItemId, record.List == L"swap");
+			}
+			catch (Exception &e)
+			{
+				Application->MessageBox((Tr(L"Numista.Swap.EditFailed") + L"\r\n\r\n" + e.Message).c_str(),
+					StripHotkey(actEdit->Caption).c_str(), MB_OK | MB_ICONWARNING);
+			}
+		}
 		LoadItems();
 		SelectId(record.Id);
 	}
@@ -2043,8 +2297,9 @@ void __fastcall TfmMain::dgItemsContextPopup(TObject *Sender, const TPoint &Mous
 	Handled = true;
 	if (Column(col) != icCheck)
 	{
-		// Остальные колонки — меню «Стовпці» и высота строк (задача 41).
+		// Остальные колонки — меню «Стовпці» и высота строк (задача 41), выравнивание этой колонки (задача 46).
 		const TPoint pt = dgItems->ClientToScreen(MousePos);
+		FMenuColumn = Column(col);
 		ColumnsMenuPopup(nullptr);
 		FColumnsMenu->Popup(pt.X, pt.Y);
 		return;
@@ -2136,7 +2391,7 @@ void TfmMain::UploadItems(const std::vector<TCoinRecord> &ACandidates)
 			int numistaId = uploader.UploadedItem(item.Id);
 			if (numistaId != 0)
 				++found;
-			else if ((numistaId = uploader.TakeForeign(item.NumistaTypeId, item.NumistaIssueId)) != 0)
+			else if ((numistaId = uploader.TakeForeign(item.NumistaTypeId, item.NumistaIssueId, item.List == L"swap")) != 0)
 				++foreign;
 			else
 			{
@@ -2649,7 +2904,8 @@ void __fastcall TfmMain::actNumistaImportExecute(TObject *Sender)
 		for (size_t i = 0; i < FAll.size(); ++i)
 		{
 			const TCoinRecord &r = FAll[i];
-			if (r.NumistaItemId != 0 || (r.NumistaTypeId != 0 && r.NumistaTypeId != type.Id))
+			// Тот же список (задача 47a): предмет на обмен — к экземпляру обмена, иначе — к коллекции.
+			if (r.NumistaItemId != 0 || (r.NumistaTypeId != 0 && r.NumistaTypeId != type.Id) || r.List != NumistaItemList(item))
 				continue;
 			const String issuer = countryIssuers[AnsiUpperCase(r.Country)];
 			if (!issuer.IsEmpty() && !type.IssuerCode.IsEmpty() && !matcher.SameBranch(issuer, type.IssuerCode))
@@ -2783,6 +3039,11 @@ String TfmMain::ImportCountry(const TNumistaTypeInfo &AType, TNumistaMatcher &AM
 	return AType.IssuerName;
 }
 //---------------------------------------------------------------------------
+String TfmMain::NumistaItemList(TJSONValue *AItem)
+{
+	return SameText(JsonText(AItem, L"for_swap"), L"true") ? L"swap" : L"";
+}
+//---------------------------------------------------------------------------
 // Экземпляр программы для предмета Numista (задача 20): ещё не выгружен и
 //  - его монета связана с тем же типом, или
 //  - не связана, но номер каталога совпадает с одной из ссылок типа (KM# 18), страна — в той же
@@ -2799,7 +3060,7 @@ int TfmMain::FindExistingItem(TJSONValue *AItem, const TNumistaTypeInfo &AType, 
 	for (size_t i = 0; i < FAll.size(); ++i)
 	{
 		const TCoinRecord &r = FAll[i];
-		if (r.NumistaItemId != 0 || (r.NumistaTypeId != 0 && r.NumistaTypeId != AType.Id))
+		if (r.NumistaItemId != 0 || (r.NumistaTypeId != 0 && r.NumistaTypeId != AType.Id) || r.List != NumistaItemList(AItem))
 			continue;
 		if (year != 0 && r.Year != 0 && (r.Year < year || r.Year > std::max(year, yearTo)))
 			continue;
@@ -2920,6 +3181,11 @@ void TfmMain::ImportNumistaItem(TNumistaClient &AClient, TNumistaMatcher &AMatch
 				ARRAYOFCONST((price, currency)));
 	}
 	r.Origin = L"numista";
+	// На обмен (задача 47a): в список обмена, заметка для партнёров — в комментарий.
+	r.List = NumistaItemList(AItem);
+	const String publicComment = JsonText(AItem, L"public_comment").Trim();
+	if (!r.List.IsEmpty() && !publicComment.IsEmpty())
+		r.Comment = publicComment + (r.Comment.IsEmpty() ? String() : L"; " + r.Comment);
 
 	FRepository->Save(r);
 	FRepository->SetCoinNumista(r.CoinId, typeId, issueId, AType.Title);
@@ -3038,6 +3304,30 @@ void TfmMain::LoadItems()
 	FPrices = FRepository->LoadNumistaPrices(AppConfig().NumistaPriceCurrency);
 	FThumbFiles.clear();	// фото могли измениться (карточка, Numista, импорт) — задача 41
 	FThumbs.clear();
+	// Обмен и коллекция по монетам (задача 47).
+	FSwapQty.clear();
+	FCollectionQty.clear();
+	FSwapPending.clear();
+	FCollectionUploaded.clear();
+	FCollectionCount = FSwapCount = 0;
+	for (size_t i = 0; i < FAll.size(); ++i)
+	{
+		const TCoinRecord &r = FAll[i];
+		if (r.List.IsEmpty())
+		{
+			FCollectionQty[r.CoinId] += r.Quantity;
+			if (r.NumistaItemId != 0)
+				FCollectionUploaded.insert(r.CoinId);
+			++FCollectionCount;
+		}
+		else if (r.List == L"swap")
+		{
+			FSwapQty[r.CoinId] += r.Quantity;
+			if (r.NumistaItemId == 0)
+				++FSwapPending[r.CoinId];
+			++FSwapCount;
+		}
+	}
 
 	// Отметки — только у существующих экземпляров (удаление, импорт).
 	std::set<int> ids;
@@ -3102,6 +3392,8 @@ void TfmMain::BuildTree()
 	int unknown = 0;	// страна записи не найдена в справочнике (не должно быть)
 	for (size_t i = 0; i < FAll.size(); ++i)
 	{
+		if (!FAll[i].List.IsEmpty())
+			continue;	// дерево стран — только коллекция (задача 47)
 		std::map<String, TCountry>::const_iterator c = FCountryByName.find(AnsiUpperCase(FAll[i].Country));
 		if (c == FCountryByName.end())
 			++unknown;
@@ -3125,7 +3417,7 @@ void TfmMain::BuildTree()
 		tvNav->Items->Clear();
 		FNav.clear();
 
-		TTreeNode *root = AddNavNode(nullptr, nkAll, 0, Tr(L"Main.Tree.All"), (int)FAll.size());
+		TTreeNode *root = AddNavNode(nullptr, nkAll, 0, Tr(L"Main.Tree.All"), FCollectionCount);
 
 		// Континенты (всегда, даже с 0) и их существующие страны с монетами.
 		for (size_t k = 0; k < continents.size(); ++k)
@@ -3163,6 +3455,8 @@ void TfmMain::BuildTree()
 			if (!countries[i].IsExist && count(countries[i].Id) > 0)
 				AddNavNode(extinctNode, nkCountry, countries[i].Id, countries[i].Name, count(countries[i].Id));
 
+		// Список обмена (задача 47) — отдельный узел после All.
+		AddNavNode(nullptr, nkSwap, 0, Tr(L"Main.Tree.Swap"), FSwapCount);
 		// Отмеченные из любых стран — отдельный узел после All (задача 13e).
 		FCheckedNode = AddNavNode(nullptr, nkChecked, 0, Tr(L"Main.Tree.Checked"), (int)FChecked.size());
 
@@ -3196,10 +3490,14 @@ const TfmMain::TNavNode *TfmMain::CurrentNode() const
 //---------------------------------------------------------------------------
 bool TfmMain::MatchNode(const TCoinRecord &ARecord, const TNavNode &ANode) const
 {
-	if (ANode.Kind == nkAll)
-		return true;
 	if (ANode.Kind == nkChecked)
 		return FChecked.count(ARecord.Id) > 0;
+	if (ANode.Kind == nkSwap)
+		return ARecord.List == L"swap";
+	if (!ARecord.List.IsEmpty())
+		return false;	// остальные узлы — только коллекция (задача 47)
+	if (ANode.Kind == nkAll)
+		return true;
 	std::map<String, TCountry>::const_iterator it = FCountryByName.find(AnsiUpperCase(ARecord.Country));
 	if (it == FCountryByName.end())
 		return ANode.Kind == nkNoContinent;
@@ -3249,14 +3547,12 @@ void TfmMain::ApplyFilter()
 // пользователем мышью, запоминаются по логическим колонкам.
 void TfmMain::UpdateColumns()
 {
-	const TNavNode *node = CurrentNode();
-	const bool showCountry = !node || node->Kind != nkCountry;
+	// «Країна» и «Сюжет» — как отмечено в меню, без скрытия при выбранной стране (задача 46).
 	const bool showPrice = AppConfig().NumistaLoadPrices;	// задача 34
 	std::vector<int> columns;
 	for (size_t i = 0; i < FOrder.size(); ++i)	// в порядке пользователя (задача 42)
 		if (const int c = FOrder[i])
-			if ((c != icCountry || showCountry) && (c != icSubject || !showCountry) && (c != icNumistaPrice || showPrice)
-				&& FColumnOn[c])
+			if ((c != icNumistaPrice || showPrice) && FColumnOn[c])
 				columns.push_back(c);
 	columns.insert(columns.begin(), icCheck);
 	if (columns == FColumns && dgItems->ColCount == (int)columns.size())
@@ -3377,6 +3673,23 @@ void TfmMain::LoadGridSettings()
 	hidden->CommaText = AppConfig().GridHidden;
 	for (int c = 0; c < icCount; ++c)
 		FColumnOn[c] = c == icCheck || c == icDenomination || hidden->IndexOf(cColumnIni[c]) < 0;
+	// Выравнивание (задача 46): "ключ:l|c|r"; неизвестное — по умолчанию.
+	std::unique_ptr<TStringList> align(new TStringList());
+	align->CommaText = AppConfig().GridAlign;
+	for (int c = 0; c < icCount; ++c)
+		FAlign[c] = DefaultAlign(c);
+	for (int i = 0; i < align->Count; ++i)
+	{
+		const String item = align->Strings[i];
+		const int colon = item.Pos(L":");
+		if (colon <= 1 || colon + 1 > item.Length())
+			continue;
+		const wchar_t code = item[colon + 1];
+		for (int c = icCountry; c < icCount; ++c)
+			if (item.SubString(1, colon - 1) == cColumnIni[c] && (code == L'l' || code == L'c' || code == L'r')
+				&& c != icObverse && c != icReverse)
+				FAlign[c] = code;
+	}
 	// Ширины, заданные мышью (задача 44).
 	const std::map<String, int> &widths = AppConfig().GridWidths;
 	for (int c = icCountry; c < icCount; ++c)
@@ -3419,6 +3732,11 @@ void TfmMain::SaveGridSettings()
 	AppConfig().GridHidden    = hidden;
 	AppConfig().GridRowHeight = dgItems->DefaultRowHeight;
 	AppConfig().GridOrder     = custom ? order : String();
+	String align;
+	for (int c = icCountry; c < icCount; ++c)
+		if (FAlign[c] != DefaultAlign(c))
+			align += (align.IsEmpty() ? String() : String(L",")) + cColumnIni[c] + L":" + String(FAlign[c]);
+	AppConfig().GridAlign     = align;
 	StoreColumnWidths();
 	AppConfig().Save();
 }
@@ -3476,6 +3794,23 @@ void __fastcall TfmMain::ColumnsMenuPopup(TObject *Sender)
 		heights->Add(item);
 	}
 	FColumnsMenu->Items->Add(heights);
+	TMenuItem *align = new TMenuItem(FColumnsMenu);
+	align->Caption = Tr(L"Main.Columns.Align");
+	align->Enabled = FMenuColumn > icCheck && FMenuColumn < icCount && FMenuColumn != icObverse && FMenuColumn != icReverse;
+	const wchar_t *const alignKeys[] = { L"Main.Columns.AlignLeft", L"Main.Columns.AlignCenter", L"Main.Columns.AlignRight" };
+	const wchar_t alignCodes[] = { L'l', L'c', L'r' };
+	for (int i = 0; i < 3 && align->Enabled; ++i)
+	{
+		TMenuItem *item = new TMenuItem(FColumnsMenu);
+		item->Caption    = Tr(alignKeys[i]);
+		item->RadioItem  = true;
+		item->GroupIndex = 2;
+		item->Checked    = FAlign[FMenuColumn] == alignCodes[i];
+		item->Tag        = alignCodes[i];
+		item->OnClick    = AlignMenuClick;
+		align->Add(item);
+	}
+	FColumnsMenu->Items->Add(align);
 	TMenuItem *defaults = new TMenuItem(FColumnsMenu);
 	defaults->Caption = Tr(L"Main.Columns.Default");
 	defaults->OnClick = DefaultColumnsClick;
@@ -3491,6 +3826,28 @@ void __fastcall TfmMain::ColumnMenuClick(TObject *Sender)
 		SetRowHeight(cRowHeights[1]);
 	UpdateColumns();
 	UpdateRowCount();
+	dgItems->Invalidate();
+	SaveGridSettings();
+}
+//---------------------------------------------------------------------------
+// Выравнивание (задача 46): числа — справа, ✓ и миниатюры — по центру, текст — слева.
+wchar_t TfmMain::DefaultAlign(int AColumn)
+{
+	switch (AColumn)
+	{
+		case icYear: case icValue: case icNumista: case icRarity: case icMintage: case icNumistaPrice:
+			return L'r';
+		case icUploaded: case icSwap: case icObverse: case icReverse:
+			return L'c';
+	}
+	return L'l';
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::AlignMenuClick(TObject *Sender)
+{
+	if (FMenuColumn <= icCheck || FMenuColumn >= icCount)
+		return;
+	FAlign[FMenuColumn] = (wchar_t)static_cast<TMenuItem *>(Sender)->Tag;
 	dgItems->Invalidate();
 	SaveGridSettings();
 }
@@ -3513,6 +3870,7 @@ void __fastcall TfmMain::DefaultColumnsClick(TObject *Sender)
 		FOrder.push_back(c);
 		FColWidths[c] = cDefaultWidths[c];	// и ширины по умолчанию (задача 44)
 		FUserWidth[c] = false;
+		FAlign[c]     = DefaultAlign(c);	// и выравнивание (задача 46)
 	}
 	SetRowHeight(cRowHeights[0]);
 	UpdateColumns();
@@ -3635,7 +3993,8 @@ int TfmMain::CompareItems(const TCoinRecord &A, const TCoinRecord &B, int AColum
 	switch (AColumn)
 	{
 		case icNumista:      return CompareValues(A.NumistaTypeId, B.NumistaTypeId);
-		case icUploaded:     return CompareValues(A.NumistaItemId != 0, B.NumistaItemId != 0);
+		case icUploaded:     return CompareValues(UploadedMark(A), UploadedMark(B));
+		case icSwap:         return CompareValues(SwapKey(A), SwapKey(B));
 		case icRarity:       return CompareValues(A.NumistaRarity, B.NumistaRarity);
 		case icMintage:      return CompareValues(MintageKey(A), MintageKey(B));
 		case icComposition:  return CompareStrings(A.NumistaComposition, B.NumistaComposition);
@@ -3656,6 +4015,34 @@ int TfmMain::CompareItems(const TCoinRecord &A, const TCoinRecord &B, int AColum
 		}
 	}
 	return 0;
+}
+//---------------------------------------------------------------------------
+int TfmMain::SwapKey(const TCoinRecord &ARecord) const
+{
+	if (ARecord.List == L"swap")
+		return ARecord.Quantity;
+	if (!ARecord.List.IsEmpty())
+		return 0;
+	std::map<int, int>::const_iterator it = FSwapQty.find(ARecord.CoinId);
+	return it == FSwapQty.end() ? 0 : it->second;
+}
+//---------------------------------------------------------------------------
+bool TfmMain::UploadedMark(const TCoinRecord &ARecord) const
+{
+	if (ARecord.List.IsEmpty())
+		return ARecord.NumistaItemId != 0;
+	// Экземпляр обмена: его выгрузка — в колонке «Обмін» («1 ✓»), здесь — монета в коллекции.
+	return FCollectionUploaded.count(ARecord.CoinId) > 0;
+}
+//---------------------------------------------------------------------------
+String TfmMain::SwapText(const TCoinRecord &ARecord) const
+{
+	const int qty = SwapKey(ARecord);
+	if (qty <= 0)
+		return String();
+	const bool uploaded = ARecord.List == L"swap" ? ARecord.NumistaItemId != 0
+		: FSwapPending.find(ARecord.CoinId) == FSwapPending.end();
+	return IntToStr(qty) + (uploaded ? String(L" \u2713") : String());
 }
 //---------------------------------------------------------------------------
 void TfmMain::SortItems()
@@ -3681,7 +4068,8 @@ String TfmMain::CellText(const TCoinRecord &R, int AColumn) const
 	switch (AColumn)
 	{
 		case icNumista:      return R.NumistaTypeId == 0 ? String() : IntToStr(R.NumistaTypeId);
-		case icUploaded:     return R.NumistaItemId == 0 ? String() : String(L"\u2713");
+		case icUploaded:     return UploadedMark(R) ? String(L"\u2713") : String();
+		case icSwap:         return SwapText(R);
 		case icRarity:       return R.NumistaRarity < 0 ? String() : IntToStr(R.NumistaRarity);
 		case icMintage:      return R.NumistaMintage >= 0 || !R.NumistaIssueLoaded ? MintageText(R.NumistaMintage)
 			: Tr(L"Main.Mintage.Unknown");
@@ -3805,12 +4193,14 @@ void __fastcall TfmMain::dgItemsDrawCell(TObject *Sender, int ACol, int ARow,
 		r.right -= 14;
 	}
 
+	// Выравнивание колонки (задача 46) — и у заголовка.
 	UINT flags = DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX;
-	if (ARow > 0 && (column == icYear || column == icValue || column == icNumista || column == icRarity
-		|| column == icMintage || column == icNumistaPrice))
+	if (FAlign[column] == L'r')
 		flags |= DT_RIGHT;
+	else if (FAlign[column] == L'c')
+		flags |= DT_CENTER;
 	if (column == icUploaded)
-		flags = (flags & ~DT_END_ELLIPSIS) | DT_CENTER;
+		flags &= ~DT_END_ELLIPSIS;
 	// Тип связан, выпуск не определён — N# серым.
 	if (ARow > 0 && column == icNumista && ARow - 1 < (int)FItems.size()
 		&& FItems[ARow - 1].NumistaIssueId == 0 && !State.Contains(gdSelected))
@@ -3821,8 +4211,16 @@ void __fastcall TfmMain::dgItemsDrawCell(TObject *Sender, int ACol, int ARow,
 		? TitleExtra(FItems[ARow - 1]) : String();
 	if (!extra.IsEmpty())
 	{
-		RECT measure = r;
-		DrawTextW(canvas->Handle, text.c_str(), -1, &measure, (flags & ~DT_END_ELLIPSIS) | DT_CALCRECT);
+		// По центру / справа — номинал и добавка одной строкой (задача 46); не помещаются — от левого края.
+		const UINT leftFlags = flags & ~(DT_CENTER | DT_RIGHT);
+		RECT measure = r, measureExtra = r;
+		DrawTextW(canvas->Handle, text.c_str(), -1, &measure, (leftFlags & ~DT_END_ELLIPSIS) | DT_CALCRECT);
+		DrawTextW(canvas->Handle, extra.c_str(), -1, &measureExtra, (leftFlags & ~DT_END_ELLIPSIS) | DT_CALCRECT);
+		const int total = (measure.right - measure.left) + 6 + (measureExtra.right - measureExtra.left);
+		if (FAlign[column] != L'l' && total < r.right - r.left)
+			r.left += FAlign[column] == L'r' ? (r.right - r.left) - total : ((r.right - r.left) - total) / 2;
+		measure.right = r.left + (measure.right - measure.left);
+		flags = leftFlags;
 		DrawTextW(canvas->Handle, text.c_str(), -1, &r, flags);
 		RECT rest = r;
 		rest.left = measure.right + 6;
@@ -3987,7 +4385,11 @@ void TfmMain::UpdateStatus()
 		quantity += FItems[i].Quantity;
 		value    += FItems[i].CatalogValueUah * FItems[i].Quantity;
 	}
-	StatusBar->Panels->Items[0]->Text = Format(Tr(L"Main.Status.Items"), ARRAYOFCONST(((int)FItems.size(), (int)FAll.size())));
+	// Всего — в том же списке, что и узел: обмен, отмеченные (любые) или коллекция (задача 47).
+	const TNavNode *node = CurrentNode();
+	const int total = node && node->Kind == nkSwap ? FSwapCount : node && node->Kind == nkChecked ? (int)FAll.size()
+		: FCollectionCount;
+	StatusBar->Panels->Items[0]->Text = Format(Tr(L"Main.Status.Items"), ARRAYOFCONST(((int)FItems.size(), total)));
 	StatusBar->Panels->Items[1]->Text = Format(Tr(L"Main.Status.Quantity"), ARRAYOFCONST((quantity)));
 	StatusBar->Panels->Items[2]->Text = Format(Tr(L"Main.Status.Value"), ARRAYOFCONST((FormatFloat(L"#,##0.00", value))));
 	if (StatusBar->Panels->Count > 3)
@@ -4216,6 +4618,12 @@ void TfmMain::ShowDetails(int AIndex)
 		FDetailsTypeId = r.NumistaTypeId;
 		FDetailRows[drNumistaItem].Value->Caption = r.NumistaItemId == 0 ? String(L"\u2014")
 			: L"#" + IntToStr(r.NumistaItemId);
+		// Обмен (задача 47a): сколько на обмен, «✓» — выгружено на Numista.
+		const int swapQty = SwapKey(r);
+		const String swapText = SwapText(r);
+		FDetailRows[drSwap].Value->Caption = swapQty <= 0 ? String()
+			: Format(Tr(L"Main.Details.Pieces"), ARRAYOFCONST((swapQty)))
+				+ (swapText.Pos(L"\u2713") > 0 ? String(L" \u2713") : String());
 		FDetailRows[drIssueComment].Value->Caption = value(r.NumistaIssueComment);
 		FDetailRows[drPrices].Value->Caption = NumistaPricesText(r);
 		FDetailRows[drPrices].Value->Hint    = Tr(L"Main.Details.PricesHint");
@@ -4236,7 +4644,7 @@ void TfmMain::ShowDetails(int AIndex)
 	for (size_t i = 0; i < FDetailRows.size(); ++i)
 	{
 		// Характеристики типа — только непустые.
-		const bool visible = has && ((int)i < drWeight || !FDetailRows[i].Value->Caption.IsEmpty())
+		const bool visible = has && (((int)i < drWeight && (int)i != drSwap) || !FDetailRows[i].Value->Caption.IsEmpty())
 			&& ((int)i != drPrices || AppConfig().NumistaLoadPrices);
 		FDetailRows[i].Caption->Visible = visible;
 		FDetailRows[i].Value->Visible   = visible;

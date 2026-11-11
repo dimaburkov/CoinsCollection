@@ -348,6 +348,12 @@ void TNumistaClient::EditCollectedItemType(int AItemId, int ATypeId, int AIssueI
 	Send(L"PATCH", L"/users/" + IntToStr(AppConfig().NumistaUserId) + L"/collected_items/" + IntToStr(AItemId), true, json);
 }
 //---------------------------------------------------------------------------
+void TNumistaClient::EditCollectedItemSwap(int AItemId, bool AForSwap)
+{
+	Send(L"PATCH", L"/users/" + IntToStr(AppConfig().NumistaUserId) + L"/collected_items/" + IntToStr(AItemId), true,
+		AForSwap ? L"{\"for_swap\":true}" : L"{\"for_swap\":false}");
+}
+//---------------------------------------------------------------------------
 void TNumistaClient::DeleteCollectedItem(int AItemId)
 {
 	try

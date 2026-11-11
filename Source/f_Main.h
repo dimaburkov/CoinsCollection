@@ -29,11 +29,15 @@ struct TPhotoEdits;
 class TNumistaClient;
 class TNumistaMatcher;
 //---------------------------------------------------------------------------
+struct TImportError;
+//---------------------------------------------------------------------------
 class TfmMain : public TForm
 {
 __published:	// IDE-managed Components
 	TActionList *ActionList;
 	TAction *actImport;
+	TAction *actImportSwap;
+	TAction *actImportWish;
 	TAction *actBackup;
 	TAction *actRestore;
 	TMenuItem *miRestore;
@@ -84,6 +88,8 @@ __published:	// IDE-managed Components
 	TMainMenu *MainMenu;
 	TMenuItem *miFile;
 	TMenuItem *miImport;
+	TMenuItem *miImportSwap;
+	TMenuItem *miImportWish;
 	TMenuItem *miBackup;
 	TMenuItem *miFileSep1;
 	TMenuItem *miExit;
@@ -235,7 +241,7 @@ private:	// User declarations
 	// icCheck — флажок отметки, icNumista — N# (задача 12a), icUploaded — выгружен в коллекцию Numista (задача 13),
 	// icRarity — индекс редкости (задача 13a), icMintage — тираж выпуска (задача 13c),
 	// icComposition — металл типа (задача 13d), icNumistaPrice — оценка Numista для состояния (задача 34).
-	enum TItemColumn { icCheck, icCountry, icPeriod, icCurrency, icDenomination, icSubject, icNumista, icUploaded, icRarity,
+	enum TItemColumn { icCheck, icCountry, icPeriod, icCurrency, icDenomination, icSubject, icNumista, icUploaded, icSwap, icRarity,
 		icMintage,
 		icComposition, icYear, icCondition, icValue, icNumistaPrice, icObverse, icReverse, icCount };
 
@@ -249,13 +255,14 @@ private:	// User declarations
 	// Две колонки: drPeriod … drIssueComment — всегда («—», если пусто); со drWeight — характеристики
 	// типа Numista (задача 13d), пустые не показываются. Металл — только в таблице.
 	// drPrices — цены Numista (задача 34), только если цены включены.
-	enum TDetailRowIndex { drPeriod, drCurrency, drRuler, drSubject, drNumber, drNumista, drNumistaItem, drIssueComment,
+	enum TDetailRowIndex { drPeriod, drCurrency, drRuler, drSubject, drNumber, drNumista, drNumistaItem, drSwap, drIssueComment,
 		drPrices, drWeight, drSize, drShape, drTechnique, drSeries, drCommemorated, drTypeYears, drMints, drCategory,
 		drDemonetized, drCount };
 
 	// Узел дерева навигации: что он отбирает.
 	// nkChecked — отмеченные экземпляры из любых стран (задача 13e).
-	enum TNavKind { nkAll, nkContinent, nkNoContinent, nkExtinct, nkCountry, nkChecked };
+	// nkSwap — список обмена (задача 47); остальные узлы, кроме nkChecked, — только коллекция.
+	enum TNavKind { nkAll, nkContinent, nkNoContinent, nkExtinct, nkCountry, nkChecked, nkSwap };
 	struct TNavNode
 	{
 		int    Kind;   // TNavKind
@@ -276,6 +283,13 @@ private:	// User declarations
 	std::vector<TNavNode>            FNav;             // узлы дерева; TTreeNode::Data = индекс
 	bool                             FBuildingTree;    // перестройка дерева — не фильтровать на каждом OnChange
 	TTreeNode                       *FCheckedNode;     // узел «Отмеченные» (счётчик меняется без перестройки дерева)
+	// Обмен (задача 47): монета -> количество на обмен / в коллекции; экземпляров в коллекции и в обмене.
+	std::map<int, int>               FSwapQty;
+	std::map<int, int>               FCollectionQty;
+	std::map<int, int>               FSwapPending;     // монета -> экземпляров обмена, не выгруженных на Numista (задача 47a)
+	std::set<int>                    FCollectionUploaded; // монеты, у которых экземпляр коллекции выгружен на Numista
+	int                              FCollectionCount;
+	int                              FSwapCount;
 	std::vector<int>                 FColumns;         // видимые колонки сетки (TItemColumn)
 	// Ширины колонок (задачи 27, 34a): FColWidths — естественная (по умолчанию или заданная мышью),
 	// FUserWidth — задана мышью (программа её не меняет), FFitWidth — последняя, заданная подгонкой (0 — нет).
@@ -290,6 +304,9 @@ private:	// User declarations
 	// Нажатие на заголовок — колонка сетки и точка: при goColMoving сетка не вызывает
 	// OnFixedCellClick, клик без перетаскивания (сортировка) ловит OnMouseUp.
 	std::vector<int>                 FOrder;
+	// Выравнивание колонок (задача 46): 'l' / 'c' / 'r'; колонка меню заголовка (правый клик).
+	wchar_t                          FAlign[icCount];
+	int                              FMenuColumn;
 	int                              FHeaderDownCol;
 	TPoint                           FHeaderDownPos;
 	bool                             FColumnMoved;
@@ -317,6 +334,15 @@ private:	// User declarations
 	void ApplyTexts();
 
 	void LoadItems();
+	// Импорт списка обмена uCoin (задача 47): итог пробного прохода -> вопрос -> копия БД -> синхронизация.
+	void ImportSwapList(const String &AFileName, const std::vector<TCoinRecord> &ARecords,
+		const std::vector<TImportError> &AErrors, int ADataRows);
+	// Связь монет обмена с Numista из того, что уже в базе (задача 47): возвращает число связанных.
+	int  LinkSwapFromCache(int &AWithIssue);
+	// Список предмета коллекции Numista (задача 47a): for_swap — "swap", иначе "".
+	static String NumistaItemList(TJSONValue *AItem);
+	// Список нового экземпляра по узлу дерева (задача 47): «На обмін» — обмен.
+	String NewItemList(const TCoinRecord *ASample = nullptr) const;
 	void BuildTree();
 	TTreeNode *AddNavNode(TTreeNode *AParent, int AKind, int AId, const String &AName, int ACount);
 	const TNavNode *CurrentNode() const;
@@ -325,6 +351,12 @@ private:	// User declarations
 	void UpdateColumns();
 	void SyncUserWidths();
 	// Задача 41: колонки по [Grid] ini и обратно, меню колонок, высота строк, миниатюры.
+	// Колонка «Обмін» (задача 47a): сколько на обмен — у экземпляра обмена его количество, у монеты коллекции —
+	// сумма по экземплярам обмена той же монеты; «✓» — выгружено на Numista (у коллекции — все экземпляры обмена).
+	int    SwapKey(const TCoinRecord &ARecord) const;
+	String SwapText(const TCoinRecord &ARecord) const;
+	// Колонка ✓ (задача 47a): у коллекции — экземпляр выгружен; у обмена — выгружен экземпляр коллекции этой монеты.
+	bool   UploadedMark(const TCoinRecord &ARecord) const;
 	void LoadGridSettings();
 	void SaveGridSettings();
 	// Задача 44: окно, панели и ширины колонок, заданные мышью, — из [Window] / [Grid] Widths и обратно.
@@ -342,6 +374,8 @@ private:
 	void __fastcall ColumnMenuClick(TObject *Sender);
 	void __fastcall RowHeightMenuClick(TObject *Sender);
 	void __fastcall DefaultColumnsClick(TObject *Sender);
+	void __fastcall AlignMenuClick(TObject *Sender);
+	static wchar_t DefaultAlign(int AColumn);
 	String ThumbFile(const TCoinRecord &ARecord, int ASide, bool *AIsType = nullptr);
 	Graphics::TBitmap *Thumbnail(const String &AFile, int ASize);
 	void OpenPhotoView(int AIndex, int ASide, bool AStartWithType);

@@ -598,6 +598,22 @@ object fmCoinEdit: TfmCoinEdit
       OnClick = PhotoRemoveClick
     end
   end
+  object lblList: TLabel
+    Left = 8
+    Top = 587
+    Width = 20
+    Height = 13
+    Caption = '&List:'
+    FocusControl = cbList
+  end
+  object cbList: TComboBox
+    Left = 120
+    Top = 584
+    Width = 170
+    Height = 21
+    Style = csDropDownList
+    TabOrder = 5
+  end
   object btnOK: TButton
     Left = 736
     Top = 582
