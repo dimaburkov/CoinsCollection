@@ -49,7 +49,7 @@
 | `u_CoinRepository` | Коллекция: чтение, сохранение, удаление, импорт uCoin с переносом связей и фото |
 | `u_LookupRepository` | Справочники: страны, периоды, валюты, состояния, эмитенты |
 | `u_PhotoRepository` | Фото: файлы `Photos\*.jpg`, таблица `coin_photos` |
-| `u_ImportSource`, `u_CoinImporter` | Чтение экспорта uCoin `.xlsx`; вид файла по заголовку (`TUcoinFile`, задача 47): коллекция — есть `Period`; обмен — `Reserve` / `Information` без `Period` (даты — текст `дд.мм.гггг`, оценка — `Value, UAH`); желаемое — `Number` без `Quantity`. Обмен — `TCoinRepository::SyncList` (пробный проход с откатом -> вопрос -> синхронизация) |
+| `u_ImportSource`, `u_CoinImporter` | Чтение экспорта uCoin `.xlsx`; вид файла по заголовку (`TUcoinFile`, задача 47): коллекция — есть `Period`; обмен — `Reserve` / `Information` без `Period` (даты — текст `дд.мм.гггг`, оценка — `Value, UAH`); желаемое — `Number` без `Quantity`. Обмен — `TCoinRepository::SyncList` (пробный проход с откатом -> вопрос -> синхронизация). Обмен на Numista (задача 47a): `TNumistaUploader::ItemJson` — `for_swap: true`, `public_comment` (части комментария без «приватно:» / «private:»), `TakeForeign` — только с той же отметкой; перенос в карточке — `TNumistaClient::EditCollectedItemSwap` (PATCH `for_swap`); импорт из Numista — `for_swap` -> список `swap` |
 | `u_NumistaClient` | HTTP к Numista API (ключ, OAuth, счётчик запросов, кэш, подпись программы, загрузка картинок) |
 | `u_NumistaMatcher` | Поиск типов и выпусков, эмитенты, `getType` |
 | `u_NumistaUploader` | Выгрузка экземпляров в коллекцию Numista |

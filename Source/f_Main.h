@@ -36,6 +36,8 @@ class TfmMain : public TForm
 __published:	// IDE-managed Components
 	TActionList *ActionList;
 	TAction *actImport;
+	TAction *actImportSwap;
+	TAction *actImportWish;
 	TAction *actBackup;
 	TAction *actRestore;
 	TMenuItem *miRestore;
@@ -86,6 +88,8 @@ __published:	// IDE-managed Components
 	TMainMenu *MainMenu;
 	TMenuItem *miFile;
 	TMenuItem *miImport;
+	TMenuItem *miImportSwap;
+	TMenuItem *miImportWish;
 	TMenuItem *miBackup;
 	TMenuItem *miFileSep1;
 	TMenuItem *miExit;
@@ -282,6 +286,8 @@ private:	// User declarations
 	// Обмен (задача 47): монета -> количество на обмен / в коллекции; экземпляров в коллекции и в обмене.
 	std::map<int, int>               FSwapQty;
 	std::map<int, int>               FCollectionQty;
+	std::map<int, int>               FSwapPending;     // монета -> экземпляров обмена, не выгруженных на Numista (задача 47a)
+	std::set<int>                    FCollectionUploaded; // монеты, у которых экземпляр коллекции выгружен на Numista
 	int                              FCollectionCount;
 	int                              FSwapCount;
 	std::vector<int>                 FColumns;         // видимые колонки сетки (TItemColumn)
@@ -333,6 +339,8 @@ private:	// User declarations
 		const std::vector<TImportError> &AErrors, int ADataRows);
 	// Связь монет обмена с Numista из того, что уже в базе (задача 47): возвращает число связанных.
 	int  LinkSwapFromCache(int &AWithIssue);
+	// Список предмета коллекции Numista (задача 47a): for_swap — "swap", иначе "".
+	static String NumistaItemList(TJSONValue *AItem);
 	// Список нового экземпляра по узлу дерева (задача 47): «На обмін» — обмен.
 	String NewItemList(const TCoinRecord *ASample = nullptr) const;
 	void BuildTree();
@@ -343,8 +351,12 @@ private:	// User declarations
 	void UpdateColumns();
 	void SyncUserWidths();
 	// Задача 41: колонки по [Grid] ini и обратно, меню колонок, высота строк, миниатюры.
-	// Колонка «Обмін» (задача 47): у коллекции — сколько той же монеты на обмен, у обмена — сколько в коллекции.
-	int  SwapKey(const TCoinRecord &ARecord) const;
+	// Колонка «Обмін» (задача 47a): сколько на обмен — у экземпляра обмена его количество, у монеты коллекции —
+	// сумма по экземплярам обмена той же монеты; «✓» — выгружено на Numista (у коллекции — все экземпляры обмена).
+	int    SwapKey(const TCoinRecord &ARecord) const;
+	String SwapText(const TCoinRecord &ARecord) const;
+	// Колонка ✓ (задача 47a): у коллекции — экземпляр выгружен; у обмена — выгружен экземпляр коллекции этой монеты.
+	bool   UploadedMark(const TCoinRecord &ARecord) const;
 	void LoadGridSettings();
 	void SaveGridSettings();
 	// Задача 44: окно, панели и ширины колонок, заданные мышью, — из [Window] / [Grid] Widths и обратно.

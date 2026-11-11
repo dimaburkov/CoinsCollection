@@ -762,7 +762,7 @@ void TCoinRepository::SyncList(const std::vector<TCoinRecord> &ARecords, const S
 	// Экземпляры списка сейчас: монета + состояние -> экземпляры (по порядку).
 	struct TExisting
 	{
-		int Id, Quantity;
+		int Id, Quantity, NumistaItemId;
 		double Value;
 		String Published, Comment;
 		bool Used;
@@ -770,7 +770,7 @@ void TCoinRepository::SyncList(const std::vector<TCoinRecord> &ARecords, const S
 	std::vector<TExisting> existing;
 	std::map<String, std::vector<size_t> > byKey;
 	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
-		L"SELECT id, id_coin, id_condition, quantity, catalog_value_uah, published_date, comment"
+		L"SELECT id, id_coin, id_condition, quantity, catalog_value_uah, published_date, comment, numista_item_id"
 		L"  FROM coin_items WHERE list = :list AND origin IS NULL ORDER BY id");
 	q->ParamByName(L"list")->AsWideString = AList;
 	for (q->Open(); !q->Eof; q->Next())
@@ -778,6 +778,7 @@ void TCoinRepository::SyncList(const std::vector<TCoinRecord> &ARecords, const S
 		TExisting e;
 		e.Id        = FieldInt(q.get(), L"id");
 		e.Quantity  = FieldInt(q.get(), L"quantity", 1);
+		e.NumistaItemId = FieldInt(q.get(), L"numista_item_id");
 		e.Value     = FieldFloat(q.get(), L"catalog_value_uah");
 		e.Published = FieldText(q.get(), L"published_date");
 		e.Comment   = FieldText(q.get(), L"comment");
@@ -799,6 +800,12 @@ void TCoinRepository::SyncList(const std::vector<TCoinRecord> &ARecords, const S
 		L"SELECT c.id_period, c.id_currency FROM coins c JOIN periods p ON p.id = c.id_period"
 		L" WHERE p.id_country = :id_country AND c.catalog_number = :number"
 		L" ORDER BY EXISTS (SELECT 1 FROM coin_items i WHERE i.id_coin = c.id AND i.list IS NULL) DESC, c.id LIMIT 1");
+	// Историческое государство: в списке обмена uCoin пишет его страной («German Empire»), в коллекции —
+	// периодом страны («Germany» / «German Empire»). Период с таким названием у одной другой страны —
+	// её страна и этот период (задача 47a).
+	std::unique_ptr<TFDQuery> byPeriod = NewQuery(FDatabase,
+		L"SELECT DISTINCT co.name, p.name FROM periods p JOIN countries co ON co.id = p.id_country"
+		L" WHERE p.name = :name COLLATE NOCASE AND co.name <> :name COLLATE NOCASE");
 	std::unique_ptr<TFDQuery> update = NewQuery(FDatabase,
 		L"UPDATE coin_items SET quantity = :quantity, catalog_value_uah = :catalog_value_uah,"
 		L"       published_date = :published_date, comment = :comment WHERE id = :id");
@@ -809,6 +816,23 @@ void TCoinRepository::SyncList(const std::vector<TCoinRecord> &ARecords, const S
 		r.List = AList;
 		if (r.Denomination.Trim().IsEmpty())
 			throw Exception(L"Denomination is required.");
+		if (r.Period.Trim().IsEmpty())
+		{
+			byPeriod->ParamByName(L"name")->AsWideString = r.Country.Trim();
+			byPeriod->Open();
+			if (!byPeriod->Eof)
+			{
+				const String country = byPeriod->Fields->Fields[0]->AsString;
+				const String period  = byPeriod->Fields->Fields[1]->AsString;
+				byPeriod->Next();
+				if (byPeriod->Eof)	// одна страна — однозначно
+				{
+					r.Country = country;
+					r.Period  = period;
+				}
+			}
+			byPeriod->Close();
+		}
 		const int countryId = FLookups.FindOrCreateCountry(r.Country);
 		int periodId = 0, currencyId = r.Currency.Trim().IsEmpty() ? 0 : FLookups.FindOrCreateCurrency(r.Currency);
 		if (r.Period.Trim().IsEmpty() && !r.CatalogNumber.Trim().IsEmpty())
@@ -875,6 +899,8 @@ void TCoinRepository::SyncList(const std::vector<TCoinRecord> &ARecords, const S
 		if (!existing[i].Used)
 		{
 			++AResult.Missing;
+			if (existing[i].NumistaItemId != 0)
+				AResult.MissingNumista.push_back(existing[i].NumistaItemId);
 			if (ADeleteMissing)
 			{
 				DeleteItemRows(existing[i].Id, photos);

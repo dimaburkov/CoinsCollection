@@ -50,7 +50,8 @@ void TNumistaUploader::ReadCollection(TJSONValue *AJson, const std::vector<TCoin
 			FUploaded[internalId] = numistaId;
 		else
 		{
-			const TForeignItem foreign = { numistaId, JsonInt(item, L"type.id"), JsonInt(item, L"issue.id"), false };
+			const TForeignItem foreign = { numistaId, JsonInt(item, L"type.id"), JsonInt(item, L"issue.id"),
+				SameText(JsonString(item, L"for_swap"), L"true"), false };
 			FForeign.push_back(foreign);
 		}
 	}
@@ -62,14 +63,14 @@ int TNumistaUploader::UploadedItem(int AItemId) const
 	return it == FUploaded.end() ? 0 : it->second;
 }
 //---------------------------------------------------------------------------
-int TNumistaUploader::TakeForeign(int ATypeId, int AIssueId)
+int TNumistaUploader::TakeForeign(int ATypeId, int AIssueId, bool AForSwap)
 {
 	// Проход 0 — тот же выпуск; проход 1 — выпуск не указан у предмета или у экземпляра.
 	for (int pass = 0; pass < 2; ++pass)
 		for (size_t i = 0; i < FForeign.size(); ++i)
 		{
 			TForeignItem &f = FForeign[i];
-			if (f.Taken || f.Id == 0 || f.TypeId != ATypeId)
+			if (f.Taken || f.Id == 0 || f.TypeId != ATypeId || f.ForSwap != AForSwap)
 				continue;
 			const bool sameIssue = AIssueId != 0 && f.IssueId == AIssueId;
 			if (pass == 0 ? sameIssue : (f.IssueId == 0 || AIssueId == 0))
@@ -87,6 +88,31 @@ String TNumistaUploader::Grade(const String &ACondition)
 	if (c == L"G" || c == L"VG" || c == L"F" || c == L"VF" || c == L"XF" || c == L"AU" || c == L"UNC")
 		return c.LowerCase();
 	return String();	// P, FR, PRF, пусто — в шкале Numista нет
+}
+//---------------------------------------------------------------------------
+void TNumistaUploader::SplitSwapComment(const String &AComment, String &APublic, String &APrivate)
+{
+	APublic = APrivate = String();
+	std::unique_ptr<TStringList> parts(new TStringList());
+	parts->StrictDelimiter = true;
+	parts->Delimiter = L';';
+	parts->DelimitedText = AComment;
+	const wchar_t *const prefixes[] = { L"\u043F\u0440\u0438\u0432\u0430\u0442\u043D\u043E:", L"private:" };	// «приватно:»
+	for (int i = 0; i < parts->Count; ++i)
+	{
+		String part = parts->Strings[i].Trim();
+		if (part.IsEmpty())
+			continue;
+		bool hidden = false;
+		for (const wchar_t *prefix : prefixes)
+			if (part.Length() >= (int)wcslen(prefix) && SameText(part.SubString(1, (int)wcslen(prefix)), prefix))
+			{
+				part = part.SubString((int)wcslen(prefix) + 1, part.Length()).Trim();
+				hidden = true;
+			}
+		String &target = hidden ? APrivate : APublic;
+		target += (target.IsEmpty() ? String() : String(L"; ")) + part;
+	}
 }
 //---------------------------------------------------------------------------
 String TNumistaUploader::ItemJson(const TCoinRecord &AItem)
@@ -115,7 +141,17 @@ String TNumistaUploader::ItemJson(const TCoinRecord &AItem)
 		json->AddPair(L"acquisition_date", FormatDateTime(L"yyyy-mm-dd", AItem.PurchaseDate));
 
 	// Атрибуты: S — обмен, C — комментарий (R — индекс редкости — пишет пользователь на сайте).
-	const String comment = config.NumistaUploadComment ? TNumistaComment::Build(AItem.SwapInfo, AItem.Comment) : String();
+	// Экземпляр обмена (задача 47a): отметка for_swap, заметка для партнёров — публичный комментарий.
+	const bool swap = AItem.List == L"swap";
+	String text = AItem.Comment, publicText;
+	if (swap)
+	{
+		json->AddPair(L"for_swap", new TJSONBool(true));
+		SplitSwapComment(AItem.Comment, publicText, text);
+		if (config.NumistaUploadComment && !publicText.IsEmpty())
+			json->AddPair(L"public_comment", publicText);
+	}
+	const String comment = config.NumistaUploadComment ? TNumistaComment::Build(AItem.SwapInfo, text) : String();
 	if (!comment.IsEmpty())
 		json->AddPair(L"private_comment", comment);
 

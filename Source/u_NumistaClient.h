@@ -69,6 +69,8 @@ public:
 	// editCollectedItem — PATCH /users/{user_id}/collected_items/{item_id}: тип и выпуск
 	// предмета (AIssueId = 0 — выпуск не определён, null). Остальные поля не меняются (задача 26).
 	void EditCollectedItemType(int AItemId, int ATypeId, int AIssueId);
+	// editCollectedItem: отметка «на обмен» (for_swap, задача 47a); остальные поля не меняются.
+	void EditCollectedItemSwap(int AItemId, bool AForSwap);
 	// deleteCollectedItem — DELETE /users/{user_id}/collected_items/{item_id}.
 	// Предмета уже нет (404) — не ошибка.
 	void DeleteCollectedItem(int AItemId);
