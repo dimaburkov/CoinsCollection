@@ -26,6 +26,13 @@ Checks are kept for the whole collection, also when you switch to another countr
 <h2>Checks outside the current list</h2>
 <p>If some checked items are not in the current list (another country, search), the status bar shows
 <code>Checked: 14 (outside the list: 3)</code>. Open <span class="ui">Checked</span> in the tree to see all of them.</p>
+<h2>Delete checked</h2>
+<p><span class="ui">Collection → Delete checked...</span> (also in the context menu) deletes all checked items — for example the whole
+swap list: <span class="ui">For swap</span> → the check box in the column header → <span class="ui">Delete checked...</span>.
+A coin without other items is deleted with its photos; a coin that still has items (for example in the collection) stays.
+A backup copy of the database is made first (<code>Db\&lt;database&gt;.before-delete-&lt;time&gt;.bak</code>).</p>
+<p>If some of the items are uploaded to Numista, the program asks: <b>Yes</b> — delete them on Numista too (one request per item),
+<b>No</b> — keep them on Numista, <b>Cancel</b> — delete nothing.</p>
 </main>
 <footer>Coins Collection</footer>
 </body>

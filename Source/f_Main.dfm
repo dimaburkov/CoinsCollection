@@ -394,6 +394,9 @@ object fmMain: TfmMain
     object miPopNumistaUnlink: TMenuItem
       Action = actNumistaUnlink
     end
+    object miPopDeleteChecked: TMenuItem
+      Action = actDeleteChecked
+    end
   end
   object pmHeader: TPopupMenu
     Left = 504
@@ -473,6 +476,12 @@ object fmMain: TfmMain
       ShortCut = 46
       OnExecute = actDeleteExecute
       OnUpdate = actDeleteUpdate
+    end
+    object actDeleteChecked: TAction
+      Category = 'Collection'
+      Caption = 'Delete c&hecked...'
+      OnExecute = actDeleteCheckedExecute
+      OnUpdate = actDeleteCheckedUpdate
     end
     object actNeedToReplace: TAction
       Category = 'Collection'
@@ -681,6 +690,9 @@ object fmMain: TfmMain
       end
       object miDelete: TMenuItem
         Action = actDelete
+      end
+      object miDeleteChecked: TMenuItem
+        Action = actDeleteChecked
       end
       object miCollectionSep1: TMenuItem
         Caption = '-'

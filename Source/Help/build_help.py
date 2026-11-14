@@ -375,6 +375,13 @@ Checks are kept for the whole collection, also when you switch to another countr
 <h2>Checks outside the current list</h2>
 <p>If some checked items are not in the current list (another country, search), the status bar shows
 <code>Checked: 14 (outside the list: 3)</code>. Open [[ui:Checked|Позначені]] in the tree to see all of them.</p>
+<h2>Delete checked</h2>
+<p>[[ui:Collection → Delete checked...|Колекція → Видалити позначені...]] (also in the context menu) deletes all checked items — for example the whole
+swap list: [[ui:For swap|На обмін]] → the check box in the column header → [[ui:Delete checked...|Видалити позначені...]].
+A coin without other items is deleted with its photos; a coin that still has items (for example in the collection) stays.
+A backup copy of the database is made first (<code>Db\&lt;database&gt;.before-delete-&lt;time&gt;.bak</code>).</p>
+<p>If some of the items are uploaded to Numista, the program asks: <b>Yes</b> — delete them on Numista too (one request per item),
+<b>No</b> — keep them on Numista, <b>Cancel</b> — delete nothing.</p>
 """
 T['checks', 'uk'] = u"""
 [[shot:10-header-menu.png|Меню заголовка колонки позначок.]]
@@ -390,6 +397,13 @@ T['checks', 'uk'] = u"""
 <h2>Позначки поза поточним списком</h2>
 <p>Якщо частина позначених примірників не в поточному списку (інша країна, пошук), рядок стану показує
 <code>Позначено: 14 (поза списком: 3)</code>. Відкрийте [[ui:Checked|Позначені]] у дереві, щоб побачити їх усі.</p>
+<h2>Видалити позначені</h2>
+<p>[[ui:Collection → Delete checked...|Колекція → Видалити позначені...]] (також у контекстному меню) видаляє всі позначені примірники — наприклад, увесь
+список обміну: [[ui:For swap|На обмін]] → позначка в заголовку колонки → [[ui:Delete checked...|Видалити позначені...]].
+Монета без інших примірників видаляється разом із фото; монета, у якої лишилися примірники (наприклад, у колекції), залишається.
+Спочатку робиться копія бази (<code>Db\&lt;база&gt;.before-delete-&lt;час&gt;.bak</code>).</p>
+<p>Якщо частина примірників вивантажена на Numista, програма питає: <b>Так</b> — видалити їх і на Numista (запит на кожен),
+<b>Ні</b> — залишити на Numista, <b>Скасувати</b> — нічого не видаляти.</p>
 """
 
 # =====================================================================

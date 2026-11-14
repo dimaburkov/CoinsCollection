@@ -1062,6 +1062,125 @@ void __fastcall TfmMain::actDeleteUpdate(TObject *Sender)
 	actDelete->Enabled = CurrentIndex() >= 0 && ActiveControl != edSearch;
 }
 //---------------------------------------------------------------------------
+// Удалить отмеченные (задача 47b): подтверждение -> выгруженные на Numista: удалить и там / оставить /
+// отмена -> копия базы -> Numista (ошибка — остановка; не удалённые там остаются и в программе) -> база.
+void __fastcall TfmMain::actDeleteCheckedExecute(TObject *Sender)
+{
+	const String caption = StripHotkey(actDeleteChecked->Caption).Trim();
+	const String nl = L"\r\n";
+	std::vector<TCoinRecord> items;
+	int swapItems = 0, uploaded = 0;
+	for (size_t i = 0; i < FAll.size(); ++i)
+		if (FChecked.count(FAll[i].Id))
+		{
+			items.push_back(FAll[i]);
+			if (FAll[i].List == L"swap")
+				++swapItems;
+			if (FAll[i].NumistaItemId != 0)
+				++uploaded;
+		}
+	if (items.empty())
+		return;
+	if (!Confirm(Format(Tr(L"Main.DeleteChecked.Confirm"), ARRAYOFCONST(((int)items.size(), swapItems))), caption))
+		return;
+
+	bool onNumista = false;
+	if (uploaded > 0)
+	{
+		const int answer = Application->MessageBox(Format(Tr(L"Main.DeleteChecked.Numista"), ARRAYOFCONST((uploaded))).c_str(),
+			caption.c_str(), MB_YESNOCANCEL | MB_ICONQUESTION | MB_DEFBUTTON2);
+		if (answer == IDCANCEL)
+			return;
+		onNumista = answer == IDYES;
+		const int left = AppConfig().NumistaMonthlyQuota - TNumistaClient::RequestsThisMonth();
+		if (onNumista && uploaded + 1 > left)
+		{
+			Application->MessageBox(Format(Tr(L"Numista.Items.Quota"), ARRAYOFCONST((uploaded + 1, left))).c_str(),
+				caption.c_str(), MB_OK | MB_ICONWARNING);
+			return;
+		}
+	}
+
+	try
+	{
+		FDatabase->Backup(L"before-delete-" + FormatDateTime(L"yyyymmdd-hhnnss", Now()));
+	}
+	catch (Exception &e)
+	{
+		Application->MessageBox((Tr(L"Main.Error.Delete") + nl + nl + e.Message).c_str(), caption.c_str(), MB_OK | MB_ICONERROR);
+		return;
+	}
+
+	// Numista: удалённые там — удаляются и в программе; ошибка — остальные выгруженные остаются.
+	std::vector<int> ids;
+	int deletedOnNumista = 0;
+	String stopReason;
+	std::unique_ptr<TNumistaClient> client;
+	std::unique_ptr<TProgress> progress;
+	if (onNumista)
+	{
+		client.reset(new TNumistaClient());
+		progress.reset(new TProgress(this, caption, uploaded, client.get()));
+	}
+	int step = 0;
+	for (size_t i = 0; i < items.size(); ++i)
+	{
+		const TCoinRecord &r = items[i];
+		if (r.NumistaItemId != 0 && onNumista)
+		{
+			if (!stopReason.IsEmpty())
+				continue;
+			if (!progress->Step(step++, CoinText(r)))
+			{
+				stopReason = Tr(L"Progress.Stopped");
+				continue;
+			}
+			try
+			{
+				if (deletedOnNumista == 0)
+					client->Authorize();
+				client->DeleteCollectedItem(r.NumistaItemId);
+				++deletedOnNumista;
+			}
+			catch (Exception &e)
+			{
+				stopReason = e.Message;
+				continue;
+			}
+		}
+		ids.push_back(r.Id);
+	}
+	progress.reset();
+
+	int coins = 0;
+	try
+	{
+		coins = FRepository->DeleteItems(ids);
+	}
+	catch (Exception &e)
+	{
+		Application->MessageBox((Tr(L"Main.Error.Delete") + nl + nl + e.Message).c_str(), caption.c_str(), MB_OK | MB_ICONERROR);
+		LoadItems();
+		return;
+	}
+	for (size_t i = 0; i < ids.size(); ++i)
+		FChecked.erase(ids[i]);
+	LoadItems();
+
+	String report = Format(Tr(L"Main.DeleteChecked.Done"), ARRAYOFCONST(((int)ids.size(), coins)));
+	if (onNumista)
+		report += nl + Format(Tr(L"Main.DeleteChecked.DoneNumista"), ARRAYOFCONST((deletedOnNumista)));
+	if (!stopReason.IsEmpty())
+		report += nl + nl + Format(Tr(L"Main.DeleteChecked.Kept"), ARRAYOFCONST(((int)(items.size() - ids.size()))))
+			+ nl + stopReason;
+	Application->MessageBox(report.c_str(), caption.c_str(), MB_OK | (stopReason.IsEmpty() ? MB_ICONINFORMATION : MB_ICONWARNING));
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::actDeleteCheckedUpdate(TObject *Sender)
+{
+	actDeleteChecked->Enabled = !FChecked.empty();
+}
+//---------------------------------------------------------------------------
 void __fastcall TfmMain::actNeedToReplaceExecute(TObject *Sender)
 {
 	ApplyFilter();	// флажок переключён AutoCheck до вызова

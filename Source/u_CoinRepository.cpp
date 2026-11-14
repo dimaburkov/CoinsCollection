@@ -367,6 +367,19 @@ bool TCoinRepository::Delete(int AId)
 	return true;
 }
 //---------------------------------------------------------------------------
+int TCoinRepository::DeleteItems(const std::vector<int> &AIds)
+{
+	TDbTransaction tx(FDatabase->Connection());
+	const int before = FDatabase->Connection()->ExecSQLScalar(L"SELECT COUNT(*) FROM coins");
+	std::vector<String> photos;
+	for (size_t i = 0; i < AIds.size(); ++i)
+		DeleteItemRows(AIds[i], photos);
+	const int after = FDatabase->Connection()->ExecSQLScalar(L"SELECT COUNT(*) FROM coins");
+	tx.Commit();
+	TPhotoRepository::DeleteFiles(photos);
+	return before - after;
+}
+//---------------------------------------------------------------------------
 void TCoinRepository::DeleteItemRows(int AId, std::vector<String> &AFiles)
 {
 	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, L"SELECT id_coin FROM coin_items WHERE id = :id");
