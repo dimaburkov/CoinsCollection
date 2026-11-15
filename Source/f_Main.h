@@ -260,14 +260,15 @@ private:	// User declarations
 	// Две колонки: drPeriod … drIssueComment — всегда («—», если пусто); со drWeight — характеристики
 	// типа Numista (задача 13d), пустые не показываются. Металл — только в таблице.
 	// drPrices — цены Numista (задача 34), только если цены включены.
-	enum TDetailRowIndex { drPeriod, drCurrency, drRuler, drSubject, drNumber, drNumista, drNumistaItem, drSwap, drIssueComment,
+	enum TDetailRowIndex { drPeriod, drCurrency, drRuler, drSubject, drNumber, drNumista, drNumistaItem, drSwap, drOwned,
+		drIssueComment,
 		drPrices, drWeight, drSize, drShape, drTechnique, drSeries, drCommemorated, drTypeYears, drMints, drCategory,
 		drDemonetized, drCount };
 
 	// Узел дерева навигации: что он отбирает.
 	// nkChecked — отмеченные экземпляры из любых стран (задача 13e).
 	// nkSwap — список обмена (задача 47); остальные узлы, кроме nkChecked, — только коллекция.
-	enum TNavKind { nkAll, nkContinent, nkNoContinent, nkExtinct, nkCountry, nkChecked, nkSwap };
+	enum TNavKind { nkAll, nkContinent, nkNoContinent, nkExtinct, nkCountry, nkChecked, nkSwap, nkWish };
 	struct TNavNode
 	{
 		int    Kind;   // TNavKind
@@ -295,6 +296,9 @@ private:	// User declarations
 	std::set<int>                    FCollectionUploaded; // монеты, у которых экземпляр коллекции выгружен на Numista
 	int                              FCollectionCount;
 	int                              FSwapCount;
+	int                              FWishCount;
+	// Желаемое (задача 48): монета желаемого -> годы той же монеты в коллекции («1912, 1914»); нет — не в карте.
+	std::map<int, String>            FWishOwned;
 	std::vector<int>                 FColumns;         // видимые колонки сетки (TItemColumn)
 	// Ширины колонок (задачи 27, 34a): FColWidths — естественная (по умолчанию или заданная мышью),
 	// FUserWidth — задана мышью (программа её не меняет), FFitWidth — последняя, заданная подгонкой (0 — нет).
@@ -340,10 +344,11 @@ private:	// User declarations
 
 	void LoadItems();
 	// Импорт списка обмена uCoin (задача 47): итог пробного прохода -> вопрос -> копия БД -> синхронизация.
-	void ImportSwapList(const String &AFileName, const std::vector<TCoinRecord> &ARecords,
+	// AList — "swap" или "wish" (задача 48).
+	void ImportList(const String &AList, const String &AFileName, const std::vector<TCoinRecord> &ARecords,
 		const std::vector<TImportError> &AErrors, int ADataRows);
 	// Связь монет обмена с Numista из того, что уже в базе (задача 47): возвращает число связанных.
-	int  LinkSwapFromCache(int &AWithIssue);
+	int  LinkListFromCache(const String &AList, int &AWithIssue);
 	// Список предмета коллекции Numista (задача 47a): for_swap — "swap", иначе "".
 	static String NumistaItemList(TJSONValue *AItem);
 	// Список нового экземпляра по узлу дерева (задача 47): «На обмін» — обмен.

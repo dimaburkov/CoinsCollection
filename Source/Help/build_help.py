@@ -157,6 +157,19 @@ the type, the issue (if it is already known for that year) and the catalogue pic
 <p>An item can be moved between the collection and the swap list in the coin card ([[ui:List|Список]]).
 In the node [[ui:For swap|На обмін]] the commands [[ui:Add|Додати]] and [[ui:Add from sample...|Додати за зразком...]] add a coin for swap.
 A repeated import of the collection does not change the swap list.</p>
+<h2>Wish list from uCoin</h2>
+<p>On uCoin export your wish list to Excel (the site in English), then
+[[ui:File → Import wish list from uCoin (.xlsx)...|Файл → Імпорт списку бажаних з uCoin (.xlsx)...]]. The coins go to the node
+[[ui:Wish list|Бажані]]; the collection and the swap list do not change.</p>
+<ul>
+<li>A year range (<i>2008-2026</i> — any year of the type) is kept; the condition is the lowest one you want.</li>
+<li>Period and currency are not in the file: they are taken from a coin of the same country with the same catalogue number, otherwise they stay empty.</li>
+<li>A wanted coin gets the Numista link without requests from a linked coin with the same number, like the swap list (an issue — only for one year);
+the others — [[ui:Auto-link|Автозв'язок]] as usual. Numista has no wish list in its API, so wanted coins are not uploaded.</li>
+<li>When the same coin (the same Numista type or country and number, a year within the wanted years) is in your collection,
+the row in [[ui:Wish list|Бажані]] is <b style="color:green">bold green</b> and the details show the years — time to remove it from the wish list.</li>
+<li>A repeated import updates the wish list the same way as the swap list.</li>
+</ul>
 <h2>Import from your Numista collection</h2>
 <p>Coins that you added on Numista yourself and that are not in uCoin (for example ancient coins) can be imported too:
 [[ui:Numista → Import from my Numista collection|Numista → Імпорт з моєї колекції Numista]].</p>
@@ -228,6 +241,19 @@ T['import', 'uk'] = u"""
 <p>Примірник можна перенести між колекцією та списком обміну в картці монети ([[ui:List|Список]]).
 У вузлі [[ui:For swap|На обмін]] команди [[ui:Add|Додати]] і [[ui:Add from sample...|Додати за зразком...]] додають монету на обмін.
 Повторний імпорт колекції список обміну не змінює.</p>
+<h2>Список бажаних з uCoin</h2>
+<p>На uCoin експортуйте свій список бажаних в Excel (сайт англійською), потім —
+[[ui:File → Import wish list from uCoin (.xlsx)...|Файл → Імпорт списку бажаних з uCoin (.xlsx)...]]. Монети потрапляють у вузол
+[[ui:Wish list|Бажані]]; колекція й список обміну не змінюються.</p>
+<ul>
+<li>Діапазон років (<i>2008-2026</i> — будь-який рік типу) зберігається; стан — найнижчий, який вас влаштовує.</li>
+<li>Періоду й валюти у файлі немає: вони беруться з монети тієї ж країни з тим самим номером у каталозі, інакше лишаються порожніми.</li>
+<li>Бажана монета без запитів отримує зв'язок з Numista від пов'язаної монети з тим самим номером, як у списку обміну (випуск — лише для одного року);
+решта — [[ui:Auto-link|Автозв'язок]], як завжди. В API Numista немає списку бажаних, тож бажані не вивантажуються.</li>
+<li>Коли така сама монета (той самий тип Numista або країна й номер, рік у межах бажаних років) є у вашій колекції,
+рядок у [[ui:Wish list|Бажані]] — <b style="color:green">жирний зелений</b>, а в подробицях видно роки — час прибрати її з бажаних.</li>
+<li>Повторний імпорт оновлює список бажаних так само, як список обміну.</li>
+</ul>
 <h2>Імпорт з вашої колекції Numista</h2>
 <p>Монети, які ви самі додали на Numista і яких немає в uCoin (наприклад античні), теж можна імпортувати:
 [[ui:Numista → Import from my Numista collection|Numista → Імпорт з моєї колекції Numista]].</p>
@@ -260,9 +286,9 @@ T['main-window', 'en'] = u"""
 [[shot:01-main-window.png|The main window.]]
 <h2>Navigation tree</h2>
 <p>On the left: [[ui:My collection|Моя колекція]], continents with their countries, [[ui:No continent|Без континенту]],
-[[ui:Extinct states|Зниклі держави]], [[ui:For swap|На обмін]] (your swap list, see [[page:import|Import from uCoin]])
+[[ui:Extinct states|Зниклі держави]], [[ui:For swap|На обмін]] and [[ui:Wish list|Бажані]] (your swap and wish lists, see [[page:import|Import from uCoin]])
 and [[ui:Checked|Позначені]] (all checked coins from any country, see [[page:checks|Checking coins]]).
-The number in brackets is the number of items. The collection nodes and the totals in the status bar do not include the swap list.</p>
+The number in brackets is the number of items. The collection nodes and the totals in the status bar do not include the swap and wish lists.</p>
 <h2>Search</h2>
 <p>The search field on the toolbar filters the list by country, period, currency, denomination, year, subject, variety, catalogue number, comment and the Numista title (for example <i>Crispina</i>).</p>
 <h2>Coin list</h2>
@@ -313,9 +339,9 @@ T['main-window', 'uk'] = u"""
 [[shot:01-main-window.png|Головне вікно.]]
 <h2>Дерево навігації</h2>
 <p>Ліворуч: [[ui:My collection|Моя колекція]], континенти з країнами, [[ui:No continent|Без континенту]],
-[[ui:Extinct states|Зниклі держави]], [[ui:For swap|На обмін]] (ваш список обміну, див. [[page:import|Імпорт з uCoin]])
+[[ui:Extinct states|Зниклі держави]], [[ui:For swap|На обмін]] і [[ui:Wish list|Бажані]] (ваші списки обміну й бажаних, див. [[page:import|Імпорт з uCoin]])
 і [[ui:Checked|Позначені]] (усі позначені монети з будь-яких країн, див. [[page:checks|Позначки монет]]).
-Число в дужках — кількість примірників. Вузли колекції й підсумки в рядку стану не враховують список обміну.</p>
+Число в дужках — кількість примірників. Вузли колекції й підсумки в рядку стану не враховують списки обміну й бажаних.</p>
 <h2>Пошук</h2>
 <p>Поле пошуку на панелі інструментів фільтрує список за країною, періодом, валютою, номіналом, роком, сюжетом, різновидом, номером у каталозі, коментарем і назвою Numista (наприклад <i>Crispina</i>).</p>
 <h2>Список монет</h2>

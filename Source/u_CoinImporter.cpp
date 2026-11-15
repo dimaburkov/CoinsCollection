@@ -130,7 +130,8 @@ namespace
 //---------------------------------------------------------------------------
 TCoinImporter::TCoinImporter(const std::vector<TCondition> &AConditions)
 	: FDataRows(0),
-	  FKind(ufCollection)
+	  FKind(ufCollection),
+	  FWishSubject(-1)
 {
 	for (size_t i = 0; i < AConditions.size(); ++i)
 		FConditionCodes.insert(AConditions[i].Code.UpperCase());
@@ -158,6 +159,7 @@ std::vector<TCoinRecord> TCoinImporter::Parse(TXlsxSource &ASource)
 	FColumns.clear();
 	FDataRows = 0;
 	FKind = ufCollection;
+	FWishSubject = -1;
 
 	std::vector<TCoinRecord> result;
 	if (ASource.RowCount() == 0)
@@ -176,7 +178,13 @@ std::vector<TCoinRecord> TCoinImporter::Parse(TXlsxSource &ASource)
 	if (Column(cPeriod) < 0 && (Column(cReserve) >= 0 || Column(cInformation) >= 0))
 		FKind = ufSwap;
 	else if (Column(cPeriod) < 0 && Column(cNumber) >= 0 && Column(cQuantity) < 0)
+	{
 		FKind = ufWish;
+		// Сюжет в списке желаемого — колонка без заголовка (между «Var.» и «Condition»).
+		for (size_t i = 1; i < header.size() && FWishSubject < 0; ++i)
+			if (header[i].Trim().IsEmpty())
+				FWishSubject = (int)i;
+	}
 
 	for (const wchar_t *required : cRequired)
 		if (Column(required) < 0)
@@ -234,7 +242,18 @@ void TCoinImporter::ParseRow(const std::vector<String> &ARow, TCoinRecord &R) co
 
 	R.Period          = Cell(ARow, cPeriod);
 	R.Currency        = Cell(ARow, cCurrency);
-	R.Year            = ParseInt(Cell(ARow, cYear), cYear, 0);
+	// Год или диапазон «2008-2026» (список желаемого — любой год типа, задача 48).
+	const String yearText = Cell(ARow, cYear);
+	const int dash = yearText.Pos(L"-");
+	if (dash > 1)
+	{
+		R.Year   = ParseInt(yearText.SubString(1, dash - 1).Trim(), cYear, 0);
+		R.YearTo = ParseInt(yearText.SubString(dash + 1, yearText.Length()).Trim(), cYear, 0);
+		if (R.YearTo == R.Year)
+			R.YearTo = 0;
+	}
+	else
+		R.Year = ParseInt(yearText, cYear, 0);
 	R.Variety         = NumberAsText(Cell(ARow, cVariety));
 	R.Subject         = Cell(ARow, cSubject);
 	R.DiameterMm      = ParseNumber(Cell(ARow, cDiameter), cDiameter);
@@ -252,6 +271,12 @@ void TCoinImporter::ParseRow(const std::vector<String> &ARow, TCoinRecord &R) co
 	R.Grade           = Cell(ARow, cGrade);
 	R.LabelText       = NumberAsText(Cell(ARow, cLabel));
 	R.Comment         = Cell(ARow, cComment);
+	if (FKind == ufWish)
+	{
+		R.List = L"wish";
+		if (R.Subject.IsEmpty() && FWishSubject >= 0 && FWishSubject < (int)ARow.size())
+			R.Subject = ARow[FWishSubject].Trim();
+	}
 	if (FKind == ufSwap)
 	{
 		// Обмен: оценка — «Value, UAH»; заметка, бронь и приватная заметка — в комментарий экземпляра.

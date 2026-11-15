@@ -58,6 +58,19 @@ the type, the issue (if it is already known for that year) and the catalogue pic
 <p>An item can be moved between the collection and the swap list in the coin card (<span class="ui">List</span>).
 In the node <span class="ui">For swap</span> the commands <span class="ui">Add</span> and <span class="ui">Add from sample...</span> add a coin for swap.
 A repeated import of the collection does not change the swap list.</p>
+<h2>Wish list from uCoin</h2>
+<p>On uCoin export your wish list to Excel (the site in English), then
+<span class="ui">File → Import wish list from uCoin (.xlsx)...</span>. The coins go to the node
+<span class="ui">Wish list</span>; the collection and the swap list do not change.</p>
+<ul>
+<li>A year range (<i>2008-2026</i> — any year of the type) is kept; the condition is the lowest one you want.</li>
+<li>Period and currency are not in the file: they are taken from a coin of the same country with the same catalogue number, otherwise they stay empty.</li>
+<li>A wanted coin gets the Numista link without requests from a linked coin with the same number, like the swap list (an issue — only for one year);
+the others — <span class="ui">Auto-link</span> as usual. Numista has no wish list in its API, so wanted coins are not uploaded.</li>
+<li>When the same coin (the same Numista type or country and number, a year within the wanted years) is in your collection,
+the row in <span class="ui">Wish list</span> is <b style="color:green">bold green</b> and the details show the years — time to remove it from the wish list.</li>
+<li>A repeated import updates the wish list the same way as the swap list.</li>
+</ul>
 <h2>Import from your Numista collection</h2>
 <p>Coins that you added on Numista yourself and that are not in uCoin (for example ancient coins) can be imported too:
 <span class="ui">Numista → Import from my Numista collection</span>.</p>
