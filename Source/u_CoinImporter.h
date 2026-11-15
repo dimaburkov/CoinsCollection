@@ -47,6 +47,7 @@ private:
 	std::vector<TImportError> FErrors;
 	int                       FDataRows;
 	TUcoinFile                FKind;
+	int                       FWishSubject;  // желаемое: колонка сюжета без заголовка (задача 48); -1 — нет
 
 	int    Column(const String &AHeader) const;
 	String Cell(const std::vector<String> &ARow, const String &AHeader) const;
