@@ -367,6 +367,19 @@ bool TCoinRepository::Delete(int AId)
 	return true;
 }
 //---------------------------------------------------------------------------
+int TCoinRepository::DeleteItems(const std::vector<int> &AIds)
+{
+	TDbTransaction tx(FDatabase->Connection());
+	const int before = FDatabase->Connection()->ExecSQLScalar(L"SELECT COUNT(*) FROM coins");
+	std::vector<String> photos;
+	for (size_t i = 0; i < AIds.size(); ++i)
+		DeleteItemRows(AIds[i], photos);
+	const int after = FDatabase->Connection()->ExecSQLScalar(L"SELECT COUNT(*) FROM coins");
+	tx.Commit();
+	TPhotoRepository::DeleteFiles(photos);
+	return before - after;
+}
+//---------------------------------------------------------------------------
 void TCoinRepository::DeleteItemRows(int AId, std::vector<String> &AFiles)
 {
 	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, L"SELECT id_coin FROM coin_items WHERE id = :id");
@@ -895,9 +908,28 @@ void TCoinRepository::SyncList(const std::vector<TCoinRecord> &ARecords, const S
 	}
 
 	std::vector<String> photos;
+	std::unique_ptr<TFDQuery> itemText = NewQuery(FDatabase,
+		L"SELECT co.name, c.denomination, c.year, c.year_to, c.catalog_number FROM coin_items i"
+		L"  JOIN coins c ON c.id = i.id_coin JOIN periods p ON p.id = c.id_period JOIN countries co ON co.id = p.id_country"
+		L" WHERE i.id = :id");
 	for (size_t i = 0; i < existing.size(); ++i)
 		if (!existing[i].Used)
 		{
+			if (AResult.MissingText.size() < 10)
+			{
+				itemText->ParamByName(L"id")->AsInteger = existing[i].Id;
+				itemText->Open();
+				if (!itemText->Eof)
+				{
+					String text = FieldText(itemText.get(), L"name") + L", " + FieldText(itemText.get(), L"denomination");
+					if (FieldInt(itemText.get(), L"year") != 0)
+						text += L", " + YearText(FieldInt(itemText.get(), L"year"), FieldInt(itemText.get(), L"year_to"));
+					if (!FieldText(itemText.get(), L"catalog_number").IsEmpty())
+						text += L", " + FieldText(itemText.get(), L"catalog_number");
+					AResult.MissingText.push_back(text);
+				}
+				itemText->Close();
+			}
 			++AResult.Missing;
 			if (existing[i].NumistaItemId != 0)
 				AResult.MissingNumista.push_back(existing[i].NumistaItemId);

@@ -46,6 +46,7 @@ __published:	// IDE-managed Components
 	TAction *actAddSample;
 	TAction *actEdit;
 	TAction *actDelete;
+	TAction *actDeleteChecked;
 	TAction *actNeedToReplace;
 	TAction *actRefresh;
 	TAction *actCountries;
@@ -100,6 +101,8 @@ __published:	// IDE-managed Components
 	TMenuItem *miPopSep0;
 	TMenuItem *miEdit;
 	TMenuItem *miDelete;
+	TMenuItem *miDeleteChecked;
+	TMenuItem *miPopDeleteChecked;
 	TMenuItem *miCollectionSep1;
 	TMenuItem *miNeedToReplace;
 	TMenuItem *miCollectionSep2;
@@ -193,6 +196,8 @@ __published:	// IDE-managed Components
 	void __fastcall actEditUpdate(TObject *Sender);
 	void __fastcall actDeleteExecute(TObject *Sender);
 	void __fastcall actDeleteUpdate(TObject *Sender);
+	void __fastcall actDeleteCheckedExecute(TObject *Sender);
+	void __fastcall actDeleteCheckedUpdate(TObject *Sender);
 	void __fastcall actExitExecute(TObject *Sender);
 	void __fastcall actRefreshExecute(TObject *Sender);
 	void __fastcall actAboutExecute(TObject *Sender);
@@ -390,6 +395,8 @@ private:
 	void __fastcall GridWndProc(TMessage &AMessage);
 	int  Column(int AGridCol) const;	// колонка сетки -> TItemColumn, -1 — нет
 	bool Confirm(const String &AText, const String &ACaption);
+	// Вопрос с кнопками-действиями (задача 47b): индекс выбранной кнопки; «Скасувати» / Esc — -1.
+	int  AskChoice(const String &ACaption, const String &AText, const std::vector<String> &AButtons, int ADefault);
 	void ApplyPhotoEdits(const TPhotoEdits &AEdits, const TCoinRecord &ARecord);
 	// Резервная копия (задача 21): true — сделана.
 	bool MakeBackup();

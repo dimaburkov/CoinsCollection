@@ -732,23 +732,42 @@ void TfmMain::ImportSwapList(const String &AFileName, const std::vector<TCoinRec
 		text += nl + Format(Tr(L"Import.Swap.NoPeriod"), ARRAYOFCONST((plan.NoPeriod)));
 	text += nl + Tr(L"Import.Swap.CollectionKept");
 
+	// Кнопки с действием (задача 47b): «Ні» в вопросе об отсутствующих легко принять за отказ от импорта.
 	bool deleteMissing = false;
+	std::vector<String> buttons;
 	if (plan.Missing > 0)
 	{
 		text += nl + nl + Format(Tr(L"Import.Swap.Missing"), ARRAYOFCONST((plan.Missing)));
-		const int answer = Application->MessageBox(text.c_str(), title.c_str(), MB_YESNOCANCEL | MB_ICONQUESTION | MB_DEFBUTTON2);
-		if (answer == IDCANCEL)
+		for (size_t i = 0; i < plan.MissingText.size(); ++i)
+			text += nl + L"  \u2022 " + plan.MissingText[i];
+		if (plan.Missing > (int)plan.MissingText.size())
+			text += nl + L"  \u2026";
+		buttons.push_back(Format(Tr(L"Import.Swap.ImportRemove"), ARRAYOFCONST((plan.Missing))));
+		buttons.push_back(Tr(L"Import.Swap.ImportKeep"));
+		const int choice = AskChoice(title, text, buttons, 1);
+		if (choice < 0)
 			return;
-		deleteMissing = answer == IDYES;
+		deleteMissing = choice == 0;
 	}
-	else if (!Confirm(text + nl + nl + Tr(L"Import.Swap.Question"), title))
-		return;
+	else
+	{
+		buttons.push_back(Tr(L"Import.Swap.Import"));
+		if (AskChoice(title, text, buttons, 0) < 0)
+			return;
+	}
 	// Удаляемые из обмена, которые выгружены на Numista (задача 47a): удалить и там?
 	bool deleteOnNumista = false;
 	if (deleteMissing && !plan.MissingNumista.empty())
-		deleteOnNumista = Application->MessageBox(Format(Tr(L"Import.Swap.DeleteNumista"),
-			ARRAYOFCONST(((int)plan.MissingNumista.size()))).c_str(), title.c_str(),
-			MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) == IDYES;
+	{
+		std::vector<String> numistaButtons;
+		numistaButtons.push_back(Tr(L"Numista.Delete.Also"));
+		numistaButtons.push_back(Tr(L"Numista.Delete.Keep"));
+		const int choice = AskChoice(title, Format(Tr(L"Import.Swap.DeleteNumista"),
+			ARRAYOFCONST(((int)plan.MissingNumista.size()))), numistaButtons, 1);
+		if (choice < 0)
+			return;
+		deleteOnNumista = choice == 0;
+	}
 
 	TListSync done;
 	Screen->Cursor = crHourGlass;
@@ -877,6 +896,28 @@ int TfmMain::LinkSwapFromCache(int &AWithIssue)
 		}
 	}
 	return linked;
+}
+//---------------------------------------------------------------------------
+// Кнопки — ссылки-команды с понятным действием вместо «Так / Ні»; последняя — «Скасувати».
+int TfmMain::AskChoice(const String &ACaption, const String &AText, const std::vector<String> &AButtons, int ADefault)
+{
+	std::unique_ptr<TTaskDialog> dialog(new TTaskDialog(nullptr));
+	dialog->Caption  = ACaption;
+	dialog->MainIcon = tdiNone;
+	dialog->Text     = AText;
+	dialog->CommonButtons = TTaskDialogCommonButtons();
+	dialog->Flags = dialog->Flags << tfAllowDialogCancellation << tfUseCommandLinks;
+	for (size_t i = 0; i <= AButtons.size(); ++i)
+	{
+		TTaskDialogBaseButtonItem *button = dialog->Buttons->Add();
+		button->Caption     = i < AButtons.size() ? AButtons[i] : Tr(L"Common.Cancel");
+		button->ModalResult = i < AButtons.size() ? 100 + (int)i : mrCancel;
+		button->Default     = (int)i == ADefault;
+	}
+	if (!dialog->Execute(Handle))
+		return -1;
+	const int result = dialog->ModalResult - 100;
+	return result >= 0 && result < (int)AButtons.size() ? result : -1;
 }
 //---------------------------------------------------------------------------
 bool TfmMain::Confirm(const String &AText, const String &ACaption)
@@ -1060,6 +1101,127 @@ void __fastcall TfmMain::actDeleteExecute(TObject *Sender)
 void __fastcall TfmMain::actDeleteUpdate(TObject *Sender)
 {
 	actDelete->Enabled = CurrentIndex() >= 0 && ActiveControl != edSearch;
+}
+//---------------------------------------------------------------------------
+// Удалить отмеченные (задача 47b): подтверждение -> выгруженные на Numista: удалить и там / оставить /
+// отмена -> копия базы -> Numista (ошибка — остановка; не удалённые там остаются и в программе) -> база.
+void __fastcall TfmMain::actDeleteCheckedExecute(TObject *Sender)
+{
+	const String caption = StripHotkey(actDeleteChecked->Caption).Trim();
+	const String nl = L"\r\n";
+	std::vector<TCoinRecord> items;
+	int swapItems = 0, uploaded = 0;
+	for (size_t i = 0; i < FAll.size(); ++i)
+		if (FChecked.count(FAll[i].Id))
+		{
+			items.push_back(FAll[i]);
+			if (FAll[i].List == L"swap")
+				++swapItems;
+			if (FAll[i].NumistaItemId != 0)
+				++uploaded;
+		}
+	if (items.empty())
+		return;
+	if (!Confirm(Format(Tr(L"Main.DeleteChecked.Confirm"), ARRAYOFCONST(((int)items.size(), swapItems))), caption))
+		return;
+
+	bool onNumista = false;
+	if (uploaded > 0)
+	{
+		std::vector<String> buttons;
+		buttons.push_back(Tr(L"Numista.Delete.Also"));
+		buttons.push_back(Tr(L"Numista.Delete.Keep"));
+		const int choice = AskChoice(caption, Format(Tr(L"Main.DeleteChecked.Numista"), ARRAYOFCONST((uploaded))), buttons, 1);
+		if (choice < 0)
+			return;
+		onNumista = choice == 0;
+		const int left = AppConfig().NumistaMonthlyQuota - TNumistaClient::RequestsThisMonth();
+		if (onNumista && uploaded + 1 > left)
+		{
+			Application->MessageBox(Format(Tr(L"Numista.Items.Quota"), ARRAYOFCONST((uploaded + 1, left))).c_str(),
+				caption.c_str(), MB_OK | MB_ICONWARNING);
+			return;
+		}
+	}
+
+	try
+	{
+		FDatabase->Backup(L"before-delete-" + FormatDateTime(L"yyyymmdd-hhnnss", Now()));
+	}
+	catch (Exception &e)
+	{
+		Application->MessageBox((Tr(L"Main.Error.Delete") + nl + nl + e.Message).c_str(), caption.c_str(), MB_OK | MB_ICONERROR);
+		return;
+	}
+
+	// Numista: удалённые там — удаляются и в программе; ошибка — остальные выгруженные остаются.
+	std::vector<int> ids;
+	int deletedOnNumista = 0;
+	String stopReason;
+	std::unique_ptr<TNumistaClient> client;
+	std::unique_ptr<TProgress> progress;
+	if (onNumista)
+	{
+		client.reset(new TNumistaClient());
+		progress.reset(new TProgress(this, caption, uploaded, client.get()));
+	}
+	int step = 0;
+	for (size_t i = 0; i < items.size(); ++i)
+	{
+		const TCoinRecord &r = items[i];
+		if (r.NumistaItemId != 0 && onNumista)
+		{
+			if (!stopReason.IsEmpty())
+				continue;
+			if (!progress->Step(step++, CoinText(r)))
+			{
+				stopReason = Tr(L"Progress.Stopped");
+				continue;
+			}
+			try
+			{
+				if (deletedOnNumista == 0)
+					client->Authorize();
+				client->DeleteCollectedItem(r.NumistaItemId);
+				++deletedOnNumista;
+			}
+			catch (Exception &e)
+			{
+				stopReason = e.Message;
+				continue;
+			}
+		}
+		ids.push_back(r.Id);
+	}
+	progress.reset();
+
+	int coins = 0;
+	try
+	{
+		coins = FRepository->DeleteItems(ids);
+	}
+	catch (Exception &e)
+	{
+		Application->MessageBox((Tr(L"Main.Error.Delete") + nl + nl + e.Message).c_str(), caption.c_str(), MB_OK | MB_ICONERROR);
+		LoadItems();
+		return;
+	}
+	for (size_t i = 0; i < ids.size(); ++i)
+		FChecked.erase(ids[i]);
+	LoadItems();
+
+	String report = Format(Tr(L"Main.DeleteChecked.Done"), ARRAYOFCONST(((int)ids.size(), coins)));
+	if (onNumista)
+		report += nl + Format(Tr(L"Main.DeleteChecked.DoneNumista"), ARRAYOFCONST((deletedOnNumista)));
+	if (!stopReason.IsEmpty())
+		report += nl + nl + Format(Tr(L"Main.DeleteChecked.Kept"), ARRAYOFCONST(((int)(items.size() - ids.size()))))
+			+ nl + stopReason;
+	Application->MessageBox(report.c_str(), caption.c_str(), MB_OK | (stopReason.IsEmpty() ? MB_ICONINFORMATION : MB_ICONWARNING));
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::actDeleteCheckedUpdate(TObject *Sender)
+{
+	actDeleteChecked->Enabled = !FChecked.empty();
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::actNeedToReplaceExecute(TObject *Sender)

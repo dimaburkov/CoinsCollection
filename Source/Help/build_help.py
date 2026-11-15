@@ -147,8 +147,9 @@ a collection export chosen here (or a swap list chosen in the collection import)
 (choose it in the coin card). A historical state that uCoin writes as the country (<i>German Empire</i>) goes to the country and period
 from your collection (<i>Germany</i> / <i>German Empire</i>).</li>
 <li>Information, reserve and the private note go to the item comment.</li>
-<li>A repeated import updates the swap list: new items are added, changed ones are updated; for items that are not in the file
-the program asks whether to remove them from the swap list.</li>
+<li>A repeated import updates the swap list: new items are added, changed ones are updated. If some items for swap are not in the file,
+the program lists them and offers: [[ui:Import and remove the missing ones|Імпортувати й прибрати відсутні]],
+[[ui:Import, keep the missing ones|Імпортувати, відсутні залишити]] or [[ui:Cancel|Скасувати]] (nothing changes).</li>
 <li>A coin for swap gets the Numista link at once, without requests, from a linked coin of the same country with the same catalogue number:
 the type, the issue (if it is already known for that year) and the catalogue pictures. The others — [[ui:Auto-link|Автозв'язок]] as usual.</li>
 <li>Upload to your Numista swap list — [[page:numista-upload|Numista: upload]], <i>Swap list</i>.</li>
@@ -217,8 +218,9 @@ T['import', 'uk'] = u"""
 (виберіть його в картці монети). Історична держава, яку uCoin пише країною (<i>German Empire</i>), потрапляє до країни й періоду
 з вашої колекції (<i>Germany</i> / <i>German Empire</i>).</li>
 <li>Інформація, бронь і приватна примітка записуються в коментар примірника.</li>
-<li>Повторний імпорт оновлює список обміну: нові примірники додаються, змінені — оновлюються; про примірники, яких немає у файлі,
-програма питає, чи прибрати їх зі списку обміну.</li>
+<li>Повторний імпорт оновлює список обміну: нові примірники додаються, змінені — оновлюються. Якщо частини примірників на обмін немає у файлі,
+програма показує їх і пропонує: [[ui:Import and remove the missing ones|Імпортувати й прибрати відсутні]],
+[[ui:Import, keep the missing ones|Імпортувати, відсутні залишити]] або [[ui:Cancel|Скасувати]] (нічого не змінюється).</li>
 <li>Монета на обмін одразу, без запитів, отримує зв'язок з Numista від пов'язаної монети тієї ж країни з тим самим номером у каталозі:
 тип, випуск (якщо він уже відомий для цього року) і зображення з каталогу. Решта — [[ui:Auto-link|Автозв'язок]], як завжди.</li>
 <li>Вивантаження у ваш список обміну на Numista — [[page:numista-upload|Numista: вивантаження]], «Список обміну».</li>
@@ -375,6 +377,13 @@ Checks are kept for the whole collection, also when you switch to another countr
 <h2>Checks outside the current list</h2>
 <p>If some checked items are not in the current list (another country, search), the status bar shows
 <code>Checked: 14 (outside the list: 3)</code>. Open [[ui:Checked|Позначені]] in the tree to see all of them.</p>
+<h2>Delete checked</h2>
+<p>[[ui:Collection → Delete checked...|Колекція → Видалити позначені...]] (also in the context menu) deletes all checked items — for example the whole
+swap list: [[ui:For swap|На обмін]] → the check box in the column header → [[ui:Delete checked...|Видалити позначені...]].
+A coin without other items is deleted with its photos; a coin that still has items (for example in the collection) stays.
+A backup copy of the database is made first (<code>Db\&lt;database&gt;.before-delete-&lt;time&gt;.bak</code>).</p>
+<p>If some of the items are uploaded to Numista, the program asks: [[ui:Delete on Numista too|Видалити й на Numista]] (one request per item),
+[[ui:Keep them on Numista|Залишити на Numista]] or [[ui:Cancel|Скасувати]] (nothing is deleted).</p>
 """
 T['checks', 'uk'] = u"""
 [[shot:10-header-menu.png|Меню заголовка колонки позначок.]]
@@ -390,6 +399,13 @@ T['checks', 'uk'] = u"""
 <h2>Позначки поза поточним списком</h2>
 <p>Якщо частина позначених примірників не в поточному списку (інша країна, пошук), рядок стану показує
 <code>Позначено: 14 (поза списком: 3)</code>. Відкрийте [[ui:Checked|Позначені]] у дереві, щоб побачити їх усі.</p>
+<h2>Видалити позначені</h2>
+<p>[[ui:Collection → Delete checked...|Колекція → Видалити позначені...]] (також у контекстному меню) видаляє всі позначені примірники — наприклад, увесь
+список обміну: [[ui:For swap|На обмін]] → позначка в заголовку колонки → [[ui:Delete checked...|Видалити позначені...]].
+Монета без інших примірників видаляється разом із фото; монета, у якої лишилися примірники (наприклад, у колекції), залишається.
+Спочатку робиться копія бази (<code>Db\&lt;база&gt;.before-delete-&lt;час&gt;.bak</code>).</p>
+<p>Якщо частина примірників вивантажена на Numista, програма питає: [[ui:Delete on Numista too|Видалити й на Numista]] (запит на кожен),
+[[ui:Keep them on Numista|Залишити на Numista]] або [[ui:Cancel|Скасувати]] (нічого не видаляється).</p>
 """
 
 # =====================================================================
