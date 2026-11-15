@@ -732,23 +732,42 @@ void TfmMain::ImportSwapList(const String &AFileName, const std::vector<TCoinRec
 		text += nl + Format(Tr(L"Import.Swap.NoPeriod"), ARRAYOFCONST((plan.NoPeriod)));
 	text += nl + Tr(L"Import.Swap.CollectionKept");
 
+	// Кнопки с действием (задача 47b): «Ні» в вопросе об отсутствующих легко принять за отказ от импорта.
 	bool deleteMissing = false;
+	std::vector<String> buttons;
 	if (plan.Missing > 0)
 	{
 		text += nl + nl + Format(Tr(L"Import.Swap.Missing"), ARRAYOFCONST((plan.Missing)));
-		const int answer = Application->MessageBox(text.c_str(), title.c_str(), MB_YESNOCANCEL | MB_ICONQUESTION | MB_DEFBUTTON2);
-		if (answer == IDCANCEL)
+		for (size_t i = 0; i < plan.MissingText.size(); ++i)
+			text += nl + L"  \u2022 " + plan.MissingText[i];
+		if (plan.Missing > (int)plan.MissingText.size())
+			text += nl + L"  \u2026";
+		buttons.push_back(Format(Tr(L"Import.Swap.ImportRemove"), ARRAYOFCONST((plan.Missing))));
+		buttons.push_back(Tr(L"Import.Swap.ImportKeep"));
+		const int choice = AskChoice(title, text, buttons, 1);
+		if (choice < 0)
 			return;
-		deleteMissing = answer == IDYES;
+		deleteMissing = choice == 0;
 	}
-	else if (!Confirm(text + nl + nl + Tr(L"Import.Swap.Question"), title))
-		return;
+	else
+	{
+		buttons.push_back(Tr(L"Import.Swap.Import"));
+		if (AskChoice(title, text, buttons, 0) < 0)
+			return;
+	}
 	// Удаляемые из обмена, которые выгружены на Numista (задача 47a): удалить и там?
 	bool deleteOnNumista = false;
 	if (deleteMissing && !plan.MissingNumista.empty())
-		deleteOnNumista = Application->MessageBox(Format(Tr(L"Import.Swap.DeleteNumista"),
-			ARRAYOFCONST(((int)plan.MissingNumista.size()))).c_str(), title.c_str(),
-			MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) == IDYES;
+	{
+		std::vector<String> numistaButtons;
+		numistaButtons.push_back(Tr(L"Numista.Delete.Also"));
+		numistaButtons.push_back(Tr(L"Numista.Delete.Keep"));
+		const int choice = AskChoice(title, Format(Tr(L"Import.Swap.DeleteNumista"),
+			ARRAYOFCONST(((int)plan.MissingNumista.size()))), numistaButtons, 1);
+		if (choice < 0)
+			return;
+		deleteOnNumista = choice == 0;
+	}
 
 	TListSync done;
 	Screen->Cursor = crHourGlass;
@@ -877,6 +896,28 @@ int TfmMain::LinkSwapFromCache(int &AWithIssue)
 		}
 	}
 	return linked;
+}
+//---------------------------------------------------------------------------
+// Кнопки — ссылки-команды с понятным действием вместо «Так / Ні»; последняя — «Скасувати».
+int TfmMain::AskChoice(const String &ACaption, const String &AText, const std::vector<String> &AButtons, int ADefault)
+{
+	std::unique_ptr<TTaskDialog> dialog(new TTaskDialog(nullptr));
+	dialog->Caption  = ACaption;
+	dialog->MainIcon = tdiNone;
+	dialog->Text     = AText;
+	dialog->CommonButtons = TTaskDialogCommonButtons();
+	dialog->Flags = dialog->Flags << tfAllowDialogCancellation << tfUseCommandLinks;
+	for (size_t i = 0; i <= AButtons.size(); ++i)
+	{
+		TTaskDialogBaseButtonItem *button = dialog->Buttons->Add();
+		button->Caption     = i < AButtons.size() ? AButtons[i] : Tr(L"Common.Cancel");
+		button->ModalResult = i < AButtons.size() ? 100 + (int)i : mrCancel;
+		button->Default     = (int)i == ADefault;
+	}
+	if (!dialog->Execute(Handle))
+		return -1;
+	const int result = dialog->ModalResult - 100;
+	return result >= 0 && result < (int)AButtons.size() ? result : -1;
 }
 //---------------------------------------------------------------------------
 bool TfmMain::Confirm(const String &AText, const String &ACaption)
@@ -1087,11 +1128,13 @@ void __fastcall TfmMain::actDeleteCheckedExecute(TObject *Sender)
 	bool onNumista = false;
 	if (uploaded > 0)
 	{
-		const int answer = Application->MessageBox(Format(Tr(L"Main.DeleteChecked.Numista"), ARRAYOFCONST((uploaded))).c_str(),
-			caption.c_str(), MB_YESNOCANCEL | MB_ICONQUESTION | MB_DEFBUTTON2);
-		if (answer == IDCANCEL)
+		std::vector<String> buttons;
+		buttons.push_back(Tr(L"Numista.Delete.Also"));
+		buttons.push_back(Tr(L"Numista.Delete.Keep"));
+		const int choice = AskChoice(caption, Format(Tr(L"Main.DeleteChecked.Numista"), ARRAYOFCONST((uploaded))), buttons, 1);
+		if (choice < 0)
 			return;
-		onNumista = answer == IDYES;
+		onNumista = choice == 0;
 		const int left = AppConfig().NumistaMonthlyQuota - TNumistaClient::RequestsThisMonth();
 		if (onNumista && uploaded + 1 > left)
 		{

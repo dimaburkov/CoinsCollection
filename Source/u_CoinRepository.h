@@ -36,6 +36,7 @@ struct TListSync
 	int InCollection;  // экземпляров у монет, которые есть и в коллекции
 	int NoPeriod;      // строк без периода: монеты с тем же номером в стране нет
 	std::vector<int> MissingNumista;	// id предметов Numista у экземпляров, которых нет в файле (задача 47a)
+	std::vector<String> MissingText;	// первые экземпляры, которых нет в файле: «страна, номинал, год, номер» (задача 47b)
 	TListSync() : Added(0), Updated(0), Unchanged(0), Missing(0), Removed(0), NewCoins(0), InCollection(0), NoPeriod(0) {}
 };
 //---------------------------------------------------------------------------

@@ -395,6 +395,8 @@ private:
 	void __fastcall GridWndProc(TMessage &AMessage);
 	int  Column(int AGridCol) const;	// колонка сетки -> TItemColumn, -1 — нет
 	bool Confirm(const String &AText, const String &ACaption);
+	// Вопрос с кнопками-действиями (задача 47b): индекс выбранной кнопки; «Скасувати» / Esc — -1.
+	int  AskChoice(const String &ACaption, const String &AText, const std::vector<String> &AButtons, int ADefault);
 	void ApplyPhotoEdits(const TPhotoEdits &AEdits, const TCoinRecord &ARecord);
 	// Резервная копия (задача 21): true — сделана.
 	bool MakeBackup();
