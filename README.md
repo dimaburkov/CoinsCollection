@@ -16,6 +16,7 @@ Your coin collection on your computer — and an easy way to move it from **uCoi
 - **Rarity index** — read from the private comment of your Numista items (`R:97` or simply `97`), sortable in the list.
 - **Your own photos next to the catalogue pictures** — in the coin card and in the details (⇄ switches them), a photo viewer, search, filters, a tree of continents and countries.
 - **Numista prices** (optional) — the Numista estimate for the condition of each coin (UAH, USD or EUR) and the total of the collection; **past auction sales** of the coin with links to the lots.
+- **Swap and wish lists** — import your uCoin swap list and wish list; upload the swap list to your Numista collection (marked for swap); see at once which wanted coins you already have.
 - **A list you arrange yourself** — choose and move columns, small photos of the obverse and reverse in the list; the window, panels and column widths are remembered.
 - **Backup and restore** of the whole collection (database and photos) in one `.zip` file.
 - English and Ukrainian interface, built-in help (F1).
@@ -30,7 +31,7 @@ Your coin collection on your computer — and an easy way to move it from **uCoi
 
 **Update:** install the new version over the old one — the collection stays, the database is upgraded automatically.
 
-You can check the downloaded file with its SHA-256 checksum from the release page (PowerShell: `Get-FileHash .\CoinsCollection-Setup-0.4.0.exe`).
+You can check the downloaded file with its SHA-256 checksum from the release page (PowerShell: `Get-FileHash .\CoinsCollection-Setup-0.5.0.exe`).
 
 ## First steps
 
@@ -68,6 +69,7 @@ Licensed under the [MIT License](LICENSE).
 - **Індекс рідкісності** з приватного коментаря ваших предметів на Numista (`R:97` або просто `97`).
 - **Власні фото поруч із зображеннями з каталогу** — у картці монети й у подробицях (⇄ перемикає), перегляд фото, пошук, фільтри, дерево континентів і країн.
 - **Ціни Numista** (за бажанням) — оцінка Numista для стану кожної монети (UAH, USD або EUR) і сума по колекції; **минулі продажі на аукціонах** з посиланнями на лоти.
+- **Списки обміну й бажаних** — імпорт ваших списків обміну й бажаних з uCoin; вивантаження списку обміну у вашу колекцію на Numista (з позначкою обміну); одразу видно, які бажані монети вже є.
 - **Список, який ви налаштовуєте самі** — вибір і перестановка колонок, мініатюри аверсу й реверсу в списку; вікно, панелі й ширини колонок запам'ятовуються.
 - **Резервна копія та відновлення** всієї колекції (база й фото) одним файлом `.zip`.
 - Інтерфейс англійською та українською, вбудована довідка (F1).
