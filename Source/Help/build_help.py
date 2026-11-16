@@ -170,6 +170,11 @@ the others — [[ui:Auto-link|Автозв'язок]] as usual. Numista has no w
 the row in [[ui:Wish list|Бажані]] is <b style="color:green">bold green</b> and the details show the years — time to remove it from the wish list.</li>
 <li>A repeated import updates the wish list the same way as the swap list.</li>
 </ul>
+<h3>Wish list on Numista</h3>
+<p>Numista has a wish list on its website, but not in its API, so the program cannot upload it. To add a coin by hand: open the type page
+(the link <i>N# …</i> in the coin details), in the block <i>Manage my collection</i> choose <i>I wish to get this coin</i>.
+Your list: <a href="https://en.numista.com/souhaits/liste_veux.php?wish=1">en.numista.com/souhaits/liste_veux.php?wish=1</a>.
+Numista compares it with the swap lists of other members (the block <i>Get this coin</i> on the type page).</p>
 <h2>Import from your Numista collection</h2>
 <p>Coins that you added on Numista yourself and that are not in uCoin (for example ancient coins) can be imported too:
 [[ui:Numista → Import from my Numista collection|Numista → Імпорт з моєї колекції Numista]].</p>
@@ -254,6 +259,11 @@ T['import', 'uk'] = u"""
 рядок у [[ui:Wish list|Бажані]] — <b style="color:green">жирний зелений</b>, а в подробицях видно роки — час прибрати її з бажаних.</li>
 <li>Повторний імпорт оновлює список бажаних так само, як список обміну.</li>
 </ul>
+<h3>Список бажаних на Numista</h3>
+<p>На сайті Numista список бажаних є, але в його API — ні, тож програма не може його вивантажити. Додати монету вручну: відкрийте сторінку типу
+(посилання <i>N# …</i> у подробицях монети), у блоці <i>Manage my collection</i> виберіть <i>I wish to get this coin</i>.
+Ваш список: <a href="https://en.numista.com/souhaits/liste_veux.php?wish=1">en.numista.com/souhaits/liste_veux.php?wish=1</a>.
+Numista порівнює його зі списками обміну інших учасників (блок <i>Get this coin</i> на сторінці типу).</p>
 <h2>Імпорт з вашої колекції Numista</h2>
 <p>Монети, які ви самі додали на Numista і яких немає в uCoin (наприклад античні), теж можна імпортувати:
 [[ui:Numista → Import from my Numista collection|Numista → Імпорт з моєї колекції Numista]].</p>
@@ -1195,6 +1205,15 @@ of the issue (or of the whole type) with prices in your currency, the summary �
 <li>Drag a column header to another place; change the window size, the width of the tree and of a column. Restart the program.
 <b>Expected:</b> everything as you left it.</li>
 </ol>
+<h2>9. Swap and wish lists</h2>
+<ol>
+<li>On uCoin export your swap list (site in English) → [[ui:File → Import swap list from uCoin (.xlsx)...|Файл → Імпорт списку обміну з uCoin (.xlsx)...]].
+<b>Expected:</b> the coins in [[ui:For swap|На обмін]], the collection unchanged; the column [[ui:Swap|Обмін]] shows how many you have for swap.</li>
+<li>A linked coin for swap → right-click → [[ui:Upload to Numista|Вивантажити в Numista]]. <b>Expected:</b> on Numista it is in your swap list; in the program <b>1 ✓</b> in [[ui:Swap|Обмін]].</li>
+<li>Export your wish list → [[ui:File → Import wish list from uCoin (.xlsx)...|Файл → Імпорт списку бажаних з uCoin (.xlsx)...]].
+<b>Expected:</b> the coins in [[ui:Wish list|Бажані]] with year ranges; a wanted coin you already have is bold green.</li>
+<li>Right-click a column header → [[ui:Alignment|Вирівнювання]]. <b>Expected:</b> the column is aligned as chosen, also after a restart.</li>
+</ol>
 <h2>What to send with a problem</h2>
 <ul>
 <li>What you did and what happened — step by step; a screenshot of the message.</li>
@@ -1266,6 +1285,15 @@ T['testing', 'uk'] = u"""
 <b>Очікується:</b> мініатюри монет у списку; [[ui:Row height|Висота рядків]] робить їх більшими.</li>
 <li>Перетягніть заголовок колонки на інше місце; змініть розмір вікна, ширину дерева й колонки. Перезапустіть програму.
 <b>Очікується:</b> усе так, як ви залишили.</li>
+</ol>
+<h2>9. Списки обміну й бажаних</h2>
+<ol>
+<li>На uCoin експортуйте список обміну (сайт англійською) → [[ui:File → Import swap list from uCoin (.xlsx)...|Файл → Імпорт списку обміну з uCoin (.xlsx)...]].
+<b>Очікується:</b> монети в [[ui:For swap|На обмін]], колекція без змін; колонка [[ui:Swap|Обмін]] показує, скільки у вас на обмін.</li>
+<li>Пов'язана монета на обмін → праве клацання → [[ui:Upload to Numista|Вивантажити в Numista]]. <b>Очікується:</b> на Numista вона у вашому списку обміну; у програмі <b>1 ✓</b> в [[ui:Swap|Обмін]].</li>
+<li>Експортуйте список бажаних → [[ui:File → Import wish list from uCoin (.xlsx)...|Файл → Імпорт списку бажаних з uCoin (.xlsx)...]].
+<b>Очікується:</b> монети в [[ui:Wish list|Бажані]] з діапазонами років; бажана монета, яка вже є в колекції, — жирним зеленим.</li>
+<li>Праве клацання по заголовку колонки → [[ui:Alignment|Вирівнювання]]. <b>Очікується:</b> колонка вирівняна, як вибрано, і після перезапуску.</li>
 </ol>
 <h2>Що надіслати разом із проблемою</h2>
 <ul>
