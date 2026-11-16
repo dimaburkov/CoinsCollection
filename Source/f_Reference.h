@@ -35,6 +35,8 @@ __published:	// IDE-managed Components
 	TCheckBox *chkExists;
 	TLabel *lblNumistaIssuer;
 	TEdit *edNumistaIssuer;
+	TLabel *lblParent;
+	TComboBox *cbParent;
 	TButton *btnCountryAdd;
 	TButton *btnCountrySave;
 	TButton *btnCountryDelete;
@@ -79,6 +81,7 @@ private:	// User declarations
 	std::vector<TContinent>  FContinents;     // по id; cbContinent: 0 — «—», i + 1 — FContinents[i]
 	std::vector<TCountry>    FAllCountries;   // для выбора страны на вкладке Periods
 	std::vector<TCountry>    FCountries;      // показанные на вкладке Countries (строка сетки = индекс + 1)
+	std::vector<int>         FParentIds;      // cbParent: 0 — «—», i + 1 — страна верхнего уровня FParentIds[i] (задача 50)
 	std::map<int, int>       FCountryUsage;
 	int                      FCountryId;      // последняя показанная / сохранённая страна (выбирается снова, когда видна)
 	std::vector<TPeriod>     FPeriods;
@@ -98,7 +101,10 @@ private:	// User declarations
 	int    CurrencyIndex() const;
 	int    PeriodCountryId() const;
 	int    ContinentIdFromCombo() const;
+	int    ParentIdFromCombo() const;
 	String ContinentName(int AId) const;
+	String CountryName(int AId) const;
+	bool   CheckNest(int AChildId, int AParentId);
 	String CellText(TObject *AGrid, int ACol, int ARow) const;
 
 	void   Warn(const String &AText);

@@ -48,9 +48,9 @@ object fmReference: TfmReference
         Left = 0
         Top = 28
         Width = 632
-        Height = 283
+        Height = 275
         Align = alClient
-        ColCount = 4
+        ColCount = 5
         DefaultRowHeight = 18
         FixedCols = 0
         RowCount = 2
@@ -59,16 +59,17 @@ object fmReference: TfmReference
         OnDrawCell = GridDrawCell
         OnSelectCell = GridSelectCell
         ColWidths = (
-          250
-          170
-          80
-          80)
+          190
+          130
+          50
+          140
+          60)
       end
       object pnlCountryEdit: TPanel
         Left = 0
-        Top = 311
+        Top = 303
         Width = 632
-        Height = 104
+        Height = 112
         Align = alBottom
         BevelOuter = bvNone
         TabOrder = 2
@@ -90,7 +91,7 @@ object fmReference: TfmReference
         end
         object lblRenameWarning: TLabel
           Left = 8
-          Top = 86
+          Top = 92
           Width = 616
           Height = 13
           AutoSize = False
@@ -141,6 +142,23 @@ object fmReference: TfmReference
           Width = 166
           Height = 21
           TabOrder = 6
+        end
+        object lblParent: TLabel
+          Left = 370
+          Top = 66
+          Width = 37
+          Height = 13
+          Caption = '&Part of:'
+          FocusControl = cbParent
+        end
+        object cbParent: TComboBox
+          Left = 456
+          Top = 63
+          Width = 166
+          Height = 21
+          Style = csDropDownList
+          DropDownCount = 20
+          TabOrder = 7
         end
         object btnCountryAdd: TButton
           Left = 370

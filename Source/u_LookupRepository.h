@@ -36,8 +36,11 @@ public:
 	// Только поиск: шкала фиксирована. Пустой код -> 0; неизвестный — исключение.
 	int FindCondition(const String &ACode);
 
-	// Сохранить континент и признак is_exist страны.
+	// Сохранить континент, признак is_exist и страну-родителя.
 	void UpdateCountry(const TCountry &ACountry);
+	// Вложение стран (задача 50), один уровень: можно ли вложить AChildId в AParentId (0 — вынуть).
+	enum TNestCheck { ncOk, ncSelf, ncIntoNested, ncHasChildren };
+	static TNestCheck CheckNest(const std::vector<TCountry> &ACountries, int AChildId, int AParentId);
 	// Код эмитента Numista у страны ("" — не указан).
 	void SetCountryIssuer(int ACountryId, const String &AIssuer);
 	// Эмитент Numista периода (задача 15a): ключ PeriodKey(страна, период) -> код;
@@ -70,7 +73,7 @@ public:
 	void RenameCurrency(int AId, const String &AName);
 
 	// Удалить, только если на запись не ссылается ни одна монета; false — используется.
-	// Страна удаляется вместе со своими (неиспользуемыми) периодами.
+	// Страна удаляется вместе со своими (неиспользуемыми) периодами; вложенные в неё — на верхний уровень.
 	bool DeleteCountry(int AId);
 	bool DeletePeriod(int AId);
 	bool DeleteCurrency(int AId);

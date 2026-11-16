@@ -211,6 +211,8 @@ __published:	// IDE-managed Components
 	void __fastcall dgItemsSelectCell(TObject *Sender, int ACol, int ARow, bool &CanSelect);
 	void __fastcall sbInfoResize(TObject *Sender);
 	void __fastcall tvNavChange(TObject *Sender, TTreeNode *Node);
+	void __fastcall tvNavDragOver(TObject *Sender, TObject *Source, int X, int Y, TDragState State, bool &Accept);
+	void __fastcall tvNavDragDrop(TObject *Sender, TObject *Source, int X, int Y);
 	void __fastcall edSearchChange(TObject *Sender);
 	void __fastcall edSearchKeyDown(TObject *Sender, WORD &Key, TShiftState Shift);
 	void __fastcall tbClearSearchClick(TObject *Sender);
@@ -286,6 +288,7 @@ private:	// User declarations
 	std::vector<String>              FSearchTexts;     // текст для поиска по FAll[i] (в верхнем регистре)
 	std::vector<TCoinRecord>         FItems;           // показанные (после фильтров), в порядке показа (строка сетки = индекс + 1)
 	std::map<String, TCountry>       FCountryByName;   // имя страны (AnsiUpperCase) -> страна
+	std::map<int, TCountry>          FCountryById;     // id -> страна (вложенные страны, задача 50)
 	std::vector<TNavNode>            FNav;             // узлы дерева; TTreeNode::Data = индекс
 	bool                             FBuildingTree;    // перестройка дерева — не фильтровать на каждом OnChange
 	TTreeNode                       *FCheckedNode;     // узел «Отмеченные» (счётчик меняется без перестройки дерева)
@@ -353,6 +356,11 @@ private:	// User declarations
 	static String NumistaItemList(TJSONValue *AItem);
 	// Список нового экземпляра по узлу дерева (задача 47): «На обмін» — обмен.
 	String NewItemList(const TCoinRecord *ASample = nullptr) const;
+	void LoadCountries();
+	// Где страна показывается в дереве (задача 50): вложенная — по месту родителя.
+	const TCountry &PlaceOf(const TCountry &ACountry) const;
+	// Перетаскивание страны на узел дерева: false — ничего не меняется; ACountry — что сохранить.
+	bool DropCountry(const TNavNode &ATarget, TCountry &ACountry) const;
 	void BuildTree();
 	TTreeNode *AddNavNode(TTreeNode *AParent, int AKind, int AId, const String &AName, int ACount);
 	const TNavNode *CurrentNode() const;

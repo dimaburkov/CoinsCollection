@@ -75,7 +75,8 @@ void TDatabase::EnsureSchema()
 		if (version < 11) { MigrateTo11(); version = 11; }
 		if (version < 12) { MigrateTo12(); version = 12; }
 		if (version < 13) { MigrateTo13(); version = 13; }
-		// if (version < 14) { MigrateTo14(); version = 14; }
+		if (version < 14) { MigrateTo14(); version = 14; }
+		// if (version < 15) { MigrateTo15(); version = 15; }
 
 		// PRAGMA не принимает параметры; version — целое из кода.
 		FConnection->ExecSQL(L"PRAGMA user_version = " + IntToStr(version));
@@ -352,6 +353,12 @@ void TDatabase::MigrateTo12()
 void TDatabase::MigrateTo13()
 {
 	FConnection->ExecSQL(L"ALTER TABLE coin_items ADD COLUMN list TEXT");
+}
+//---------------------------------------------------------------------------
+// v14 (задача 50): страна может быть вложена в другую (Prussia в Germany); NULL — верхнего уровня.
+void TDatabase::MigrateTo14()
+{
+	FConnection->ExecSQL(L"ALTER TABLE countries ADD COLUMN id_parent INTEGER REFERENCES countries(id)");
 }
 //---------------------------------------------------------------------------
 // Справочники с начальным составом (u_SeedData). «Extinct states» — не континент:

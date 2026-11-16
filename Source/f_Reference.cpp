@@ -15,7 +15,7 @@ TfmReference *fmReference;
 //---------------------------------------------------------------------------
 namespace
 {
-	const wchar_t *const cCountryColumns[]  = { L"Ref.Col.Name", L"Ref.Col.Continent", L"Ref.Col.Exists", L"Ref.Col.Items" };
+	const wchar_t *const cCountryColumns[]  = { L"Ref.Col.Name", L"Ref.Col.Continent", L"Ref.Col.Exists", L"Ref.Col.Parent", L"Ref.Col.Items" };
 	const wchar_t *const cNameItemColumns[] = { L"Ref.Col.Name", L"Ref.Col.Items" };
 }
 //---------------------------------------------------------------------------
@@ -92,13 +92,52 @@ int TfmReference::ContinentIdFromCombo() const
 	return index > 0 && index <= (int)FContinents.size() ? FContinents[index - 1].Id : 0;
 }
 //---------------------------------------------------------------------------
+int TfmReference::ParentIdFromCombo() const
+{
+	const int index = cbParent->ItemIndex;
+	return index > 0 && index <= (int)FParentIds.size() ? FParentIds[index - 1] : 0;
+}
+//---------------------------------------------------------------------------
+String TfmReference::CountryName(int AId) const
+{
+	for (size_t i = 0; i < FAllCountries.size(); ++i)
+		if (FAllCountries[i].Id == AId)
+			return FAllCountries[i].Name;
+	return String();
+}
+//---------------------------------------------------------------------------
+// Вложение стран (задача 50): false — нельзя (предупреждение показано).
+bool TfmReference::CheckNest(int AChildId, int AParentId)
+{
+	String error;
+	switch (TLookupRepository::CheckNest(FAllCountries, AChildId, AParentId))
+	{
+		case TLookupRepository::ncOk:
+			return true;
+		case TLookupRepository::ncSelf:
+			error = Tr(L"Ref.Nest.Self");
+			break;
+		case TLookupRepository::ncIntoNested:
+			for (size_t i = 0; i < FAllCountries.size(); ++i)
+				if (FAllCountries[i].Id == AParentId)
+					error = Format(Tr(L"Ref.Nest.IntoNested"),
+						ARRAYOFCONST((FAllCountries[i].Name, CountryName(FAllCountries[i].ParentId))));
+			break;
+		case TLookupRepository::ncHasChildren:
+			error = Format(Tr(L"Ref.Nest.HasChildren"), ARRAYOFCONST((CountryName(AChildId))));
+			break;
+	}
+	Warn(error);
+	return false;
+}
+//---------------------------------------------------------------------------
 String TfmReference::CellText(TObject *AGrid, int ACol, int ARow) const
 {
 	const int index = ARow - 1;
 	if (AGrid == dgCountries)
 	{
 		if (ARow == 0)
-			return ACol < 4 ? Tr(cCountryColumns[ACol]) : String();
+			return ACol < 5 ? Tr(cCountryColumns[ACol]) : String();
 		if (index >= (int)FCountries.size())
 			return String();
 		const TCountry &c = FCountries[index];
@@ -107,7 +146,8 @@ String TfmReference::CellText(TObject *AGrid, int ACol, int ARow) const
 			case 0: return c.Name;
 			case 1: return ContinentName(c.ContinentId);
 			case 2: return Tr(c.IsExist ? L"Ref.Yes" : L"Ref.No");
-			case 3: return IntToStr(Usage(FCountryUsage, c.Id));
+			case 3: return CountryName(c.ParentId);
+			case 4: return IntToStr(Usage(FCountryUsage, c.Id));
 		}
 	}
 	else if (AGrid == dgPeriods)
@@ -175,6 +215,19 @@ void TfmReference::LoadCountries(int ASelectId)
 			select = (int)FCountries.size();
 		FCountries.push_back(FAllCountries[i]);
 	}
+	// Во что можно вложить: страны верхнего уровня (задача 50).
+	FParentIds.clear();
+	cbParent->Items->BeginUpdate();
+	cbParent->Items->Clear();
+	cbParent->Items->Add(L"—");
+	for (size_t i = 0; i < FAllCountries.size(); ++i)
+		if (FAllCountries[i].ParentId == 0)
+		{
+			FParentIds.push_back(FAllCountries[i].Id);
+			cbParent->Items->Add(FAllCountries[i].Name);
+		}
+	cbParent->Items->EndUpdate();
+
 	SetRows(dgCountries, FCountries.size(), select);
 	ShowCountry(FCountries.empty() ? -1 : select);
 
@@ -204,6 +257,7 @@ void TfmReference::ShowCountry(int AIndex)
 		cbContinent->ItemIndex = 0;
 		chkExists->Checked = true;
 		edNumistaIssuer->Text = L"";
+		cbParent->ItemIndex = 0;
 	}
 	else
 	{
@@ -216,6 +270,10 @@ void TfmReference::ShowCountry(int AIndex)
 				cbContinent->ItemIndex = (int)i + 1;
 		chkExists->Checked = c.IsExist;
 		edNumistaIssuer->Text = c.NumistaIssuer;
+		cbParent->ItemIndex = 0;
+		for (size_t i = 0; i < FParentIds.size(); ++i)
+			if (FParentIds[i] == c.ParentId)
+				cbParent->ItemIndex = (int)i + 1;
 	}
 	lblRenameWarning->Visible = false;
 }
@@ -244,6 +302,7 @@ void __fastcall TfmReference::btnCountryAddClick(TObject *Sender)
 	c.Name        = name;
 	c.ContinentId = ContinentIdFromCombo();
 	c.IsExist     = chkExists->Checked;
+	c.ParentId    = ParentIdFromCombo();
 	const int id = FLookups->AddCountry(c);
 	FLookups->SetCountryIssuer(id, edNumistaIssuer->Text);
 	FChanged = true;
@@ -266,6 +325,9 @@ void __fastcall TfmReference::btnCountrySaveClick(TObject *Sender)
 	c.ContinentId = ContinentIdFromCombo();
 	c.IsExist     = chkExists->Checked;
 	c.NumistaIssuer = edNumistaIssuer->Text.Trim();
+	c.ParentId    = ParentIdFromCombo();
+	if (c.ParentId != FCountries[index].ParentId && !CheckNest(c.Id, c.ParentId))
+		return;
 	FLookups->SaveCountry(c);
 	FChanged = true;
 	LoadCountries(c.Id);

@@ -102,11 +102,14 @@ object fmMain: TfmMain
     Width = 240
     Height = 480
     Align = alLeft
+    DragMode = dmAutomatic
     HideSelection = False
     Indent = 19
     ReadOnly = True
     TabOrder = 1
     OnChange = tvNavChange
+    OnDragDrop = tvNavDragDrop
+    OnDragOver = tvNavDragOver
   end
   object Splitter: TSplitter
     Left = 240

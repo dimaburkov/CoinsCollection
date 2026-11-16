@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Головне вікно — Колекція монет — Довідка</title>
+<title>Головне вікно — Coins Collection — Довідка</title>
 <link rel="stylesheet" href="../help.css">
 </head>
 <body>
 <header>
-<span class="app">Колекція монет — Довідка</span>
+<span class="app">Coins Collection — Довідка</span>
 <nav><a href="index.html">Зміст</a><a href="../en/main-window.html">In English</a></nav>
 </header>
 <main>
@@ -19,6 +19,17 @@
 <span class="ui">Extinct states/Зниклі держави</span>, <span class="ui">For swap/На обмін</span> і <span class="ui">Wish list/Бажані</span> (ваші списки обміну й бажаних, див. <a href="import.html">Імпорт з uCoin</a>)
 і <span class="ui">Checked/Позначені</span> (усі позначені монети з будь-яких країн, див. <a href="checks.html">Позначки монет</a>).
 Число в дужках — кількість примірників. Вузли колекції й підсумки в рядку стану не враховують списки обміну й бажаних.</p>
+<h3>Перенесення країн у дереві</h3>
+<p>Перетягніть країну мишею:</p>
+<ul>
+<li><b>на іншу країну</b> — вона вкладається в неї: наприклад, <i>Prussia</i>, <i>Germany - GDR</i> і <i>Germany - Third Reich</i> у <i>Germany</i>.
+Вузол країни тоді показує свої монети й монети вкладених країн; вкладена країна — лише свої;</li>
+<li><b>на континент</b> — країна показується під ним (наприклад, <i>Ceylon</i> під <i>Asia</i>); зникла держава виходить із <span class="ui">Extinct states/Зниклі держави</span>;</li>
+<li><b>на <span class="ui">No continent/Без континенту</span> або <span class="ui">Extinct states/Зниклі держави</span></b> — країна знову показується там (так само її виймають з іншої країни).</li>
+</ul>
+<p>Лише один рівень: вкладати можна тільки в країну, яка сама не вкладена, а країну, у яку вкладені інші, не можна вкласти в іншу.
+Країна залишається країною зі своїми періодами, емітентом Numista й монетами, тож повторний імпорт з uCoin чи Numista нічого не зсуває.
+Те саме налаштовується в <a href="references.html">Довідники → Країни</a> (<span class="ui">Continent/Континент</span>, <span class="ui">Part of/Входить у</span>).</p>
 <h2>Пошук</h2>
 <p>Поле пошуку на панелі інструментів фільтрує список за країною, періодом, валютою, номіналом, роком, сюжетом, різновидом, номером у каталозі, коментарем і назвою Numista (наприклад <i>Crispina</i>).</p>
 <h2>Список монет</h2>
