@@ -494,6 +494,11 @@ void __fastcall TfmMain::FormDestroy(TObject *Sender)
 // Вызывается и при смене языка.
 void TfmMain::ApplyTexts()
 {
+	// Заголовок: название не переводится, плюс версия без последнего ".0" — "Coins Collection 0.5.0" (задача 50).
+	String version = AppInfo::Version;
+	if (version.Length() > 2 && version.SubString(version.Length() - 1, 2) == L".0")
+		version.SetLength(version.Length() - 2);
+	Caption = L"Coins Collection " + version;
 	// Кнопка связана с actImport, но подпись у неё короче, чем пункт меню.
 	tbImport->Caption = Tr(L"Main.Toolbar.Import");
 	edSearch->TextHint = Tr(L"Main.Search.Hint");
@@ -3553,14 +3558,62 @@ void TfmMain::LoadItems()
 			+ r.Variety + sep + r.CatalogNumber + sep + r.Comment + sep + r.NumistaTitle));
 	}
 
-	FCountryByName.clear();
-	const std::vector<TCountry> countries = FRepository->Lookups().Countries();
-	for (size_t i = 0; i < countries.size(); ++i)
-		FCountryByName[AnsiUpperCase(countries[i].Name)] = countries[i];
-
+	LoadCountries();
 	BuildTree();
 	ApplyFilter();
 	SelectId(current);
+}
+//---------------------------------------------------------------------------
+void TfmMain::LoadCountries()
+{
+	FCountryByName.clear();
+	FCountryById.clear();
+	const std::vector<TCountry> countries = FRepository->Lookups().Countries();
+	for (size_t i = 0; i < countries.size(); ++i)
+	{
+		FCountryByName[AnsiUpperCase(countries[i].Name)] = countries[i];
+		FCountryById[countries[i].Id] = countries[i];
+	}
+}
+//---------------------------------------------------------------------------
+const TCountry &TfmMain::PlaceOf(const TCountry &ACountry) const
+{
+	if (ACountry.ParentId == 0)
+		return ACountry;
+	// Один уровень: родитель, вложенный сам (так быть не должно), не считается.
+	std::map<int, TCountry>::const_iterator it = FCountryById.find(ACountry.ParentId);
+	return it == FCountryById.end() || it->second.ParentId != 0 ? ACountry : it->second;
+}
+//---------------------------------------------------------------------------
+// Страна -> страна: вложить; -> континент: под континент (и из «Зниклі»);
+// -> «Без континенту»: без континента; -> «Зниклі держави»: исчезнувшая. Всё, кроме вложения, — вынуть.
+bool TfmMain::DropCountry(const TNavNode &ATarget, TCountry &ACountry) const
+{
+	const TCountry old = ACountry;
+	switch (ATarget.Kind)
+	{
+		case nkCountry:
+			ACountry.ParentId = ATarget.Id;
+			break;
+		case nkContinent:
+			ACountry.ParentId = 0;
+			ACountry.ContinentId = ATarget.Id;
+			ACountry.IsExist = true;
+			break;
+		case nkNoContinent:
+			ACountry.ParentId = 0;
+			ACountry.ContinentId = 0;
+			ACountry.IsExist = true;
+			break;
+		case nkExtinct:
+			ACountry.ParentId = 0;
+			ACountry.IsExist = false;
+			break;
+		default:
+			return false;
+	}
+	return ACountry.ParentId != old.ParentId || ACountry.ContinentId != old.ContinentId
+		|| ACountry.IsExist != old.IsExist;
 }
 //---------------------------------------------------------------------------
 TTreeNode *TfmMain::AddNavNode(TTreeNode *AParent, int AKind, int AId, const String &AName, int ACount)
@@ -3574,7 +3627,7 @@ TTreeNode *TfmMain::AddNavNode(TTreeNode *AParent, int AKind, int AId, const Str
 		reinterpret_cast<void *>((NativeInt)(FNav.size() - 1)));
 }
 //---------------------------------------------------------------------------
-// Дерево: All -> континенты -> страны, плюс No continent и Extinct states.
+// Дерево: All -> континенты -> страны (-> вложенные страны, задача 50), плюс No continent и Extinct states.
 // В скобках — число экземпляров (поиск и Need to replace на счётчики не влияют).
 // Выбранный узел и раскрытые узлы сохраняются по ключу.
 void TfmMain::BuildTree()
@@ -3615,6 +3668,37 @@ void TfmMain::BuildTree()
 		[](const TContinent &A, const TContinent &B) { return A.Id < B.Id; });
 	auto count = [&byCountry](int AId) { std::map<int, int>::const_iterator it = byCountry.find(AId); return it == byCountry.end() ? 0 : it->second; };
 
+	// Вложенные страны (задача 50): родитель -> вложенные (по алфавиту); в узле родителя — и их монеты.
+	std::map<int, std::vector<TCountry> > nested;
+	std::vector<TCountry> top;
+	for (size_t i = 0; i < countries.size(); ++i)
+		if (PlaceOf(countries[i]).Id != countries[i].Id)
+			nested[countries[i].ParentId].push_back(countries[i]);
+		else
+			top.push_back(countries[i]);
+	auto total = [&](const TCountry &AParent)
+	{
+		int sum = count(AParent.Id);
+		std::map<int, std::vector<TCountry> >::const_iterator it = nested.find(AParent.Id);
+		if (it != nested.end())
+			for (size_t i = 0; i < it->second.size(); ++i)
+				sum += count(it->second[i].Id);
+		return sum;
+	};
+	// Страна с монетами (своими или вложенных) и её вложенные с монетами.
+	auto addCountry = [&](TTreeNode *AParent, const TCountry &ACountry)
+	{
+		const int sum = total(ACountry);
+		if (sum == 0)
+			return;
+		TTreeNode *node = AddNavNode(AParent, nkCountry, ACountry.Id, ACountry.Name, sum);
+		std::map<int, std::vector<TCountry> >::const_iterator it = nested.find(ACountry.Id);
+		if (it != nested.end())
+			for (size_t i = 0; i < it->second.size(); ++i)
+				if (count(it->second[i].Id) > 0)
+					AddNavNode(node, nkCountry, it->second[i].Id, it->second[i].Name, count(it->second[i].Id));
+	};
+
 	FBuildingTree = true;
 	tvNav->Items->BeginUpdate();
 	try
@@ -3628,37 +3712,37 @@ void TfmMain::BuildTree()
 		for (size_t k = 0; k < continents.size(); ++k)
 		{
 			int sum = 0;
-			for (size_t i = 0; i < countries.size(); ++i)
-				if (countries[i].IsExist && countries[i].ContinentId == continents[k].Id)
-					sum += count(countries[i].Id);
+			for (size_t i = 0; i < top.size(); ++i)
+				if (top[i].IsExist && top[i].ContinentId == continents[k].Id)
+					sum += total(top[i]);
 			TTreeNode *node = AddNavNode(root, nkContinent, continents[k].Id, continents[k].Name, sum);
-			for (size_t i = 0; i < countries.size(); ++i)
-				if (countries[i].IsExist && countries[i].ContinentId == continents[k].Id && count(countries[i].Id) > 0)
-					AddNavNode(node, nkCountry, countries[i].Id, countries[i].Name, count(countries[i].Id));
+			for (size_t i = 0; i < top.size(); ++i)
+				if (top[i].IsExist && top[i].ContinentId == continents[k].Id)
+					addCountry(node, top[i]);
 		}
 
 		// Страны без континента — только если у них есть монеты.
 		int noContinent = unknown;
-		for (size_t i = 0; i < countries.size(); ++i)
-			if (countries[i].IsExist && countries[i].ContinentId == 0)
-				noContinent += count(countries[i].Id);
+		for (size_t i = 0; i < top.size(); ++i)
+			if (top[i].IsExist && top[i].ContinentId == 0)
+				noContinent += total(top[i]);
 		if (noContinent > 0)
 		{
 			TTreeNode *node = AddNavNode(root, nkNoContinent, 0, Tr(L"Main.Tree.NoContinent"), noContinent);
-			for (size_t i = 0; i < countries.size(); ++i)
-				if (countries[i].IsExist && countries[i].ContinentId == 0 && count(countries[i].Id) > 0)
-					AddNavNode(node, nkCountry, countries[i].Id, countries[i].Name, count(countries[i].Id));
+			for (size_t i = 0; i < top.size(); ++i)
+				if (top[i].IsExist && top[i].ContinentId == 0)
+					addCountry(node, top[i]);
 		}
 
 		// Исчезнувшие государства — только здесь, не под своим континентом.
 		int extinct = 0;
-		for (size_t i = 0; i < countries.size(); ++i)
-			if (!countries[i].IsExist)
-				extinct += count(countries[i].Id);
+		for (size_t i = 0; i < top.size(); ++i)
+			if (!top[i].IsExist)
+				extinct += total(top[i]);
 		TTreeNode *extinctNode = AddNavNode(root, nkExtinct, 0, Tr(L"Main.Tree.Extinct"), extinct);
-		for (size_t i = 0; i < countries.size(); ++i)
-			if (!countries[i].IsExist && count(countries[i].Id) > 0)
-				AddNavNode(extinctNode, nkCountry, countries[i].Id, countries[i].Name, count(countries[i].Id));
+		for (size_t i = 0; i < top.size(); ++i)
+			if (!top[i].IsExist)
+				addCountry(extinctNode, top[i]);
 
 		// Список обмена (задача 47) — отдельный узел после All.
 		AddNavNode(nullptr, nkSwap, 0, Tr(L"Main.Tree.Swap"), FSwapCount);
@@ -3710,10 +3794,11 @@ bool TfmMain::MatchNode(const TCoinRecord &ARecord, const TNavNode &ANode) const
 	std::map<String, TCountry>::const_iterator it = FCountryByName.find(AnsiUpperCase(ARecord.Country));
 	if (it == FCountryByName.end())
 		return ANode.Kind == nkNoContinent;
-	const TCountry &c = it->second;
+	// Вложенная страна — в узле родителя и там, где показан родитель (задача 50).
+	const TCountry &c = PlaceOf(it->second);
 	switch (ANode.Kind)
 	{
-		case nkCountry:     return c.Id == ANode.Id;
+		case nkCountry:     return it->second.Id == ANode.Id || c.Id == ANode.Id;
 		case nkExtinct:     return !c.IsExist;
 		case nkNoContinent: return c.IsExist && c.ContinentId == 0;
 		case nkContinent:   return c.IsExist && c.ContinentId == ANode.Id;
@@ -4168,6 +4253,73 @@ void __fastcall TfmMain::tvNavChange(TObject *Sender, TTreeNode *Node)
 {
 	if (!FBuildingTree)
 		ApplyFilter();
+}
+//---------------------------------------------------------------------------
+// Перетаскивание страны в дереве (задача 50). Перетаскиваемый узел выбран (TTreeView
+// выбирает его при начале перетаскивания); цель — узел под курсором.
+void __fastcall TfmMain::tvNavDragOver(TObject *Sender, TObject *Source, int X, int Y,
+	TDragState State, bool &Accept)
+{
+	Accept = false;
+	const TNavNode *source = CurrentNode();
+	TTreeNode *target = tvNav->GetNodeAt(X, Y);
+	if (Source != tvNav || !source || source->Kind != nkCountry || !target)
+		return;
+	std::map<int, TCountry>::const_iterator it = FCountryById.find(source->Id);
+	if (it == FCountryById.end())
+		return;
+	TCountry country = it->second;
+	Accept = DropCountry(FNav[(NativeInt)target->Data], country);
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::tvNavDragDrop(TObject *Sender, TObject *Source, int X, int Y)
+{
+	const TNavNode *source = CurrentNode();
+	TTreeNode *target = tvNav->GetNodeAt(X, Y);
+	if (Source != tvNav || !source || source->Kind != nkCountry || !target)
+		return;
+	std::map<int, TCountry>::const_iterator it = FCountryById.find(source->Id);
+	if (it == FCountryById.end())
+		return;
+	TCountry country = it->second;
+	const TNavNode targetNode = FNav[(NativeInt)target->Data];
+	if (!DropCountry(targetNode, country))
+		return;
+
+	if (country.ParentId != 0)
+	{
+		std::vector<TCountry> countries;
+		for (std::map<int, TCountry>::const_iterator c = FCountryById.begin(); c != FCountryById.end(); ++c)
+			countries.push_back(c->second);
+		const TCountry &parent = FCountryById[country.ParentId];
+		String error;
+		switch (TLookupRepository::CheckNest(countries, country.Id, country.ParentId))
+		{
+			case TLookupRepository::ncOk:
+				break;
+			case TLookupRepository::ncIntoNested:
+				error = Format(Tr(L"Ref.Nest.IntoNested"), ARRAYOFCONST((parent.Name, FCountryById[parent.ParentId].Name)));
+				break;
+			case TLookupRepository::ncHasChildren:
+				error = Format(Tr(L"Ref.Nest.HasChildren"), ARRAYOFCONST((country.Name)));
+				break;
+			default:
+				return;
+		}
+		if (!error.IsEmpty())
+		{
+			Application->MessageBox(error.c_str(), Application->Title.c_str(), MB_OK | MB_ICONWARNING);
+			return;
+		}
+	}
+
+	FRepository->Lookups().UpdateCountry(country);
+	LoadCountries();
+	// Выбор (перетащенная страна) восстанавливается по ключу; её узел показывается раскрытым родителем.
+	BuildTree();
+	ApplyFilter();
+	if (tvNav->Selected)
+		tvNav->Selected->MakeVisible();
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::edSearchChange(TObject *Sender)

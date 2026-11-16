@@ -8,7 +8,7 @@
 import re, os
 
 LANGS = ('en', 'uk')
-APP = {'en': u'Coins Collection — Help', 'uk': u'Колекція монет — Довідка'}
+APP = {'en': u'Coins Collection — Help', 'uk': u'Coins Collection — Довідка'}
 NAV = {'en': (u'Contents', u'Українською'), 'uk': (u'Зміст', u'In English')}
 MISSING = {'en': u'Screenshot', 'uk': u'Скриншот'}
 
@@ -48,7 +48,7 @@ details and pictures, and can add your coins to your Numista collection.</p>
 <div class="note">Press <b>F1</b> in any window to open the help page about that window.</div>
 """
 T['index', 'uk'] = u"""
-<p>«Колекція монет» зберігає всю вашу колекцію на комп'ютері — в одному місці, з двох джерел:
+<p>Coins Collection («Колекція монет») зберігає всю вашу колекцію на комп'ютері — в одному місці, з двох джерел:
 сучасні монети з <b>uCoin</b> (імпорт файлу експорту uCoin) і монети, яких немає на uCoin, — античні, римські,
 кельтські — з <b>Numista</b>. Програма знаходить кожну монету в каталозі Numista, завантажує тираж,
 характеристики й зображення та може додати ваші монети до вашої колекції на Numista.</p>
@@ -299,6 +299,17 @@ T['main-window', 'en'] = u"""
 [[ui:Extinct states|Зниклі держави]], [[ui:For swap|На обмін]] and [[ui:Wish list|Бажані]] (your swap and wish lists, see [[page:import|Import from uCoin]])
 and [[ui:Checked|Позначені]] (all checked coins from any country, see [[page:checks|Checking coins]]).
 The number in brackets is the number of items. The collection nodes and the totals in the status bar do not include the swap and wish lists.</p>
+<h3>Moving countries in the tree</h3>
+<p>Drag a country with the mouse:</p>
+<ul>
+<li><b>onto another country</b> — it is put inside it: for example <i>Prussia</i>, <i>Germany - GDR</i> and <i>Germany - Third Reich</i> inside <i>Germany</i>.
+The country node then shows its own coins and the coins of the countries inside; the country inside shows only its own coins;</li>
+<li><b>onto a continent</b> — the country is shown under it (for example <i>Ceylon</i> under <i>Asia</i>); an extinct state leaves [[ui:Extinct states|Зниклі держави]];</li>
+<li><b>onto [[ui:No continent|Без континенту]] or [[ui:Extinct states|Зниклі держави]]</b> — the country is shown there again (also to take it out of another country).</li>
+</ul>
+<p>Only one level: a country can be put only into a country that is not inside another one, and a country that has others inside cannot be put into another one.
+The country stays a country with its periods, Numista issuer and coins, so a repeated import from uCoin or Numista keeps everything in place.
+The same settings are in [[page:references|Reference → Countries]] ([[ui:Continent|Континент]], [[ui:Part of|Входить у]]).</p>
 <h2>Search</h2>
 <p>The search field on the toolbar filters the list by country, period, currency, denomination, year, subject, variety, catalogue number, comment and the Numista title (for example <i>Crispina</i>).</p>
 <h2>Coin list</h2>
@@ -352,6 +363,17 @@ T['main-window', 'uk'] = u"""
 [[ui:Extinct states|Зниклі держави]], [[ui:For swap|На обмін]] і [[ui:Wish list|Бажані]] (ваші списки обміну й бажаних, див. [[page:import|Імпорт з uCoin]])
 і [[ui:Checked|Позначені]] (усі позначені монети з будь-яких країн, див. [[page:checks|Позначки монет]]).
 Число в дужках — кількість примірників. Вузли колекції й підсумки в рядку стану не враховують списки обміну й бажаних.</p>
+<h3>Перенесення країн у дереві</h3>
+<p>Перетягніть країну мишею:</p>
+<ul>
+<li><b>на іншу країну</b> — вона вкладається в неї: наприклад, <i>Prussia</i>, <i>Germany - GDR</i> і <i>Germany - Third Reich</i> у <i>Germany</i>.
+Вузол країни тоді показує свої монети й монети вкладених країн; вкладена країна — лише свої;</li>
+<li><b>на континент</b> — країна показується під ним (наприклад, <i>Ceylon</i> під <i>Asia</i>); зникла держава виходить із [[ui:Extinct states|Зниклі держави]];</li>
+<li><b>на [[ui:No continent|Без континенту]] або [[ui:Extinct states|Зниклі держави]]</b> — країна знову показується там (так само її виймають з іншої країни).</li>
+</ul>
+<p>Лише один рівень: вкладати можна тільки в країну, яка сама не вкладена, а країну, у яку вкладені інші, не можна вкласти в іншу.
+Країна залишається країною зі своїми періодами, емітентом Numista й монетами, тож повторний імпорт з uCoin чи Numista нічого не зсуває.
+Те саме налаштовується в [[page:references|Довідники → Країни]] ([[ui:Continent|Континент]], [[ui:Part of|Входить у]]).</p>
 <h2>Пошук</h2>
 <p>Поле пошуку на панелі інструментів фільтрує список за країною, періодом, валютою, номіналом, роком, сюжетом, різновидом, номером у каталозі, коментарем і назвою Numista (наприклад <i>Crispina</i>).</p>
 <h2>Список монет</h2>
@@ -545,6 +567,8 @@ T['references', 'en'] = u"""
 <ul>
 <li>[[ui:Continent|Континент]] — where the country is shown in the tree.</li>
 <li>[[ui:Exists (not an extinct state)|Існує (не зникла держава)]] — unchecked: the country is shown under [[ui:Extinct states|Зниклі держави]].</li>
+<li>[[ui:Part of|Входить у]] — the country is shown inside another country in the tree (for example <i>Prussia</i> inside <i>Germany</i>);
+empty — on its own. The same is done by dragging in the tree, see [[page:main-window|Main window]].</li>
 <li>[[ui:Numista issuer|Емітент Numista]] — the Numista issuer code used to search coins of this country. It is filled automatically;
 change it only if coins of the country are not found.</li>
 </ul>
@@ -558,6 +582,8 @@ T['references', 'uk'] = u"""
 <ul>
 <li>[[ui:Continent|Континент]] — де країна показується в дереві.</li>
 <li>[[ui:Exists (not an extinct state)|Існує (не зникла держава)]] — знято: країна показується в [[ui:Extinct states|Зниклі держави]].</li>
+<li>[[ui:Part of|Входить у]] — країна показується в дереві всередині іншої країни (наприклад, <i>Prussia</i> у <i>Germany</i>);
+порожньо — окремо. Те саме робиться перетягуванням у дереві, див. [[page:main-window|Головне вікно]].</li>
 <li>[[ui:Numista issuer|Емітент Numista]] — код емітента Numista для пошуку монет цієї країни. Заповнюється автоматично;
 змінюйте його, лише якщо монети країни не знаходяться.</li>
 </ul>

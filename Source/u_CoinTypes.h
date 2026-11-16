@@ -214,7 +214,8 @@ struct TCountry
 	int    ContinentId;        // 0 = не указан
 	bool   IsExist;            // false — исчезнувшее государство
 	String NumistaIssuer;      // код эмитента Numista ("" — не указан)
-	TCountry() : Id(0), ContinentId(0), IsExist(true) {}
+	int    ParentId;           // страна, в которую вложена (задача 50); 0 — верхнего уровня
+	TCountry() : Id(0), ContinentId(0), IsExist(true), ParentId(0) {}
 };
 
 struct TPeriod

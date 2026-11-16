@@ -62,7 +62,7 @@ std::vector<TCountry> TLookupRepository::Countries()
 {
 	std::vector<TCountry> result;
 	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
-		L"SELECT id, name, id_continent, is_exist, numista_issuer FROM countries ORDER BY name");
+		L"SELECT id, name, id_continent, is_exist, numista_issuer, id_parent FROM countries ORDER BY name");
 	for (q->Open(); !q->Eof; q->Next())
 	{
 		TCountry r;
@@ -71,6 +71,7 @@ std::vector<TCountry> TLookupRepository::Countries()
 		r.ContinentId = q->FieldByName(L"id_continent")->IsNull ? 0 : q->FieldByName(L"id_continent")->AsInteger;
 		r.IsExist     = q->FieldByName(L"is_exist")->AsInteger != 0;
 		r.NumistaIssuer = q->FieldByName(L"numista_issuer")->IsNull ? String() : q->FieldByName(L"numista_issuer")->AsString;
+		r.ParentId    = q->FieldByName(L"id_parent")->IsNull ? 0 : q->FieldByName(L"id_parent")->AsInteger;
 		result.push_back(r);
 	}
 	return result;
@@ -199,16 +200,39 @@ int TLookupRepository::FindCondition(const String &ACode)
 void TLookupRepository::UpdateCountry(const TCountry &ACountry)
 {
 	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
-		L"UPDATE countries SET id_continent = :id_continent, is_exist = :is_exist WHERE id = :id");
+		L"UPDATE countries SET id_continent = :id_continent, is_exist = :is_exist, id_parent = :id_parent WHERE id = :id");
 	TFDParam *continent = q->ParamByName(L"id_continent");
 	continent->DataType = ftInteger;
 	if (ACountry.ContinentId == 0)
 		continent->Clear();
 	else
 		continent->AsInteger = ACountry.ContinentId;
+	TFDParam *parent = q->ParamByName(L"id_parent");
+	parent->DataType = ftInteger;
+	if (ACountry.ParentId == 0)
+		parent->Clear();
+	else
+		parent->AsInteger = ACountry.ParentId;
 	q->ParamByName(L"is_exist")->AsInteger = ACountry.IsExist ? 1 : 0;
 	q->ParamByName(L"id")->AsInteger       = ACountry.Id;
 	q->ExecSQL();
+}
+//---------------------------------------------------------------------------
+TLookupRepository::TNestCheck TLookupRepository::CheckNest(const std::vector<TCountry> &ACountries,
+	int AChildId, int AParentId)
+{
+	if (AParentId == 0)
+		return ncOk;
+	if (AParentId == AChildId)
+		return ncSelf;
+	for (size_t i = 0; i < ACountries.size(); ++i)
+	{
+		if (ACountries[i].Id == AParentId && ACountries[i].ParentId != 0)
+			return ncIntoNested;
+		if (ACountries[i].ParentId == AChildId)
+			return ncHasChildren;
+	}
+	return ncOk;
 }
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -292,7 +316,7 @@ int TLookupRepository::AddCountry(const TCountry &ACountry)
 		throw Exception(L"Country already exists: " + name);
 
 	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
-		L"INSERT INTO countries (name, id_continent, is_exist) VALUES (:name, :id_continent, :is_exist)");
+		L"INSERT INTO countries (name, id_continent, is_exist, id_parent) VALUES (:name, :id_continent, :is_exist, :id_parent)");
 	q->ParamByName(L"name")->AsWideString = name;
 	TFDParam *continent = q->ParamByName(L"id_continent");
 	continent->DataType = ftInteger;
@@ -300,6 +324,12 @@ int TLookupRepository::AddCountry(const TCountry &ACountry)
 		continent->Clear();
 	else
 		continent->AsInteger = ACountry.ContinentId;
+	TFDParam *parent = q->ParamByName(L"id_parent");
+	parent->DataType = ftInteger;
+	if (ACountry.ParentId == 0)
+		parent->Clear();
+	else
+		parent->AsInteger = ACountry.ParentId;
 	q->ParamByName(L"is_exist")->AsInteger = ACountry.IsExist ? 1 : 0;
 	q->ExecSQL();
 	return LastInsertId(FDatabase);
@@ -382,6 +412,9 @@ bool TLookupRepository::DeleteCountry(int AId)
 		return false;
 
 	TDbTransaction tx(FDatabase->Connection());
+	q->SQL->Text = L"UPDATE countries SET id_parent = NULL WHERE id_parent = :id";
+	q->ParamByName(L"id")->AsInteger = AId;
+	q->ExecSQL();
 	q->SQL->Text = L"DELETE FROM periods WHERE id_country = :id";
 	q->ParamByName(L"id")->AsInteger = AId;
 	q->ExecSQL();
