@@ -250,7 +250,8 @@ private:	// User declarations
 	// icComposition — металл типа (задача 13d), icNumistaPrice — оценка Numista для состояния (задача 34).
 	enum TItemColumn { icCheck, icCountry, icPeriod, icCurrency, icDenomination, icSubject, icNumista, icUploaded, icSwap, icRarity,
 		icMintage,
-		icComposition, icYear, icCondition, icValue, icNumistaPrice, icObverse, icReverse, icCount };
+		icComposition, icYear, icCondition, icValue, icNumistaPrice, icObverse, icReverse,
+		icTypeObverse, icTypeReverse, icCount };	// миниатюры: свои фото / фото Numista (задача 51) — подряд
 
 	// Строка панели подробностей: подпись и значение (создаются в коде, см. CreateDetailRows).
 	struct TDetailRow
@@ -394,7 +395,11 @@ private:
 	void __fastcall DefaultColumnsClick(TObject *Sender);
 	void __fastcall AlignMenuClick(TObject *Sender);
 	static wchar_t DefaultAlign(int AColumn);
-	String ThumbFile(const TCoinRecord &ARecord, int ASide, bool *AIsType = nullptr);
+	// Колонки миниатюр (задача 51): icObverse, icReverse — свои фото, icTypeObverse, icTypeReverse — фото Numista.
+	static bool IsThumbColumn(int AColumn) { return AColumn >= icObverse && AColumn <= icTypeReverse; }
+	static bool IsTypeThumb(int AColumn) { return AColumn == icTypeObverse || AColumn == icTypeReverse; }
+	static int  ThumbSide(int AColumn) { return (AColumn - icObverse) % 2 == 0 ? psObverse : psReverse; }
+	String ThumbFile(const TCoinRecord &ARecord, int AColumn);
 	Graphics::TBitmap *Thumbnail(const String &AFile, int ASize);
 	void OpenPhotoView(int AIndex, int ASide, bool AStartWithType);
 	void FitColumns(int ARetry = 0);	// ARetry — повтор после появления / исчезновения прокрутки

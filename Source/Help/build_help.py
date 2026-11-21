@@ -337,13 +337,14 @@ of the same coin. <b>✓</b> after the number — uploaded to your Numista swap 
 <p>Click a column header to sort, click it again to reverse. By default the list is sorted by year, then by denomination.</p>
 <p>Right-click a column header: the menu [[ui:Columns|Стовпці]] shows or hides columns (the denomination always stays),
 [[ui:Row height|Висота рядків]] — normal, medium or large, [[ui:Default columns|Типові стовпці]] — back to the default set.
-The columns [[ui:Obverse|Аверс]] and [[ui:Reverse|Реверс]] show small photos of the coin: your photo, otherwise the catalogue picture;
-double-click a photo to open the photo viewer. Drag a column header with the mouse to move the column
+The columns [[ui:My obverse|Мій аверс]] and [[ui:My reverse|Мій реверс]] show small photos of your coin (empty if you have not added them),
+[[ui:Numista obverse|Аверс Numista]] and [[ui:Numista reverse|Реверс Numista]] — the catalogue pictures; turn on the ones you need, for example
+all four to compare your coin with the catalogue. Double-click a photo to open the photo viewer. Drag a column header with the mouse to move the column
 (the check box column always stays first). [[ui:Alignment|Вирівнювання]] — left, center or right for the column under the mouse.
 The choice, the order and the alignment are remembered.</p>
 <p>The program remembers the size and position of the window, the width of the country tree, the height of the details
 and the column widths you set with the mouse; [[ui:Default columns|Типові стовпці]] also resets the column widths and alignment.</p>
-[[shot:01b-main-thumbnails.png|The list with the columns Obverse and Reverse, medium row height.]]
+[[shot:01b-main-thumbnails.png|The list with photo columns, medium row height.]]
 <p>All columns fit into the window: if they do not, the text columns (country, period, currency, denomination, subject, composition)
 get narrower, long text ends with “…” (the full text is in the coin details). A column whose width you changed with the mouse
 keeps your width.</p>
@@ -401,13 +402,14 @@ T['main-window', 'uk'] = u"""
 <p>Клацніть заголовок колонки, щоб відсортувати, ще раз — у зворотному порядку. Типово — за роком, потім за номіналом.</p>
 <p>Праве клацання по заголовку колонки: меню [[ui:Columns|Стовпці]] показує або ховає колонки (номінал лишається завжди),
 [[ui:Row height|Висота рядків]] — звичайна, середня чи велика, [[ui:Default columns|Типові стовпці]] — повернути типовий набір.
-Колонки [[ui:Obverse|Аверс]] і [[ui:Reverse|Реверс]] показують мініатюри монети: ваше фото, інакше зображення з каталогу;
-подвійне клацання по мініатюрі відкриває перегляд фото. Перетягніть заголовок колонки мишею, щоб переставити колонку
+Колонки [[ui:My obverse|Мій аверс]] і [[ui:My reverse|Мій реверс]] показують мініатюри ваших фото монети (порожньо, якщо ви їх не додали),
+[[ui:Numista obverse|Аверс Numista]] і [[ui:Numista reverse|Реверс Numista]] — зображення з каталогу; увімкніть потрібні, наприклад
+усі чотири, щоб порівняти свою монету з каталогом. Подвійне клацання по мініатюрі відкриває перегляд фото. Перетягніть заголовок колонки мишею, щоб переставити колонку
 (колонка позначок завжди перша). [[ui:Alignment|Вирівнювання]] — ліворуч, по центру чи праворуч для колонки під курсором.
 Вибір, порядок і вирівнювання запам'ятовуються.</p>
 <p>Програма запам'ятовує розмір і положення вікна, ширину дерева країн, висоту подробиць
 і ширини колонок, змінені мишею; [[ui:Default columns|Типові стовпці]] скидає і ширини колонок, і вирівнювання.</p>
-[[shot:01b-main-thumbnails.png|Список зі стовпцями Аверс і Реверс, середня висота рядків.]]
+[[shot:01b-main-thumbnails.png|Список зі стовпцями фото, середня висота рядків.]]
 <p>Усі колонки вміщуються у вікно: якщо ні, текстові колонки (країна, період, валюта, номінал, сюжет, метал) звужуються,
 довгий текст закінчується «…» (повний текст — у подробицях монети). Колонка, ширину якої ви змінили мишею, зберігає вашу ширину.</p>
 <h2>Подробиці про монету</h2>
@@ -522,6 +524,8 @@ a poor photo of a worn coin can be compared with the catalogue at once.</li>
 <li>The coin details show the item photo; without it — the coin type photo, marked <i>coin type</i>.
 If the coin has both, the button <b>⇄</b> in the corner of the obverse switches between your photo and the catalogue;
 the choice stays while you move through the list.</li>
+<li>In the coin list, the columns [[ui:My obverse|Мій аверс]] / [[ui:My reverse|Мій реверс]] show item photos and
+[[ui:Numista obverse|Аверс Numista]] / [[ui:Numista reverse|Реверс Numista]] — coin type photos; see [[page:main-window|Main window]].</li>
 </ul>
 <h2>Adding photos</h2>
 <p>In the [[page:coin-card|coin card]]: [[ui:File...|Файл...]] (JPEG, PNG, BMP, GIF, TIFF), [[ui:Paste|Вставити]],
@@ -546,6 +550,8 @@ T['photos', 'uk'] = u"""
 <li>У подробицях монети показується фото примірника; без нього — фото типу з позначкою <i>фото типу</i>.
 Якщо в монети є обидва, кнопка <b>⇄</b> у куті аверсу перемикає між вашим фото й каталогом;
 вибір зберігається, поки ви переходите між монетами.</li>
+<li>У списку монет колонки [[ui:My obverse|Мій аверс]] / [[ui:My reverse|Мій реверс]] показують фото примірника, а
+[[ui:Numista obverse|Аверс Numista]] / [[ui:Numista reverse|Реверс Numista]] — фото типу; див. [[page:main-window|Головне вікно]].</li>
 </ul>
 <h2>Додавання фото</h2>
 <p>У [[page:coin-card|картці монети]]: [[ui:File...|Файл...]] (JPEG, PNG, BMP, GIF, TIFF), [[ui:Paste|Вставити]]

@@ -51,6 +51,8 @@ public:
 	// (по умолчанию "obverse,reverse"), высота строк в пикселях (18 / 40 / 64).
 	String    GridHidden;
 	int       GridRowHeight;
+	// Колонки фото Numista известны ([Grid] TypeThumbs, задача 51); false — настройки 0.5.0 и раньше.
+	bool      GridTypeThumbs;
 	// Порядок колонок (задача 42): ключи через запятую; пусто — по умолчанию.
 	String    GridOrder;
 	// Выравнивание колонок, отличное от умолчания ([Grid] Align = "ключ:l|c|r,...", задача 46).
