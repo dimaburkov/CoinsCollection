@@ -1246,6 +1246,19 @@ of the issue (or of the whole type) with prices in your currency, the summary �
 <b>Expected:</b> the coins in [[ui:Wish list|Бажані]] with year ranges; a wanted coin you already have is bold green.</li>
 <li>Right-click a column header → [[ui:Alignment|Вирівнювання]]. <b>Expected:</b> the column is aligned as chosen, also after a restart.</li>
 </ol>
+<h2>10. Nested countries</h2>
+<ol>
+<li>In the country tree drag a country (for example <i>Prussia</i> from [[ui:Extinct states|Зниклі держави]]) onto another country (<i>Germany</i>).
+<b>Expected:</b> it is shown inside <i>Germany</i>; the number of <i>Germany</i> includes its coins; [[ui:Extinct states|Зниклі держави]] has fewer.</li>
+<li>Drag a country onto a continent, then back onto [[ui:Extinct states|Зниклі держави]] or [[ui:No continent|Без континенту]]. <b>Expected:</b> it moves each time.</li>
+<li>Import your collection from uCoin again. <b>Expected:</b> the countries stay where you put them.</li>
+</ol>
+<h2>11. Photo columns</h2>
+<ol>
+<li>Right-click a column header → turn on [[ui:My obverse|Мій аверс]], [[ui:My reverse|Мій реверс]], [[ui:Numista obverse|Аверс Numista]], [[ui:Numista reverse|Реверс Numista]].
+<b>Expected:</b> your photos in the first two (empty if you have none), catalogue pictures in the other two.</li>
+<li>Double-click each photo. <b>Expected:</b> the viewer opens with that photo.</li>
+</ol>
 <h2>What to send with a problem</h2>
 <ul>
 <li>What you did and what happened — step by step; a screenshot of the message.</li>
@@ -1326,6 +1339,19 @@ T['testing', 'uk'] = u"""
 <li>Експортуйте список бажаних → [[ui:File → Import wish list from uCoin (.xlsx)...|Файл → Імпорт списку бажаних з uCoin (.xlsx)...]].
 <b>Очікується:</b> монети в [[ui:Wish list|Бажані]] з діапазонами років; бажана монета, яка вже є в колекції, — жирним зеленим.</li>
 <li>Праве клацання по заголовку колонки → [[ui:Alignment|Вирівнювання]]. <b>Очікується:</b> колонка вирівняна, як вибрано, і після перезапуску.</li>
+</ol>
+<h2>10. Вкладені країни</h2>
+<ol>
+<li>У дереві країн перетягніть країну (наприклад, <i>Prussia</i> із [[ui:Extinct states|Зниклі держави]]) на іншу країну (<i>Germany</i>).
+<b>Очікується:</b> вона показується всередині <i>Germany</i>; число в <i>Germany</i> враховує її монети; у [[ui:Extinct states|Зниклі держави]] менше.</li>
+<li>Перетягніть країну на континент, потім назад на [[ui:Extinct states|Зниклі держави]] або [[ui:No continent|Без континенту]]. <b>Очікується:</b> щоразу переміщується.</li>
+<li>Ще раз імпортуйте колекцію з uCoin. <b>Очікується:</b> країни лишаються там, куди ви їх поставили.</li>
+</ol>
+<h2>11. Колонки фото</h2>
+<ol>
+<li>Праве клацання по заголовку колонки → увімкніть [[ui:My obverse|Мій аверс]], [[ui:My reverse|Мій реверс]], [[ui:Numista obverse|Аверс Numista]], [[ui:Numista reverse|Реверс Numista]].
+<b>Очікується:</b> у перших двох — ваші фото (порожньо, якщо їх немає), в інших двох — зображення з каталогу.</li>
+<li>Двічі клацніть по кожному фото. <b>Очікується:</b> відкривається перегляд саме цього фото.</li>
 </ol>
 <h2>Що надіслати разом із проблемою</h2>
 <ul>
