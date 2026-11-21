@@ -108,6 +108,10 @@ public:
 	void SaveNumistaType(const TNumistaTypeInfo &AType);
 	// false — тип не загружен.
 	bool LoadNumistaType(int ATypeId, TNumistaTypeInfo &AType);
+	// Авторы фото типов (задача 53): типы без сайта / лицензии (сохранены до v15) и запись только
+	// этих полей (автор, сайт, лицензия, credits_known = 1) — без изменения характеристик.
+	std::vector<int> NumistaTypesWithoutCredits();
+	void SaveNumistaTypeCredits(const TNumistaTypeInfo &AType);
 	// Оценки цен выпуска (getPrices) в numista_prices — вставка или замена по (выпуск, валюта); задача 34.
 	void SaveNumistaPrices(const TNumistaPrices &APrices);
 	// Все оценки в валюте ACurrency: выпуск -> цены.

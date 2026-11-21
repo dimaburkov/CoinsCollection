@@ -367,6 +367,10 @@ void TfmCoinEdit::CreateItemPhotoColumn()
 				+ Tr(c == pcType ? L"CoinEdit.ColumnType" : L"CoinEdit.ColumnItem");
 			p.Note->ShowAccelChar = false;
 			p.Note->EllipsisPosition = epEndEllipsis;	// длинное имя автора фото
+			p.Note->ShowHint = true;
+			p.Note->Tag      = s;
+			if (c == pcType)
+				p.Note->OnClick = PhotoNoteClick;	// сайт автора фото (задача 53)
 		}
 }
 //---------------------------------------------------------------------------
@@ -376,7 +380,7 @@ void TfmCoinEdit::LoadPhotos(const TCoinRecord &ARecord)
 	{
 		const TPhotoSide side = (TPhotoSide)s;
 		FItemFile[s] = ARecord.Id == 0 ? String() : FPhotos->PhotoFile(ARecord.Id, 0, side);
-		FCoinFile[s] = ARecord.CoinId == 0 ? String() : FPhotos->PhotoFile(0, ARecord.CoinId, side, nullptr, &FCoinCopyright[s]);
+		FCoinFile[s] = ARecord.CoinId == 0 ? String() : FPhotos->PhotoFile(0, ARecord.CoinId, side, nullptr, &FCoinCredit[s]);
 		ShowPhoto(pcType, side);
 		ShowPhoto(pcItem, side);
 	}
@@ -420,8 +424,10 @@ void TfmCoinEdit::ShowPhoto(int AColumn, TPhotoSide ASide)
 		p.Image->Picture->Assign(nullptr);	// повреждённый файл — как «нет фото»
 	}
 	// Под фото типа из Numista — автор (как в просмотре).
-	p.Note->Caption = AColumn == pcType && !file.IsEmpty() && !FCoinCopyright[ASide].IsEmpty()
-		? Format(Tr(L"PhotoView.Copyright"), ARRAYOFCONST((FCoinCopyright[ASide]))) : String();
+	const bool credit = AColumn == pcType && !file.IsEmpty() && FCoinCredit[ASide].Numista;
+	p.Note->Caption = credit ? FCoinCredit[ASide].Text() : String();
+	p.Note->Hint    = credit ? FCoinCredit[ASide].Hint() : String();
+	p.Note->Cursor  = credit && !FCoinCredit[ASide].AuthorUrl.IsEmpty() ? crHandPoint : crDefault;
 	p.Remove->Enabled = edit.Action == TPhotoEdit::paSet || (edit.Action == TPhotoEdit::paNone && !stored.IsEmpty());
 }
 //---------------------------------------------------------------------------
@@ -449,6 +455,14 @@ bool TfmCoinEdit::LoadPhotoFile(int AColumn, TPhotoSide ASide, const String &AFi
 	}
 	SetPhoto(AColumn, ASide, image.release());
 	return true;
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmCoinEdit::PhotoNoteClick(TObject *Sender)
+{
+	const TPhotoSide side = (TPhotoSide)static_cast<TComponent *>(Sender)->Tag;
+	const String url = FCoinCredit[side].AuthorUrl;
+	if (!static_cast<TLabel *>(Sender)->Caption.IsEmpty() && !url.IsEmpty())
+		ShellExecuteW(Handle, L"open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmCoinEdit::PhotoLoadClick(TObject *Sender)

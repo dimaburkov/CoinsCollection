@@ -532,8 +532,17 @@ the choice stays while you move through the list.</li>
 or drag a file onto the frame. Photos are reduced to 1200 px and saved as JPEG in <code>Photos\\</code>.</p>
 <h2>Photos from Numista</h2>
 <p>When a coin is linked with Numista, the obverse and reverse pictures of the type are downloaded automatically as coin type photos
-([[page:numista-link|linking]], [[page:numista-catalog|update catalogue data]]). Your own coin type photo is never replaced.
-The picture author is shown in the viewer: <i>Photo: &lt;author&gt; / Numista</i>.</p>
+([[page:numista-link|linking]], [[page:numista-catalog|update catalogue data]]). Your own coin type photo is never replaced.</p>
+<p>Numista catalogue pictures belong to their authors (collectors, auction houses, museums). The author is shown wherever
+the program shows a catalogue picture:</p>
+<ul>
+<li>in the coin details — a grey line at the bottom of the photo frame: <i>© &lt;author&gt; / Numista</i>;</li>
+<li>in the coin list — the tooltip over a picture in the columns [[ui:Numista obverse|Аверс Numista]] / [[ui:Numista reverse|Реверс Numista]];</li>
+<li>in the viewer and the coin card — <i>Photo: &lt;author&gt; / Numista</i> and the license, if the author gave one (for example <i>CC BY-NC-SA</i>).</li>
+</ul>
+<p>If the author has a website, a click on the line opens it. A picture without an author on Numista is marked <i>Photo: Numista</i>.</p>
+<div class="note">Catalogue pictures are for your own collection. Do not publish them elsewhere without the author's consent
+(unless the license allows it).</div>
 <h2>Viewer</h2>
 <p>Double-click a photo in the coin details. If the coin has both your photos and catalogue photos, the buttons
 [[ui:My photo|Моє фото]] / [[ui:Catalogue|Каталог]] (or ↑/↓) switch between them. Mouse wheel — zoom, drag — move, ←/→ or Space — other side,
@@ -558,8 +567,17 @@ T['photos', 'uk'] = u"""
 або перетягніть файл на рамку. Фото зменшуються до 1200 px і зберігаються як JPEG у <code>Photos\\</code>.</p>
 <h2>Фото з Numista</h2>
 <p>Коли монету пов'язано з Numista, зображення аверсу й реверсу типу завантажуються автоматично як фото типу
-([[page:numista-link|зв'язок]], [[page:numista-catalog|оновлення даних каталогу]]). Ваше власне фото типу ніколи не замінюється.
-Автор зображення показується у вікні перегляду: <i>Photo: &lt;автор&gt; / Numista</i>.</p>
+([[page:numista-link|зв'язок]], [[page:numista-catalog|оновлення даних каталогу]]). Ваше власне фото типу ніколи не замінюється.</p>
+<p>Зображення каталогу Numista належать їхнім авторам (колекціонерам, аукціонам, музеям). Автор показується скрізь,
+де програма показує зображення каталогу:</p>
+<ul>
+<li>у подробицях монети — сірий рядок унизу рамки фото: <i>© &lt;автор&gt; / Numista</i>;</li>
+<li>у списку монет — підказка над зображенням у колонках [[ui:Numista obverse|Аверс Numista]] / [[ui:Numista reverse|Реверс Numista]];</li>
+<li>у вікні перегляду й картці монети — <i>Фото: &lt;автор&gt; / Numista</i> і ліцензія, якщо автор її вказав (наприклад, <i>CC BY-NC-SA</i>).</li>
+</ul>
+<p>Якщо в автора є сайт, клацання по рядку відкриває його. Зображення без автора на Numista позначене <i>Фото: Numista</i>.</p>
+<div class="note">Зображення каталогу — для вашої колекції. Не публікуйте їх деінде без згоди автора
+(якщо ліцензія цього не дозволяє).</div>
 <h2>Перегляд</h2>
 <p>Подвійне клацання по фото в подробицях. Якщо в монети є і ваші фото, і фото каталогу, кнопки
 [[ui:My photo|Моє фото]] / [[ui:Catalogue|Каталог]] (або ↑/↓) перемикають між ними. Коліщатко миші — масштаб, перетягування — зсув, ←/→ або Пробіл — інша сторона,

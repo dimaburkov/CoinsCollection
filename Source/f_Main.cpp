@@ -175,6 +175,8 @@ __fastcall TfmMain::TfmMain(TComponent* Owner)
 	FHeaderDownCol = -1;
 	FColumnMoved   = false;
 	FNormalBounds  = TRect(0, 0, 0, 0);
+	FThumbHintKey  = -1;
+	FDetailCredit[0] = FDetailCredit[1] = nullptr;
 	FMenuColumn    = -1;
 	for (int c = 0; c < icCount; ++c)
 		FAlign[c] = DefaultAlign(c);
@@ -209,6 +211,7 @@ void __fastcall TfmMain::FormCreate(TObject *Sender)
 
 	FRepository.reset(new TCoinRepository(FDatabase.get()));
 	FPhotos.reset(new TPhotoRepository(FDatabase.get()));
+	BackfillPhotoCredits();
 	LoadItems();
 #ifdef _DEBUG
 	const String selfTest = TNumistaComment::SelfTest();
@@ -475,6 +478,7 @@ void __fastcall TfmMain::actRestoreExecute(TObject *Sender)
 	DeleteBackupFolder(temp);
 
 	FChecked.clear();
+	BackfillPhotoCredits();
 	LoadItems();
 	Application->MessageBox(Format(Tr(L"Restore.Done"), ARRAYOFCONST(((int)FAll.size(), info.Photos))).c_str(),
 		caption.c_str(), MB_OK | MB_ICONINFORMATION);
@@ -892,13 +896,13 @@ int TfmMain::LinkListFromCache(const String &AList, int &AWithIssue)
 				continue;
 			try
 			{
-				String copyright;
-				const String file = FPhotos->PhotoFile(0, source, side, nullptr, &copyright);
+				TPhotoCredit credit;
+				const String file = FPhotos->PhotoFile(0, source, side, nullptr, &credit);
 				if (file.IsEmpty())
 					continue;
 				std::unique_ptr<TPicture> picture(new TPicture());
 				picture->LoadFromFile(file);
-				FPhotos->SetCoinPhoto(r.CoinId, side, picture->Graphic, L"numista", copyright);
+				FPhotos->SetCoinPhoto(r.CoinId, side, picture->Graphic, L"numista", credit.Author);
 			}
 			catch (Exception &)
 			{
@@ -4967,6 +4971,31 @@ void TfmMain::CreateDetailRows()
 	FPhotoSwitch->ShowHint   = true;
 	FPhotoSwitch->Visible    = false;
 	FPhotoSwitch->OnClick    = PhotoSwitchClick;
+	// Автор фото Numista (задача 53) — строка внизу рамки фото.
+	for (int s = 0; s < 2; ++s)
+	{
+		TLabel *credit = new TLabel(this);
+		credit->Parent           = s == psObverse ? pnlObverse : pnlReverse;
+		credit->Align            = alBottom;
+		credit->AutoSize         = false;
+		credit->Height           = 14;
+		credit->Alignment        = taCenter;
+		credit->Layout           = tlCenter;
+		credit->EllipsisPosition = epEndEllipsis;
+		credit->ShowAccelChar    = false;
+		credit->Transparent      = false;
+		credit->Color            = clWindow;
+		credit->Font->Size       = 7;
+		credit->Font->Color      = clGrayText;
+		credit->ShowHint         = true;
+		credit->Visible          = false;
+		credit->Tag              = s;
+		credit->OnClick          = DetailCreditClick;
+		FDetailCredit[s] = credit;
+	}
+	// Подсказка с автором над мини-фото Numista в таблице (задача 53).
+	dgItems->ShowHint    = true;
+	dgItems->OnMouseMove = dgItemsMouseMove;
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::dgItemsSelectCell(TObject *Sender, int ACol, int ARow, bool &CanSelect)
@@ -5048,13 +5077,14 @@ void TfmMain::ShowDetails(int AIndex)
 void TfmMain::ShowDetailPhotos(const TCoinRecord *ARecord)
 {
 	FDetailPhotoTitle = ARecord ? CoinText(*ARecord) : String();
-	String own[2], ownCopyright[2], type[2], typeCopyright[2];
+	String own[2], type[2];
+	TPhotoCredit typeCredit[2];
 	for (int s = 0; s < 2 && ARecord && FPhotos; ++s)
 	{
 		if (ARecord->Id != 0)
-			own[s] = FPhotos->PhotoFile(ARecord->Id, 0, (TPhotoSide)s, nullptr, &ownCopyright[s]);
+			own[s] = FPhotos->PhotoFile(ARecord->Id, 0, (TPhotoSide)s);
 		if (ARecord->CoinId != 0)
-			type[s] = FPhotos->PhotoFile(0, ARecord->CoinId, (TPhotoSide)s, nullptr, &typeCopyright[s]);
+			type[s] = FPhotos->PhotoFile(0, ARecord->CoinId, (TPhotoSide)s, nullptr, &typeCredit[s]);
 	}
 	const bool hasOwn  = !own[0].IsEmpty() || !own[1].IsEmpty();
 	const bool hasType = !type[0].IsEmpty() || !type[1].IsEmpty();
@@ -5070,7 +5100,18 @@ void TfmMain::ShowDetailPhotos(const TCoinRecord *ARecord)
 
 		const bool isType = FDetailIsType;
 		const String file = isType ? type[s] : own[s];
-		FDetailCopyrights[s] = isType ? typeCopyright[s] : ownCopyright[s];
+		// Подпись автора — до вписывания фото: рамка для фото становится ниже на её высоту.
+		FDetailCredits[s] = isType ? typeCredit[s] : TPhotoCredit();
+		TLabel *credit = FDetailCredit[s];
+		credit->Caption = FDetailCredits[s].ShortText();
+		credit->Hint    = FDetailCredits[s].Hint();
+		credit->Cursor  = FDetailCredits[s].AuthorUrl.IsEmpty() ? crDefault : crHandPoint;
+		const bool showCredit = !file.IsEmpty() && FDetailCredits[s].Numista;
+		if (credit->Visible != showCredit)
+		{
+			credit->Visible = showCredit;
+			FDetailPhotos[s] = L"#";	// размер рамки изменился — вписать заново
+		}
 		if (file != FDetailPhotos[s])
 		{
 			FDetailPhotos[s] = file;
@@ -5128,6 +5169,43 @@ int TfmMain::DownloadTypePhotos(TNumistaClient &AClient, const TNumistaTypeInfo 
 	return result;
 }
 //---------------------------------------------------------------------------
+// Сайт автора фото и лицензия у типов, сохранённых до v15 (задача 53): из кэша ответов getType,
+// без запросов к Numista; типа нет в кэше — останется до «Оновити дані каталогу». Заполненные
+// получают credits_known = 1 и больше не просматриваются.
+void TfmMain::BackfillPhotoCredits()
+{
+	const std::vector<int> types = FRepository->NumistaTypesWithoutCredits();
+	if (types.empty())
+		return;
+	const TCursor saved = Screen->Cursor;
+	Screen->Cursor = crHourGlass;
+	try
+	{
+		TNumistaClient client;
+		TNumistaMatcher matcher(client);
+		TDbTransaction tx(FDatabase->Connection());
+		for (size_t i = 0; i < types.size(); ++i)
+		{
+			if (!TNumistaClient::IsCached(TNumistaMatcher::TypePath(types[i])))
+				continue;
+			try
+			{
+				FRepository->SaveNumistaTypeCredits(matcher.LoadType(types[i]));
+			}
+			catch (Exception &)
+			{
+				// повреждённый ответ в кэше — тип останется до обновления данных каталога
+			}
+		}
+		tx.Commit();
+	}
+	catch (Exception &)
+	{
+		// подписи без сайта и лицензии — не повод мешать запуску
+	}
+	Screen->Cursor = saved;
+}
+//---------------------------------------------------------------------------
 // Просмотр (задача 30): свои фото экземпляра и фото типа — два комплекта с переключателем,
 // если есть оба; открывается на комплекте, показанном в панели.
 void __fastcall TfmMain::DetailPhotoDblClick(TObject *Sender)
@@ -5150,8 +5228,8 @@ void TfmMain::OpenPhotoView(int AIndex, int ASide, bool AStartWithType)
 	type.Caption = Tr(L"PhotoView.TypePhoto");
 	for (int s = 0; s < 2; ++s)
 	{
-		own.Files[s]  = r.Id != 0 ? FPhotos->PhotoFile(r.Id, 0, (TPhotoSide)s, nullptr, &own.Copyrights[s]) : String();
-		type.Files[s] = r.CoinId != 0 ? FPhotos->PhotoFile(0, r.CoinId, (TPhotoSide)s, nullptr, &type.Copyrights[s])
+		own.Files[s]  = r.Id != 0 ? FPhotos->PhotoFile(r.Id, 0, (TPhotoSide)s, nullptr, &own.Credits[s]) : String();
+		type.Files[s] = r.CoinId != 0 ? FPhotos->PhotoFile(0, r.CoinId, (TPhotoSide)s, nullptr, &type.Credits[s])
 			: String();
 		if (SameText(FPhotos->CoinPhotoSource(r.CoinId, (TPhotoSide)s), L"numista"))
 			type.Caption = Tr(L"PhotoView.Catalog");
@@ -5169,6 +5247,37 @@ void __fastcall TfmMain::PhotoSwitchClick(TObject *Sender)
 {
 	FDetailShowType = !FDetailIsType;
 	UpdateDetails();
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::DetailCreditClick(TObject *Sender)
+{
+	const String url = FDetailCredits[static_cast<TComponent *>(Sender)->Tag].AuthorUrl;
+	if (!url.IsEmpty())
+		ShellExecuteW(Handle, L"open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+}
+//---------------------------------------------------------------------------
+// Подсказка над мини-фото Numista (задача 53): «Photo: автор / Numista» и лицензия. Запрос к базе —
+// только при переходе на другую мини-фото.
+void __fastcall TfmMain::dgItemsMouseMove(TObject *Sender, TShiftState Shift, int X, int Y)
+{
+	int col = -1, row = -1;
+	dgItems->MouseToCell(X, Y, col, row);
+	const int index = row - 1, column = Column(col);
+	__int64 key = -1;
+	if (FPhotos && index >= 0 && index < (int)FItems.size() && IsTypeThumb(column) && FItems[index].CoinId != 0)
+		key = (__int64)FItems[index].Id * 4 + (column - icObverse);
+	if (key == FThumbHintKey)
+		return;
+	FThumbHintKey = key;
+	String hint;
+	if (key >= 0 && !ThumbFile(FItems[index], column).IsEmpty())
+	{
+		TPhotoCredit credit;
+		FPhotos->PhotoFile(0, FItems[index].CoinId, (TPhotoSide)ThumbSide(column), nullptr, &credit);
+		hint = credit.Hint(false);
+	}
+	dgItems->Hint = hint;
+	Application->CancelHint();
 }
 //---------------------------------------------------------------------------
 // Строки характеристик типа (задача 13d); ATypeId = 0 или тип не загружен — все пустые.

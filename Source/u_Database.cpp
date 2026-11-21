@@ -76,7 +76,8 @@ void TDatabase::EnsureSchema()
 		if (version < 12) { MigrateTo12(); version = 12; }
 		if (version < 13) { MigrateTo13(); version = 13; }
 		if (version < 14) { MigrateTo14(); version = 14; }
-		// if (version < 15) { MigrateTo15(); version = 15; }
+		if (version < 15) { MigrateTo15(); version = 15; }
+		// if (version < 16) { MigrateTo16(); version = 16; }
 
 		// PRAGMA не принимает параметры; version — целое из кода.
 		FConnection->ExecSQL(L"PRAGMA user_version = " + IntToStr(version));
@@ -359,6 +360,18 @@ void TDatabase::MigrateTo13()
 void TDatabase::MigrateTo14()
 {
 	FConnection->ExecSQL(L"ALTER TABLE countries ADD COLUMN id_parent INTEGER REFERENCES countries(id)");
+}
+//---------------------------------------------------------------------------
+// v15 (задача 53): сайт автора фото и лицензия сторон типа Numista (getType: picture_copyright_url,
+// picture_license_name / _url). credits_known = 0 — тип сохранён раньше; заполняется из кэша getType.
+void TDatabase::MigrateTo15()
+{
+	const wchar_t *const columns[] = {
+		L"obverse_copyright_url", L"reverse_copyright_url", L"obverse_license", L"reverse_license",
+		L"obverse_license_url", L"reverse_license_url" };
+	for (const wchar_t *column : columns)
+		FConnection->ExecSQL(L"ALTER TABLE numista_types ADD COLUMN " + String(column) + L" TEXT");
+	FConnection->ExecSQL(L"ALTER TABLE numista_types ADD COLUMN credits_known INTEGER NOT NULL DEFAULT 0");
 }
 //---------------------------------------------------------------------------
 // Справочники с начальным составом (u_SeedData). «Extinct states» — не континент:

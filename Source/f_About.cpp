@@ -117,6 +117,10 @@ void TfmAbout::Execute(TComponent *AOwner, const String &ADbFile, int ASchema)
 	TLabel *numista = f->AddLabel(Tr(L"About.Numista"), 0, 300);
 	f->AddLink(L"numista.com", L"https://en.numista.com/", 304);
 	f->FTop += numista->Height + 6;
+	// Фото каталога принадлежат авторам (задача 53).
+	TLabel *photos = f->AddLabel(Tr(L"About.Photos"), 0, 0);
+	photos->Font->Color = clGrayText;
+	f->FTop += photos->Height + 6;
 	TLabel *ucoin = f->AddLabel(Tr(L"About.UCoin"), 0, 300);
 	f->AddLink(L"ucoin.net", L"https://ucoin.net/", 304);
 	f->FTop += ucoin->Height + 16;

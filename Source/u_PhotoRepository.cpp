@@ -6,6 +6,7 @@
 #include <memory>
 #include <FireDAC.Comp.Client.hpp>
 #include <Vcl.Imaging.jpeg.hpp>
+#include <System.StrUtils.hpp>
 #include "u_PhotoRepository.h"
 #include "u_AppConfig.h"
 #include "u_Database.h"
@@ -184,50 +185,112 @@ void TPhotoRepository::RemovePhoto(bool AItem, int AOwnerId, TPhotoSide ASide)
 	DeleteFile(PhotosDir() + old);
 }
 //---------------------------------------------------------------------------
-String TPhotoRepository::FileOf(bool AItem, int AOwnerId, TPhotoSide ASide, String *ACopyright)
+// Автор — из строки фото (как при загрузке); ссылка и лицензия — из типа Numista монеты (схема v15),
+// если автор тот же (тип мог смениться после загрузки фото). Нет автора у фото — автор типа.
+String TPhotoRepository::FileOf(bool AItem, int AOwnerId, TPhotoSide ASide, TPhotoCredit *ACredit)
 {
+	const String t = L"t." + SideName(ASide);	// t.obverse / t.reverse — имя колонки из кода
 	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
-		L"SELECT file_name, copyright FROM coin_photos WHERE " + OwnerColumn(AItem) + L" = :owner AND side = :side");
+		L"SELECT p.file_name, p.source, p.copyright, " + t + L"_copyright AS type_author, "
+		+ t + L"_copyright_url AS author_url, " + t + L"_license AS license, " + t + L"_license_url AS license_url"
+		L"  FROM coin_photos p"
+		L"  LEFT JOIN coins c ON c.id = p.id_coin"
+		L"  LEFT JOIN numista_types t ON t.id = c.numista_type_id"
+		L" WHERE p." + OwnerColumn(AItem) + L" = :owner AND p.side = :side");
 	q->ParamByName(L"owner")->AsInteger   = AOwnerId;
 	q->ParamByName(L"side")->AsWideString = SideName(ASide);
 	q->Open();
-	if (ACopyright)
-		*ACopyright = q->Eof ? String() : q->Fields->Fields[1]->AsString;
-	return q->Eof ? String() : q->Fields->Fields[0]->AsString;
+	if (q->Eof)
+	{
+		if (ACredit)
+			*ACredit = TPhotoCredit();
+		return String();
+	}
+	if (ACredit)
+	{
+		TPhotoCredit credit;
+		credit.Numista = !AItem && SameText(q->FieldByName(L"source")->AsString, L"numista");
+		if (credit.Numista)
+		{
+			const String typeAuthor = q->FieldByName(L"type_author")->AsString.Trim();
+			credit.Author = q->FieldByName(L"copyright")->AsString.Trim();
+			if (credit.Author.IsEmpty())
+				credit.Author = typeAuthor;
+			if (SameText(credit.Author, typeAuthor))
+			{
+				credit.AuthorUrl  = q->FieldByName(L"author_url")->AsString.Trim();
+				credit.License    = q->FieldByName(L"license")->AsString.Trim();
+				credit.LicenseUrl = q->FieldByName(L"license_url")->AsString.Trim();
+			}
+			// Открывается браузером (ShellExecute) — только веб-адреса.
+			if (!StartsText(L"http://", credit.AuthorUrl) && !StartsText(L"https://", credit.AuthorUrl))
+				credit.AuthorUrl = L"";
+			if (!StartsText(L"http://", credit.LicenseUrl) && !StartsText(L"https://", credit.LicenseUrl))
+				credit.LicenseUrl = L"";
+		}
+		*ACredit = credit;
+	}
+	return q->FieldByName(L"file_name")->AsString;
 }
 //---------------------------------------------------------------------------
 String TPhotoRepository::PhotoFile(int AItemId, int ACoinId, TPhotoSide ASide, bool *AIsTypePhoto,
-	String *ACopyright)
+	TPhotoCredit *ACredit)
 {
 	if (AIsTypePhoto)
 		*AIsTypePhoto = false;
-	if (ACopyright)
-		*ACopyright = L"";
+	if (ACredit)
+		*ACredit = TPhotoCredit();
 	const String dir = PhotosDir();
-	String copyright;
+	TPhotoCredit credit;
 	if (AItemId != 0)
 	{
-		const String name = FileOf(true, AItemId, ASide, &copyright);
+		const String name = FileOf(true, AItemId, ASide, &credit);
 		if (!name.IsEmpty() && FileExists(dir + name))
 		{
-			if (ACopyright)
-				*ACopyright = copyright;
+			if (ACredit)
+				*ACredit = credit;
 			return dir + name;
 		}
 	}
 	if (ACoinId != 0)
 	{
-		const String name = FileOf(false, ACoinId, ASide, &copyright);
+		const String name = FileOf(false, ACoinId, ASide, &credit);
 		if (!name.IsEmpty() && FileExists(dir + name))
 		{
 			if (AIsTypePhoto)
 				*AIsTypePhoto = true;
-			if (ACopyright)
-				*ACopyright = copyright;
+			if (ACredit)
+				*ACredit = credit;
 			return dir + name;
 		}
 	}
 	return String();
+}
+//---------------------------------------------------------------------------
+String TPhotoCredit::Text() const
+{
+	if (!Numista)
+		return String();
+	return Author.IsEmpty() ? Tr(L"Photo.Credit.NoAuthor") : Format(Tr(L"PhotoView.Copyright"), ARRAYOFCONST((Author)));
+}
+//---------------------------------------------------------------------------
+String TPhotoCredit::ShortText() const
+{
+	if (!Numista)
+		return String();
+	return Author.IsEmpty() ? Tr(L"Photo.Credit.ShortNoAuthor") : Format(Tr(L"Photo.Credit.Short"), ARRAYOFCONST((Author)));
+}
+//---------------------------------------------------------------------------
+String TPhotoCredit::Hint(bool AClickable) const
+{
+	if (!Numista)
+		return String();
+	String hint = Text();
+	if (!License.IsEmpty())
+		hint += L"\r\n" + Format(Tr(L"Photo.Credit.License"), ARRAYOFCONST((License)));
+	if (AClickable && !AuthorUrl.IsEmpty())
+		hint += L"\r\n" + Tr(L"Photo.Credit.Open");
+	return hint;
 }
 //---------------------------------------------------------------------------
 int TPhotoRepository::PhotoCount()

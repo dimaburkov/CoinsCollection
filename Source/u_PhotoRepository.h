@@ -15,6 +15,24 @@ class TDatabase;
 //---------------------------------------------------------------------------
 enum TPhotoSide { psObverse, psReverse };
 //---------------------------------------------------------------------------
+// Автор фото каталога Numista (задача 53): getType → picture_copyright, picture_copyright_url,
+// picture_license_name / _url. Numista = false — своё фото (подписи нет).
+struct TPhotoCredit
+{
+	bool   Numista;
+	String Author;
+	String AuthorUrl;
+	String License;
+	String LicenseUrl;
+	TPhotoCredit() : Numista(false) {}
+	// «Photo: автор / Numista» (без автора — «Photo: Numista»); своё фото — "".
+	String Text() const;
+	// Коротко для панели: «© автор / Numista».
+	String ShortText() const;
+	// Подсказка: Text, лицензия, «клик — сайт автора» (AClickable — подпись открывает сайт).
+	String Hint(bool AClickable = true) const;
+};
+//---------------------------------------------------------------------------
 class TPhotoRepository
 {
 public:
@@ -46,9 +64,9 @@ public:
 	// Полный путь показываемого фото: экземпляра, иначе типа; "" — нет.
 	// Строка есть, а файла на диске нет — считается «нет фото».
 	// AIsTypePhoto — показано фото типа.
-	// ACopyright — автор показанного фото ("" — свой снимок).
+	// ACredit — автор показанного фото (фото типа из Numista; ссылка и лицензия — из numista_types).
 	String PhotoFile(int AItemId, int ACoinId, TPhotoSide ASide, bool *AIsTypePhoto = nullptr,
-		String *ACopyright = nullptr);
+		TPhotoCredit *ACredit = nullptr);
 
 	// Число фото в коллекции.
 	int PhotoCount();
@@ -66,7 +84,7 @@ private:
 		const String &ASource = L"file", const String &ACopyright = String());
 	void   SetPhotoFromFile(bool AItem, int AOwnerId, TPhotoSide ASide, const String &ASourceFile);
 	void   RemovePhoto(bool AItem, int AOwnerId, TPhotoSide ASide);
-	String FileOf(bool AItem, int AOwnerId, TPhotoSide ASide, String *ACopyright = nullptr);
+	String FileOf(bool AItem, int AOwnerId, TPhotoSide ASide, TPhotoCredit *ACredit = nullptr);
 	static void SaveScaledJpeg(TGraphic *AGraphic, const String &AFileName);
 };
 //---------------------------------------------------------------------------
