@@ -513,6 +513,11 @@ object fmMain: TfmMain
       Caption = 'C&urrencies...'
       OnExecute = actReferenceExecute
     end
+    object actPlaceCountries: TAction
+      Category = 'Reference'
+      Caption = 'Place countries on c&ontinents...'
+      OnExecute = actPlaceCountriesExecute
+    end
     object actNumistaSettings: TAction
       Category = 'Numista'
       Caption = '&Connect / Settings...'
@@ -720,6 +725,12 @@ object fmMain: TfmMain
       end
       object miCurrencies: TMenuItem
         Action = actCurrencies
+      end
+      object miPlaceCountriesSep: TMenuItem
+        Caption = '-'
+      end
+      object miPlaceCountries: TMenuItem
+        Action = actPlaceCountries
       end
     end
     object miNumista: TMenuItem

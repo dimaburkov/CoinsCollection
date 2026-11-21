@@ -52,6 +52,7 @@ __published:	// IDE-managed Components
 	TAction *actCountries;
 	TAction *actPeriods;
 	TAction *actCurrencies;
+	TAction *actPlaceCountries;
 	TAction *actNumistaSettings;
 	TAction *actNumistaFind;
 	TAction *actNumistaIssue;
@@ -111,6 +112,8 @@ __published:	// IDE-managed Components
 	TMenuItem *miCountries;
 	TMenuItem *miPeriods;
 	TMenuItem *miCurrencies;
+	TMenuItem *miPlaceCountriesSep;
+	TMenuItem *miPlaceCountries;
 	TMenuItem *miNumista;
 	TMenuItem *miNumistaSettings;
 	TMenuItem *miNumistaSep1;
@@ -218,6 +221,7 @@ __published:	// IDE-managed Components
 	void __fastcall tbClearSearchClick(TObject *Sender);
 	void __fastcall actNeedToReplaceExecute(TObject *Sender);
 	void __fastcall actReferenceExecute(TObject *Sender);
+	void __fastcall actPlaceCountriesExecute(TObject *Sender);
 	void __fastcall actNumistaSettingsExecute(TObject *Sender);
 	void __fastcall actNumistaFindExecute(TObject *Sender);
 	void __fastcall actNumistaIssueExecute(TObject *Sender);

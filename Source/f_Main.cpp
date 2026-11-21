@@ -1255,6 +1255,87 @@ void __fastcall TfmMain::actReferenceExecute(TObject *Sender)
 		LoadItems();
 }
 //---------------------------------------------------------------------------
+// Страны без континента (задача 54) — обычно созданные импортом из Numista до 0.7.0 («United States»):
+// континент и «існує» от страны с тем же кодом эмитента Numista, иначе той же ветки эмитентов (сначала
+// существующие государства). Без запросов: issuers.json — из кэша. Страны не сливаются и не переименовываются.
+void __fastcall TfmMain::actPlaceCountriesExecute(TObject *Sender)
+{
+	const String caption = StringReplace(StripHotkey(actPlaceCountries->Caption), L"...", L"", TReplaceFlags());
+	TNumistaClient client;
+	TNumistaMatcher matcher(client);
+	matcher.LoadReferences();
+	TLookupRepository &lookups = FRepository->Lookups();
+	matcher.EnsureCountryIssuers(lookups);
+
+	std::map<int, String> continentNames;
+	const std::vector<TContinent> continents = lookups.Continents();
+	for (size_t i = 0; i < continents.size(); ++i)
+		continentNames[continents[i].Id] = continents[i].Name;
+
+	const std::vector<TCountry> countries = lookups.Countries();
+	std::vector<TCountry> changes;
+	std::vector<String> lines;
+	for (size_t i = 0; i < countries.size(); ++i)
+	{
+		const TCountry &country = countries[i];
+		// Узел «Без континенту»: существующая страна верхнего уровня без континента.
+		if (country.ContinentId != 0 || country.ParentId != 0 || !country.IsExist || country.NumistaIssuer.IsEmpty())
+			continue;
+		// Тот же эмитент у страны на континенте, иначе встроенная таблица, иначе та же ветка эмитентов.
+		const TCountry *source = nullptr;
+		for (size_t k = 0; !source && k < countries.size(); ++k)
+			if (k != i && countries[k].ContinentId != 0 && SameText(countries[k].NumistaIssuer, country.NumistaIssuer))
+				source = &countries[k];
+		int continentId = source ? source->ContinentId : 0;
+		bool isExist = source ? source->IsExist : true, territory = false;
+		if (!source && !matcher.IssuerContinent(country.NumistaIssuer, continentId, isExist, territory))
+		{
+			for (int pass = 0; !source && pass < 2; ++pass)
+				for (size_t k = 0; !source && k < countries.size(); ++k)
+					if (k != i && countries[k].ContinentId != 0 && (pass == 1 || countries[k].IsExist)
+						&& matcher.SameBranch(countries[k].NumistaIssuer, country.NumistaIssuer))
+						source = &countries[k];
+			if (!source)
+				continue;
+			continentId = source->ContinentId;
+			isExist     = source->IsExist;
+		}
+		if (continentNames.find(continentId) == continentNames.end())
+			continue;	// континент удалён из справочника
+		TCountry changed = country;
+		changed.ContinentId = continentId;
+		changed.IsExist     = isExist;
+		changes.push_back(changed);
+		lines.push_back(country.Name + L" \u2192 " + continentNames[changed.ContinentId]
+			+ (changed.IsExist ? String() : L" (" + Tr(L"Main.Tree.Extinct") + L")"));
+	}
+	if (changes.empty())
+	{
+		Application->MessageBox(Tr(L"PlaceCountries.Nothing").c_str(), caption.c_str(), MB_OK | MB_ICONINFORMATION);
+		return;
+	}
+
+	const int cShown = 25;
+	const String nl = L"\r\n";
+	String text = Format(Tr(L"PlaceCountries.Confirm"), ARRAYOFCONST(((int)changes.size()))) + nl;
+	for (size_t i = 0; i < lines.size() && i < (size_t)cShown; ++i)
+		text += nl + lines[i];
+	if (lines.size() > (size_t)cShown)
+		text += nl + Format(Tr(L"PlaceCountries.More"), ARRAYOFCONST(((int)lines.size() - cShown)));
+	std::vector<String> buttons;
+	buttons.push_back(Format(Tr(L"PlaceCountries.Do"), ARRAYOFCONST(((int)changes.size()))));
+	if (AskChoice(caption, text, buttons, 0) < 0)
+		return;
+
+	TDbTransaction tx(FDatabase->Connection());
+	for (size_t i = 0; i < changes.size(); ++i)
+		lookups.UpdateCountry(changes[i]);
+	tx.Commit();
+	LoadItems();
+	Application->MessageBox(Format(Tr(L"PlaceCountries.Done"), ARRAYOFCONST(((int)changes.size()))).c_str(),
+		caption.c_str(), MB_OK | MB_ICONINFORMATION);
+}
+//---------------------------------------------------------------------------
 void __fastcall TfmMain::actNumistaSettingsExecute(TObject *Sender)
 {
 	TfmNumistaSettings::Execute(this);
@@ -2991,6 +3072,9 @@ void __fastcall TfmMain::actNumistaImportExecute(TObject *Sender)
 
 	// Ветки эмитентов (issuers.json) — для сопоставления стран; нет кэша — только точный код / название.
 	matcher.LoadReferences();
+	// Коды эмитентов встроенных стран (задача 54): «United States» попадает в USA, а не в новую страну
+	// без континента.
+	matcher.EnsureCountryIssuers(FRepository->Lookups());
 
 	// 1. Коллекция и типы её новых предметов (getType — из кэша или по запросу на тип).
 	std::unique_ptr<TJSONValue> collection;
@@ -3199,8 +3283,10 @@ void __fastcall TfmMain::actNumistaImportExecute(TObject *Sender)
 		MB_OK | (stopReason.IsEmpty() && failed == 0 ? MB_ICONINFORMATION : MB_ICONWARNING));
 }
 //---------------------------------------------------------------------------
-// Страна для эмитента Numista: с таким кодом эмитента, иначе с таким названием, иначе новая
-// (название и код эмитента; континент не указан — узел No continent). ACreated — создана ли.
+// Страна для эмитента Numista: с таким кодом эмитента, иначе с таким названием, иначе той же ветки
+// эмитентов, иначе новая (название и код эмитента). Континент новой — по встроенной таблице
+// (задача 54); заморская территория (Bermuda в ветке United Kingdom) — своя страна, не ветка.
+// ACreated — создана ли.
 String TfmMain::ImportCountry(const TNumistaTypeInfo &AType, TNumistaMatcher &AMatcher, bool &ACreated)
 {
 	ACreated = false;
@@ -3211,13 +3297,24 @@ String TfmMain::ImportCountry(const TNumistaTypeInfo &AType, TNumistaMatcher &AM
 	for (size_t i = 0; i < countries.size(); ++i)
 		if (AnsiSameText(countries[i].Name, AType.IssuerName))
 			return countries[i].Name;
+	int continentId = 0;
+	bool isExist = true, territory = false;
+	const bool known = AMatcher.IssuerContinent(AType.IssuerCode, continentId, isExist, territory);
 	// Та же ветка эмитентов Numista (Germany (1871-1948) -> Germany): сначала существующие государства.
-	for (int pass = 0; pass < 2; ++pass)
+	for (int pass = 0; pass < 2 && !territory; ++pass)
 		for (size_t i = 0; i < countries.size(); ++i)
 			if ((pass == 1 || countries[i].IsExist) && AMatcher.SameBranch(countries[i].NumistaIssuer, AType.IssuerCode))
 				return countries[i].Name;
 	const int id = FRepository->Lookups().FindOrCreateCountry(AType.IssuerName);
 	FRepository->Lookups().SetCountryIssuer(id, AType.IssuerCode);
+	if (known)
+	{
+		TCountry country;
+		country.Id          = id;
+		country.ContinentId = continentId;
+		country.IsExist     = isExist;
+		FRepository->Lookups().UpdateCountry(country);
+	}
 	ACreated = true;
 	return AType.IssuerName;
 }

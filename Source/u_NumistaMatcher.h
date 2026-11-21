@@ -106,6 +106,10 @@ public:
 	bool CachedTypes(const String &APath, std::vector<TNumistaType> &ATypes);
 	// Эмитенты в одной ветке иерархии Numista (общий корень).
 	bool SameBranch(const String &AIssuer1, const String &AIssuer2) const;
+	// Континент эмитента по встроенной таблице (задача 54): первый из цепочки эмитент -> родители,
+	// найденный в SeedIssuerContinents; ATerritory — найдена заморская территория (не корень ветки).
+	// false — не найден (нет issuers.json или вымышленное государство).
+	bool IssuerContinent(const String &AIssuer, int &AContinentId, bool &AIsExist, bool &ATerritory) const;
 
 	// Выпуск типа для монеты: год совпадает и (если указана разновидность)
 	// совпадает знак монетного двора (без точек и пробелов, кириллица — латиницей:
