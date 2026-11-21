@@ -185,8 +185,10 @@ Numista compares it with the swap lists of other members (the block <i>Get this 
 years, catalogue number) and your item (grade, quantity, purchase date, comment), links it with Numista (✓) and loads
 the type details and photos — the type photos and your own photos of the item on Numista.</li>
 </ol>
-<p>A new country (for example <i>Roman Empire</i>) appears under [[ui:No continent|Без континенту]]: set its continent and
-“extinct” in [[page:references|Reference lists]]. Years can be a range (<code>174–179</code>) and before Christ (<code>44 BC</code>).
+<p>Countries are matched with the program's countries by the Numista issuer (<i>United States</i> goes to <i>USA</i>).
+A new country gets its continent from the built-in list of Numista issuers (<i>Gabon</i> — Africa, <i>Bermuda</i> — North America,
+ancient states like <i>Roman Empire</i> — [[ui:Extinct states|Зниклі держави]]). Countries the list does not know
+(fantasy and private issues) stay under [[ui:No continent|Без континенту]] — drag them onto a continent in the tree. Years can be a range (<code>174–179</code>) and before Christ (<code>44 BC</code>).
 A price in another currency than UAH is added to the comment.</p>
 <h3>The coin is already in the program (from uCoin)</h3>
 <p>The column [[ui:In the program|У програмі]] shows what happens to each item:</p>
@@ -274,8 +276,10 @@ Numista порівнює його зі списками обміну інших 
 роки, номер у каталозі) і ваш примірник (стан, кількість, дата купівлі, коментар), пов'язує його з Numista (✓) і завантажує
 характеристики типу та фото — фото типу й ваші власні фото предмета на Numista.</li>
 </ol>
-<p>Нова країна (наприклад <i>Roman Empire</i>) з'являється в [[ui:No continent|Без континенту]]: вкажіть її континент і
-«зникла держава» в [[page:references|Довідниках]]. Роки можуть бути діапазоном (<code>174–179</code>) і до нашої ери (<code>44 до н. е.</code>).
+<p>Країни зіставляються з країнами програми за емітентом Numista (<i>United States</i> потрапляє в <i>USA</i>).
+Нова країна отримує континент із вбудованого списку емітентів Numista (<i>Gabon</i> — Африка, <i>Bermuda</i> — Північна Америка,
+античні держави, як <i>Roman Empire</i>, — [[ui:Extinct states|Зниклі держави]]). Країни, яких список не знає
+(вигадані й приватні випуски), залишаються в [[ui:No continent|Без континенту]] — перетягніть їх у дереві на континент. Роки можуть бути діапазоном (<code>174–179</code>) і до нашої ери (<code>44 до н. е.</code>).
 Ціна в іншій валюті, ніж гривня, додається до коментаря.</p>
 <h3>Монета вже є в програмі (з uCoin)</h3>
 <p>Колонка [[ui:In the program|У програмі]] показує, що буде з кожним предметом:</p>
@@ -593,6 +597,9 @@ T['references', 'en'] = u"""
 <li>[[ui:Exists (not an extinct state)|Існує (не зникла держава)]] — unchecked: the country is shown under [[ui:Extinct states|Зниклі держави]].</li>
 <li>[[ui:Part of|Входить у]] — the country is shown inside another country in the tree (for example <i>Prussia</i> inside <i>Germany</i>);
 empty — on its own. The same is done by dragging in the tree, see [[page:main-window|Main window]].</li>
+<li>[[ui:Reference → Place countries on continents|Довідники → Розставити країни по континентах]] — for countries under
+[[ui:No continent|Без континенту]] (for example imported from Numista by an earlier version): the program shows which country goes
+to which continent (by the Numista issuer) and moves them after your confirmation. Countries are not merged or renamed.</li>
 <li>[[ui:Numista issuer|Емітент Numista]] — the Numista issuer code used to search coins of this country. It is filled automatically;
 change it only if coins of the country are not found.</li>
 </ul>
@@ -608,6 +615,9 @@ T['references', 'uk'] = u"""
 <li>[[ui:Exists (not an extinct state)|Існує (не зникла держава)]] — знято: країна показується в [[ui:Extinct states|Зниклі держави]].</li>
 <li>[[ui:Part of|Входить у]] — країна показується в дереві всередині іншої країни (наприклад, <i>Prussia</i> у <i>Germany</i>);
 порожньо — окремо. Те саме робиться перетягуванням у дереві, див. [[page:main-window|Головне вікно]].</li>
+<li>[[ui:Reference → Place countries on continents|Довідники → Розставити країни по континентах]] — для країн у
+[[ui:No continent|Без континенту]] (наприклад, імпортованих з Numista попередньою версією): програма показує, яка країна на який
+континент піде (за емітентом Numista), і переносить їх після підтвердження. Країни не об'єднуються й не перейменовуються.</li>
 <li>[[ui:Numista issuer|Емітент Numista]] — код емітента Numista для пошуку монет цієї країни. Заповнюється автоматично;
 змінюйте його, лише якщо монети країни не знаходяться.</li>
 </ul>

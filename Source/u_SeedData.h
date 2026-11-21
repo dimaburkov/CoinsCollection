@@ -35,5 +35,19 @@ extern const int               SeedContinentCount;
 
 extern const TSeedCountryRow   SeedCountries[];
 extern const int               SeedCountryCount;
+
+// Континент по эмитенту Numista (задача 54): разделы верхнего уровня (level 1) и заморские
+// территории внутри них (Territory — своя страна, а не часть страны раздела). Ищется по цепочке
+// эмитент -> родители: первый найденный. Вымышленные государства, микронации, океаны — не указаны.
+struct TSeedIssuerContinentRow
+{
+	const wchar_t *Issuer;
+	int            ContinentId;
+	bool           IsExist;	// false — раздел исторических государств (Rome, Aksum...)
+	bool           Territory;
+};
+
+extern const TSeedIssuerContinentRow SeedIssuerContinents[];
+extern const int                     SeedIssuerContinentCount;
 //---------------------------------------------------------------------------
 #endif

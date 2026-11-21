@@ -10,6 +10,7 @@
 #include "u_NumistaMatcher.h"
 #include "u_NumistaClient.h"
 #include "u_LookupRepository.h"
+#include "u_SeedData.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 //---------------------------------------------------------------------------
@@ -244,6 +245,28 @@ std::vector<TNumistaType> TNumistaMatcher::QueryTypes(const String &APath, int *
 bool TNumistaMatcher::SameBranch(const String &AIssuer1, const String &AIssuer2) const
 {
 	return !AIssuer1.IsEmpty() && !AIssuer2.IsEmpty() && RootOf(AIssuer1) == RootOf(AIssuer2);
+}
+//---------------------------------------------------------------------------
+bool TNumistaMatcher::IssuerContinent(const String &AIssuer, int &AContinentId, bool &AIsExist,
+	bool &ATerritory) const
+{
+	String code = AIssuer;
+	for (int guard = 0; guard < 10 && !code.IsEmpty(); ++guard)
+	{
+		for (int i = 0; i < SeedIssuerContinentCount; ++i)
+			if (SameText(code, SeedIssuerContinents[i].Issuer))
+			{
+				AContinentId = SeedIssuerContinents[i].ContinentId;
+				AIsExist     = SeedIssuerContinents[i].IsExist;
+				ATerritory   = SeedIssuerContinents[i].Territory;
+				return true;
+			}
+		auto parent = FIssuerParent.find(code);
+		if (parent == FIssuerParent.end())
+			break;
+		code = parent->second;
+	}
+	return false;
 }
 //---------------------------------------------------------------------------
 // Названия типов Numista: «страна + номинал + год» или сюжет памятной монеты (задача 25).
