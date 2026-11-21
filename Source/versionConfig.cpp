@@ -9,7 +9,7 @@
 namespace AppInfo
 {
 	const String Name    = L"CoinsCollection";
-	const String Version = L"0.5.0.0";
+	const String Version = L"0.6.0.0";
 	const String Email   = L"progua@ukr.net";
 	const String SupportUrl = L"https://t.me/CoinsCol";
 }

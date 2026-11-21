@@ -172,9 +172,9 @@
 
 **Номер версии** — `a.b.c` (в exe — `a.b.c.0`). Меняется в трёх местах, одинаково:
 
-- `Source/versionConfig.cpp` — `AppInfo::Version` (`L"0.5.0.0"`); там же `AppInfo::Email` и `AppInfo::SupportUrl` (группа поддержки, задача 37: «Про програму», «Повідомити про проблему»);
+- `Source/versionConfig.cpp` — `AppInfo::Version` (`L"0.6.0.0"`); там же `AppInfo::Email` и `AppInfo::SupportUrl` (группа поддержки, задача 37: «Про програму», «Повідомити про проблему»);
 - `Source/_CoinsCollection.cbproj` — `VerInfo_MajorVer` / `VerInfo_MinorVer` / `VerInfo_Release`, `FileVersion` и `ProductVersion` в `VerInfo_Keys`;
-- `Setup/CoinsCollection.iss` — `#define AppVersion "0.5.0"`.
+- `Setup/CoinsCollection.iss` — `#define AppVersion "0.6.0"`.
 
 **Порядок выпуска**
 
@@ -202,6 +202,9 @@
 6. После Publish: на странице релиза в *Assets* есть инсталлятор, скачивается, SHA-256 скачанного совпадает с текстом. Забыли файл — **Edit** → «Attach binaries» → **Update release**.
 
 Ссылка для пользователей всегда одна: https://github.com/dimaburkov/CoinsCollection/releases/latest
+
+**Если на этом компьютере сайт GitHub недоступен** (0.6.0: восстановление 2FA) — push по SSH работает; PR и релиз — с другого компьютера, где есть вход: перенести `Setup\Output\CoinsCollection-Setup-a.b.c.exe` и текст `ReleaseNotes\a.b.c.md`. **Инсталлятор не пересобирать** — каждая сборка меняет SHA-256. Крайний случай — файл в группу Telegram с SHA-256, на GitHub позже тот же файл.
+Статистика скачиваний — только через API (на странице релиза её нет): `(Invoke-RestMethod "https://api.github.com/repos/dimaburkov/CoinsCollection/releases") | % { $r=$_; $r.assets | % { "$($r.tag_name)  $($_.name)  $($_.download_count)" } }`.
 
 **Проверка на «чистом» компьютере** (без RAD Studio) — перед первой раздачей и после изменений сборки: установка, первый запуск, импорт uCoin, подключение Numista, установка поверх, удаление.
 
