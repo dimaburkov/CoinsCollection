@@ -561,7 +561,15 @@ TNumistaTypeInfo TNumistaMatcher::LoadType(int ATypeId, bool ARefresh)
 	t.Picture[1]          = JsonString(j, L"reverse.picture");
 	t.PictureCopyright[0] = JsonString(j, L"obverse.picture_copyright");
 	t.PictureCopyright[1] = JsonString(j, L"reverse.picture_copyright");
+	for (int s = 0; s < 2; ++s)
+	{
+		const String side = s == 0 ? L"obverse." : L"reverse.";
+		t.PictureCopyrightUrl[s] = JsonString(j, side + L"picture_copyright_url");
+		t.PictureLicense[s]      = JsonString(j, side + L"picture_license_name");
+		t.PictureLicenseUrl[s]   = JsonString(j, side + L"picture_license_url");
+	}
 	t.PicturesKnown       = true;
+	t.CreditsKnown        = true;
 	t.IssuerCode          = JsonString(j, L"issuer.code");
 	t.IssuerName          = JsonString(j, L"issuer.name");
 	t.ValueText           = JsonString(j, L"value.text");

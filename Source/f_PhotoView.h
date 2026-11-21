@@ -18,12 +18,12 @@
 #include "u_PhotoRepository.h"
 //---------------------------------------------------------------------------
 // Комплект фото для просмотра: подпись кнопки, файлы сторон (полные пути, "" — нет),
-// автор фото Numista ("" — свой снимок), индекс — TPhotoSide.
+// автор фото Numista (задача 53; своё фото — без подписи), индекс — TPhotoSide.
 struct TPhotoViewSet
 {
-	String Caption;
-	String Files[2];
-	String Copyrights[2];
+	String       Caption;
+	String       Files[2];
+	TPhotoCredit Credits[2];
 	bool   Empty() const { return Files[0].IsEmpty() && Files[1].IsEmpty(); }
 };
 //---------------------------------------------------------------------------
@@ -67,6 +67,7 @@ private:
 	void __fastcall SideClick(TObject *Sender);
 	void __fastcall SetClick(TObject *Sender);
 	void __fastcall FitClick(TObject *Sender);
+	void __fastcall CopyrightClick(TObject *Sender);
 	void __fastcall ViewPaint(TObject *Sender);
 	void __fastcall ViewMouseDown(TObject *Sender, TMouseButton Button, TShiftState Shift, int X, int Y);
 	void __fastcall ViewMouseMove(TObject *Sender, TShiftState Shift, int X, int Y);

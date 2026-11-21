@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <Vcl.Imaging.jpeg.hpp>
+#include <shellapi.h>
 #include "f_PhotoView.h"
 #include "u_AppConfig.h"
 #include "u_Translator.h"
@@ -93,6 +94,8 @@ __fastcall TfmPhotoView::TfmPhotoView(TComponent *AOwner)
 	FCopyright->Layout      = tlCenter;
 	FCopyright->ShowAccelChar = false;
 	FCopyright->Font->Color = clGrayText;
+	FCopyright->ShowHint    = true;
+	FCopyright->OnClick     = CopyrightClick;
 
 	FView = new TPaintBox(this);
 	FView->Parent      = this;
@@ -155,9 +158,15 @@ void TfmPhotoView::ShowPhoto(int ASet, TPhotoSide ASide)
 	FObverse->Enabled = !set.Files[psObverse].IsEmpty();
 	FReverse->Enabled = !set.Files[psReverse].IsEmpty();
 	(FSide == psObverse ? FObverse : FReverse)->Down = true;
-	const String copyright = set.Copyrights[FSide];
-	FCopyright->Caption = copyright.IsEmpty() ? String() : Format(Tr(L"PhotoView.Copyright"), ARRAYOFCONST((copyright)));
-	FCopyright->Visible = !copyright.IsEmpty();
+	// Автор фото Numista (задача 53): лицензия — в подписи, клик — сайт автора.
+	const TPhotoCredit &credit = set.Credits[FSide];
+	String text = credit.Text();
+	if (!credit.License.IsEmpty())
+		text += L"  \u00B7  " + credit.License;
+	FCopyright->Caption = text;
+	FCopyright->Hint    = credit.Hint();
+	FCopyright->Cursor  = credit.AuthorUrl.IsEmpty() ? crDefault : crHandPoint;
+	FCopyright->Visible = credit.Numista;
 	FBitmap.reset();
 	try
 	{
@@ -235,6 +244,13 @@ void __fastcall TfmPhotoView::SideClick(TObject *Sender)
 void __fastcall TfmPhotoView::SetClick(TObject *Sender)
 {
 	ShowPhoto((int)static_cast<TComponent *>(Sender)->Tag, FSide);
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmPhotoView::CopyrightClick(TObject *Sender)
+{
+	const String url = FSets[FSet].Credits[FSide].AuthorUrl;
+	if (!url.IsEmpty())
+		ShellExecuteW(Handle, L"open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmPhotoView::FitClick(TObject *Sender)

@@ -1036,11 +1036,15 @@ void TCoinRepository::SaveNumistaType(const TNumistaTypeInfo &AType)
 		L"INSERT OR REPLACE INTO numista_types (id, title, object_type, min_year, max_year, composition,"
 		L"       technique, weight, size, size2, thickness, shape, is_demonetized, demonetization_date,"
 		L"       rulers, series, commemorated_topic, mints, updated_at,"
-		L"       obverse_picture, reverse_picture, obverse_copyright, reverse_copyright, pictures_known)"
+		L"       obverse_picture, reverse_picture, obverse_copyright, reverse_copyright, pictures_known,"
+		L"       obverse_copyright_url, reverse_copyright_url, obverse_license, reverse_license,"
+		L"       obverse_license_url, reverse_license_url, credits_known)"
 		L" VALUES (:id, :title, :object_type, :min_year, :max_year, :composition,"
 		L"       :technique, :weight, :size, :size2, :thickness, :shape, :is_demonetized, :demonetization_date,"
 		L"       :rulers, :series, :commemorated_topic, :mints, :updated_at,"
-		L"       :obverse_picture, :reverse_picture, :obverse_copyright, :reverse_copyright, :pictures_known)");
+		L"       :obverse_picture, :reverse_picture, :obverse_copyright, :reverse_copyright, :pictures_known,"
+		L"       :obverse_copyright_url, :reverse_copyright_url, :obverse_license, :reverse_license,"
+		L"       :obverse_license_url, :reverse_license_url, :credits_known)");
 	q->ParamByName(L"id")->AsInteger = AType.Id;
 	SetText       (q->ParamByName(L"title"),               AType.Title);
 	SetText       (q->ParamByName(L"object_type"),         AType.ObjectType);
@@ -1070,6 +1074,14 @@ void TCoinRepository::SaveNumistaType(const TNumistaTypeInfo &AType)
 	SetText       (q->ParamByName(L"obverse_copyright"),   AType.PictureCopyright[0]);
 	SetText       (q->ParamByName(L"reverse_copyright"),   AType.PictureCopyright[1]);
 	q->ParamByName(L"pictures_known")->AsInteger = AType.PicturesKnown ? 1 : 0;
+	for (int s = 0; s < 2; ++s)
+	{
+		const String side = s == 0 ? L"obverse_" : L"reverse_";
+		SetText(q->ParamByName(side + L"copyright_url"), AType.PictureCopyrightUrl[s]);
+		SetText(q->ParamByName(side + L"license"),       AType.PictureLicense[s]);
+		SetText(q->ParamByName(side + L"license_url"),   AType.PictureLicenseUrl[s]);
+	}
+	q->ParamByName(L"credits_known")->AsInteger = AType.CreditsKnown ? 1 : 0;
 	q->ExecSQL();
 }
 //---------------------------------------------------------------------------
@@ -1137,7 +1149,45 @@ bool TCoinRepository::LoadNumistaType(int ATypeId, TNumistaTypeInfo &AType)
 	AType.PictureCopyright[0] = FieldText(D, L"obverse_copyright");
 	AType.PictureCopyright[1] = FieldText(D, L"reverse_copyright");
 	AType.PicturesKnown       = FieldInt (D, L"pictures_known") != 0;
+	for (int s = 0; s < 2; ++s)
+	{
+		const String side = s == 0 ? L"obverse_" : L"reverse_";
+		AType.PictureCopyrightUrl[s] = FieldText(D, side + L"copyright_url");
+		AType.PictureLicense[s]      = FieldText(D, side + L"license");
+		AType.PictureLicenseUrl[s]   = FieldText(D, side + L"license_url");
+	}
+	AType.CreditsKnown        = FieldInt (D, L"credits_known") != 0;
 	return true;
+}
+//---------------------------------------------------------------------------
+std::vector<int> TCoinRepository::NumistaTypesWithoutCredits()
+{
+	std::vector<int> result;
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase, L"SELECT id FROM numista_types WHERE credits_known = 0 ORDER BY id");
+	for (q->Open(); !q->Eof; q->Next())
+		result.push_back(q->Fields->Fields[0]->AsInteger);
+	return result;
+}
+//---------------------------------------------------------------------------
+void TCoinRepository::SaveNumistaTypeCredits(const TNumistaTypeInfo &AType)
+{
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
+		L"UPDATE numista_types SET obverse_copyright = :obverse_copyright, reverse_copyright = :reverse_copyright,"
+		L"       obverse_copyright_url = :obverse_copyright_url, reverse_copyright_url = :reverse_copyright_url,"
+		L"       obverse_license = :obverse_license, reverse_license = :reverse_license,"
+		L"       obverse_license_url = :obverse_license_url, reverse_license_url = :reverse_license_url,"
+		L"       credits_known = 1"
+		L" WHERE id = :id");
+	q->ParamByName(L"id")->AsInteger = AType.Id;
+	for (int s = 0; s < 2; ++s)
+	{
+		const String side = s == 0 ? L"obverse_" : L"reverse_";
+		SetText(q->ParamByName(side + L"copyright"),     AType.PictureCopyright[s]);
+		SetText(q->ParamByName(side + L"copyright_url"), AType.PictureCopyrightUrl[s]);
+		SetText(q->ParamByName(side + L"license"),       AType.PictureLicense[s]);
+		SetText(q->ParamByName(side + L"license_url"),   AType.PictureLicenseUrl[s]);
+	}
+	q->ExecSQL();
 }
 //---------------------------------------------------------------------------
 // Экземпляры, импортированные из своей коллекции Numista (задача 20).

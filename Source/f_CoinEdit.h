@@ -117,6 +117,7 @@ __published:	// IDE-managed Components
 	void __fastcall QueryPartChange(TObject *Sender);
 	void __fastcall btnOKClick(TObject *Sender);
 	void __fastcall PhotoLoadClick(TObject *Sender);
+	void __fastcall PhotoNoteClick(TObject *Sender);
 	void __fastcall PhotoPasteClick(TObject *Sender);
 	void __fastcall PhotoRemoveClick(TObject *Sender);
 private:	// User declarations
@@ -124,7 +125,7 @@ private:	// User declarations
 	TPhotoRepository       *FPhotos;       // не владеет
 	String                  FItemFile[2];  // сохранённое фото экземпляра (полный путь; "" — нет), индекс — TPhotoSide
 	String                  FCoinFile[2];  // сохранённое фото типа
-	String                  FCoinCopyright[2]; // автор сохранённого фото типа из Numista ("" — своё)
+	TPhotoCredit            FCoinCredit[2];    // автор сохранённого фото типа из Numista (задача 53)
 	TPhotoEdits             FEdits;
 	std::vector<TCountry>   FCountries;
 	std::vector<TCondition> FConditions;   // индекс в cbCondition = индекс + 1 (0 — «нет»)

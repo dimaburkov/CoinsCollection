@@ -150,7 +150,12 @@ struct TNumistaTypeInfo
 	// Изображения сторон (задачи 17, 17b), индекс — TPhotoSide (0 — аверс, 1 — реверс); "" — нет.
 	String Picture[2];
 	String PictureCopyright[2];
+	// Сайт автора фото и лицензия (задача 53, схема v15); "" — не указаны.
+	String PictureCopyrightUrl[2];
+	String PictureLicense[2];
+	String PictureLicenseUrl[2];
 	bool   PicturesKnown;       // ссылки прочитаны из getType (false — тип загружен до v8)
+	bool   CreditsKnown;        // сайт и лицензия прочитаны из getType (false — тип сохранён до v15)
 	// Для импорта из Numista (задача 20); в БД не хранятся
 	String IssuerCode;
 	String IssuerName;
@@ -159,7 +164,7 @@ struct TNumistaTypeInfo
 	String Reference;           // первая ссылка каталога: "RIC# III 123"
 	std::vector<String> References;	// все ссылки: "KM# 18", "Schön# 18" — сопоставление с монетами программы
 	TNumistaTypeInfo() : Id(0), MinYear(0), MaxYear(0), Weight(0.0), Size(0.0), Size2(0.0), Thickness(0.0),
-		Demonetized(-1), PicturesKnown(false) {}
+		Demonetized(-1), PicturesKnown(false), CreditsKnown(false) {}
 };
 
 //---------------------------------------------------------------------------

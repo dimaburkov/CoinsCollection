@@ -333,7 +333,10 @@ private:	// User declarations
 	int                              FMouseDownRow;    // строка сетки последнего нажатия мыши (для двойного клика)
 	int                              FDetailsTypeId;   // N# монеты в панели подробностей (0 — нет)
 	String                           FDetailPhotos[2]; // фото в панели (полный путь; "" — нет), индекс — TPhotoSide
-	String                           FDetailCopyrights[2]; // автор фото Numista ("" — свой снимок)
+	// Автор фото Numista под фото в панели (задача 53): подпись в рамке снизу, клик — сайт автора.
+	TPhotoCredit                     FDetailCredits[2];
+	TLabel                          *FDetailCredit[2];
+	__int64                          FThumbHintKey;    // мини-фото под курсором с подсказкой автора (-1 — нет)
 	String                           FDetailPhotoTitle; // заголовок окна просмотра
 	// Переключатель «моє фото / каталог» в рамке аверса (задача 30): виден, если у монеты есть
 	// и свои фото, и фото типа; выбор действует для всех монет до конца сеанса.
@@ -458,6 +461,7 @@ private:
 	void ShowDetailPhotos(const TCoinRecord *ARecord);
 	int  DownloadTypePhotos(TNumistaClient &AClient, const TNumistaTypeInfo &AType, int ACoinId,
 		bool AReplaceNumista, int &AFailed);
+	void BackfillPhotoCredits();
 	// Цены Numista (задача 34): оценка для состояния монеты (0 — нет), строка всех состояний.
 	double NumistaPrice(const TCoinRecord &ARecord) const;
 	String NumistaPricesText(const TCoinRecord &ARecord) const;
@@ -480,6 +484,8 @@ private:
 		const TNumistaTypeInfo &AType, int &ACountries, int &APhotos, int &APhotosFailed);
 	void __fastcall DetailPhotoDblClick(TObject *Sender);
 	void __fastcall PhotoSwitchClick(TObject *Sender);
+	void __fastcall DetailCreditClick(TObject *Sender);
+	void __fastcall dgItemsMouseMove(TObject *Sender, TShiftState Shift, int X, int Y);
 	void UploadItems(const std::vector<TCoinRecord> &ACandidates);
 	// Автосвязь (задача 28): тип от связанной монеты той же страны с тем же номером
 	// (ANumberTypes: ключ NumberKey → типы), если год монеты — в годах ровно одного из них. 0 — нет.
