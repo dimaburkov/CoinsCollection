@@ -14,7 +14,7 @@
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 //---------------------------------------------------------------------------
-// TForm(AOwner, 0) — CreateNew: у формы нет .dfm.
+// TForm(AOwner, 0) — CreateNew: у формы нет .dfm; размеры — при масштабе 100%, затем EndCodeForm (задача 55).
 __fastcall TfmNumistaImport::TfmNumistaImport(TComponent *AOwner)
 	: TForm(AOwner, 0),
 	  FIssuer(nullptr),
@@ -24,6 +24,7 @@ __fastcall TfmNumistaImport::TfmNumistaImport(TComponent *AOwner)
 	  FChoose(nullptr),
 	  FFilling(false)
 {
+	BeginCodeForm(this);
 	Caption     = Tr(L"NumistaImport.Title");
 	BorderStyle = bsSizeable;
 	BorderIcons = TBorderIcons() << biSystemMenu << biMaximize;
@@ -32,7 +33,6 @@ __fastcall TfmNumistaImport::TfmNumistaImport(TComponent *AOwner)
 	Height      = 520;
 	Constraints->MinWidth  = 560;
 	Constraints->MinHeight = 300;
-	AppConfig().RestoreFormSize(this, L"NumistaImport");	// задача 44
 
 	TPanel *top = new TPanel(this);
 	top->Parent = this;
@@ -109,6 +109,11 @@ __fastcall TfmNumistaImport::TfmNumistaImport(TComponent *AOwner)
 	FList->HideSelection = false;
 	FList->OnItemChecked = ListItemChecked;
 	FList->OnDblClick = ListDblClick;
+
+	InstallHelpKey(this, L"import");
+	EndCodeForm(this);
+
+	// Колонки — после масштабирования формы, в пикселях экрана.
 	const wchar_t *const columns[] = { L"NumistaImport.Column.Issuer", L"NumistaImport.Column.Title",
 		L"NumistaImport.Column.Year", L"NumistaImport.Column.Grade", L"NumistaImport.Column.InProgram" };
 	const int widths[] = { 170, 300, 80, 55, 260 };
@@ -116,10 +121,9 @@ __fastcall TfmNumistaImport::TfmNumistaImport(TComponent *AOwner)
 	{
 		TListColumn *c = FList->Columns->Add();
 		c->Caption = Tr(columns[i]);
-		c->Width = widths[i];
+		c->Width = ScaleValue(widths[i]);
 	}
-
-	InstallHelpKey(this, L"import");
+	AppConfig().RestoreFormSize(this, L"NumistaImport");	// задача 44; размеры в ini — в пикселях экрана
 }
 //---------------------------------------------------------------------------
 bool TfmNumistaImport::Execute(TComponent *AOwner, const std::vector<TNumistaImportRow> &ARows,
@@ -263,6 +267,7 @@ int TfmNumistaImport::ChooseLine(TComponent *AOwner, const String &ACaption, con
 	int ACurrent)
 {
 	std::unique_ptr<TChooseLineForm> form(new TChooseLineForm(AOwner));
+	BeginCodeForm(form.get());	// задача 55
 	form->Caption     = ACaption;
 	form->BorderStyle = bsSizeable;
 	form->BorderIcons = TBorderIcons() << biSystemMenu;
@@ -300,6 +305,7 @@ int TfmNumistaImport::ChooseLine(TComponent *AOwner, const String &ACaption, con
 	list->OnDblClick = form->ListDblClick;	// двойной клик по строке — как OK
 	form->ActiveControl = list;
 
+	EndCodeForm(form.get());
 	if (form->ShowModal() != mrOk)
 		return -1;
 	return list->ItemIndex;

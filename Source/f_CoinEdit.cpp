@@ -313,7 +313,7 @@ void TfmCoinEdit::CreateItemPhotoColumn()
 		btnObverseLoad, btnObversePaste, btnObverseRemove };
 	FPhotoControls[pcType][psReverse] = { lblReverse, pnlReverse, imgReverse, lblReverseNote,
 		btnReverseLoad, btnReversePaste, btnReverseRemove };
-	const int shift = pnlObverse->Width + 12;
+	const int shift = pnlObverse->Width + ScaleValue(12);	// масштаб экрана (задача 55)
 	auto place = [shift](TControl *AControl, TControl *ASample)
 	{
 		AControl->SetBounds(ASample->Left + shift, ASample->Top, ASample->Width, ASample->Height);

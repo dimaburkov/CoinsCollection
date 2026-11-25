@@ -14,7 +14,7 @@ namespace
 	const int cMinItemsToShow = 4;	// до 3 элементов окно не показывается
 }
 //---------------------------------------------------------------------------
-// TForm(AOwner, 0) — CreateNew: у формы нет .dfm.
+// TForm(AOwner, 0) — CreateNew: у формы нет .dfm; размеры — при масштабе 100%, затем EndCodeForm (задача 55).
 __fastcall TfmProgress::TfmProgress(TComponent *AOwner)
 	: TForm(AOwner, 0),
 	  Step(nullptr),
@@ -24,6 +24,7 @@ __fastcall TfmProgress::TfmProgress(TComponent *AOwner)
 	  Stop(nullptr),
 	  Stopped(false)
 {
+	BeginCodeForm(this);
 	BorderStyle  = bsDialog;
 	BorderIcons  = TBorderIcons();	// без крестика: остановка — кнопкой Stop
 	Position     = poOwnerFormCenter;
@@ -57,6 +58,7 @@ __fastcall TfmProgress::TfmProgress(TComponent *AOwner)
 	Stop->Caption = Tr(L"Progress.Stop");
 	Stop->Cancel  = true;	// Esc — Stop
 	Stop->OnClick = StopClick;
+	EndCodeForm(this);
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmProgress::StopClick(TObject *Sender)

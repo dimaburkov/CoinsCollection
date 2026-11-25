@@ -20,11 +20,13 @@ namespace
 	const int cWidth  = 440;	// ширина текста
 }
 //---------------------------------------------------------------------------
-// TForm(AOwner, 0) — CreateNew: у формы нет .dfm.
+// TForm(AOwner, 0) — CreateNew: у формы нет .dfm. Всё строится при масштабе 100% (в том числе в Execute),
+// перед показом — EndCodeForm (задача 55).
 __fastcall TfmAbout::TfmAbout(TComponent *AOwner)
 	: TForm(AOwner, 0),
 	  FTop(16)
 {
+	BeginCodeForm(this);
 	BorderStyle = bsDialog;
 	Position    = poOwnerFormCenter;
 	Caption     = Tr(L"About.Title");
@@ -145,6 +147,7 @@ void TfmAbout::Execute(TComponent *AOwner, const String &ADbFile, int ASchema)
 	ok->SetBounds(f->ClientWidth - 16 - 90, f->FTop, 90, 25);
 	f->ClientHeight = f->FTop + 25 + 14;
 
+	EndCodeForm(f);
 	f->ShowModal();
 }
 //---------------------------------------------------------------------------

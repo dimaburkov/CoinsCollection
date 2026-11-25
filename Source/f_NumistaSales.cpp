@@ -211,11 +211,12 @@ int TfmNumistaSales::Selected() const
 //---------------------------------------------------------------------------
 void __fastcall TfmNumistaSales::FormResize(TObject *Sender)
 {
+	// Ширины при масштабе 100% — в пикселях экрана (задача 55).
 	int fixed = 0;
 	for (int c = 0; c < csCount; ++c)
-		fixed += cWidths[c] + dgSales->GridLineWidth;
+		fixed += ScaleValue(cWidths[c]) + dgSales->GridLineWidth;
 	for (int c = 0; c < csCount; ++c)
-		dgSales->ColWidths[c] = cWidths[c] != 0 ? cWidths[c] : std::max(150, dgSales->ClientWidth - fixed);
+		dgSales->ColWidths[c] = cWidths[c] != 0 ? ScaleValue(cWidths[c]) : std::max(ScaleValue(150), dgSales->ClientWidth - fixed);
 }
 //---------------------------------------------------------------------------
 String TfmNumistaSales::CellText(const TNumistaSale &ASale, int AColumn) const

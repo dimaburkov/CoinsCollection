@@ -97,5 +97,12 @@ private:
 };
 //---------------------------------------------------------------------------
 TAppConfig &AppConfig();
+
+// Окна без .dfm (задача 55): форма, созданная CreateNew, остаётся в 96 dpi — VCL масштабирует только
+// формы из .dfm. Порядок как у TCustomForm.CreateScaledNew: в начале конструктора BeginCodeForm (шрифт
+// формы — к 96 dpi), затем элементы в размерах 100%, в конце EndCodeForm — всё к масштабу монитора.
+// Размеры, задаваемые после EndCodeForm, — через AForm->ScaleValue().
+void BeginCodeForm(TForm *AForm);
+void EndCodeForm(TForm *AForm);
 //---------------------------------------------------------------------------
 #endif

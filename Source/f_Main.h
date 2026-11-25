@@ -341,6 +341,7 @@ private:	// User declarations
 	TPhotoCredit                     FDetailCredits[2];
 	TLabel                          *FDetailCredit[2];
 	__int64                          FThumbHintKey;    // мини-фото под курсором с подсказкой автора (-1 — нет)
+	int                              FRowHeight;       // высота строк при масштабе 100% (18 / 40 / 64; задача 55)
 	String                           FDetailPhotoTitle; // заголовок окна просмотра
 	// Переключатель «моє фото / каталог» в рамке аверса (задача 30): виден, если у монеты есть
 	// и свои фото, и фото типа; выбор действует для всех монет до конца сеанса.
@@ -411,7 +412,7 @@ private:
 	void OpenPhotoView(int AIndex, int ASide, bool AStartWithType);
 	void FitColumns(int ARetry = 0);	// ARetry — повтор после появления / исчезновения прокрутки
 	// Наименьшая ширина текстовой колонки при подгонке под окно (задача 34a); 0 — колонка не сужается.
-	static int MinFitWidth(int AColumn);
+	int MinFitWidth(int AColumn);	// в пикселях экрана (задача 55)
 	void __fastcall pnlRightResize(TObject *Sender);	// назначается в конструкторе
 	// Размер самой сетки (WM_SIZE) — подгонка колонок (задача 34a): OnResize панели приходит
 	// раньше, чем сетка получает свой размер (при старте последняя колонка оставалась обрезанной).
@@ -489,6 +490,7 @@ private:
 	void __fastcall DetailPhotoDblClick(TObject *Sender);
 	void __fastcall PhotoSwitchClick(TObject *Sender);
 	void __fastcall DetailCreditClick(TObject *Sender);
+	void __fastcall FormAfterMonitorDpiChanged(TObject *Sender, int OldDPI, int NewDPI);
 	void __fastcall dgItemsMouseMove(TObject *Sender, TShiftState Shift, int X, int Y);
 	void UploadItems(const std::vector<TCoinRecord> &ACandidates);
 	// Автосвязь (задача 28): тип от связанной монеты той же страны с тем же номером

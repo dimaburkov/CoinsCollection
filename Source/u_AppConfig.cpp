@@ -90,6 +90,20 @@ void TAppConfig::RestoreFormSize(TForm *AForm, const String &AName)
 	AForm->Height = std::min(std::max((int)it->second.y, (int)AForm->Constraints->MinHeight), Screen->WorkAreaHeight);
 }
 //---------------------------------------------------------------------------
+void BeginCodeForm(TForm *AForm)
+{
+	if (AForm->Font->PixelsPerInch != AForm->PixelsPerInch)
+	{
+		AForm->Font->ScaleForDPI(AForm->PixelsPerInch);
+		AForm->Font->PixelsPerInch = AForm->PixelsPerInch;
+	}
+}
+//---------------------------------------------------------------------------
+void EndCodeForm(TForm *AForm)
+{
+	AForm->ScaleForCurrentDPI();
+}
+//---------------------------------------------------------------------------
 void TAppConfig::StoreFormSize(TForm *AForm, const String &AName)
 {
 	const TRect r = NormalBounds(AForm);
