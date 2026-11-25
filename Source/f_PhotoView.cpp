@@ -18,7 +18,7 @@ namespace
 	const double cMaxZoom  = 8.0;	// 800 %
 }
 //---------------------------------------------------------------------------
-// TForm(AOwner, 0) — CreateNew: у формы нет .dfm.
+// TForm(AOwner, 0) — CreateNew: у формы нет .dfm; размеры — при масштабе 100%, затем EndCodeForm (задача 55).
 __fastcall TfmPhotoView::TfmPhotoView(TComponent *AOwner)
 	: TForm(AOwner, 0),
 	  FToolbar(nullptr),
@@ -38,12 +38,12 @@ __fastcall TfmPhotoView::TfmPhotoView(TComponent *AOwner)
 	  FDragPanX(0.0),
 	  FDragPanY(0.0)
 {
+	BeginCodeForm(this);
 	BorderStyle  = bsSizeable;
 	Position     = poOwnerFormCenter;
-	// Шире 900: в панели кнопки комплектов и подсказка (задача 30); не шире рабочей области.
-	Width        = std::min(1080, Screen->WorkAreaWidth - 40);
+	// Шире 900: в панели кнопки комплектов и подсказка (задача 30); не шире рабочей области — ниже.
+	Width        = 1080;
 	Height       = 720;
-	AppConfig().RestoreFormSize(this, L"PhotoView");	// задача 44
 	KeyPreview   = true;
 	Color        = clBtnFace;
 	OnMouseWheel = FormMouseWheel;
@@ -107,6 +107,11 @@ __fastcall TfmPhotoView::TfmPhotoView(TComponent *AOwner)
 
 	DoubleBuffered = true;	// без мерцания при масштабе и сдвиге
 	InstallHelpKey(this, L"photos");
+
+	EndCodeForm(this);
+	Width  = std::min(Width, Screen->WorkAreaWidth - ScaleValue(40));
+	Height = std::min(Height, Screen->WorkAreaHeight - ScaleValue(40));
+	AppConfig().RestoreFormSize(this, L"PhotoView");	// задача 44; размеры в ini — в пикселях экрана
 }
 //---------------------------------------------------------------------------
 void TfmPhotoView::Execute(TComponent *AOwner, const String &ATitle, const std::vector<TPhotoViewSet> &ASets,
@@ -127,7 +132,8 @@ void TfmPhotoView::Execute(TComponent *AOwner, const String &ATitle, const std::
 void TfmPhotoView::LayoutToolbar()
 {
 	const bool sets = FSets.size() > 1;
-	int left = 8;
+	const int gap = ScaleValue(2), group = ScaleValue(10);
+	int left = ScaleValue(8);
 	for (int i = 0; i < 2; ++i)
 	{
 		FSetButtons[i]->Visible = sets;
@@ -136,14 +142,14 @@ void TfmPhotoView::LayoutToolbar()
 		FSetButtons[i]->Caption = FSets[i].Caption;
 		FSetButtons[i]->Enabled = !FSets[i].Empty();
 		FSetButtons[i]->Left    = left;
-		left += FSetButtons[i]->Width + 2;
+		left += FSetButtons[i]->Width + gap;
 	}
 	if (sets)
-		left += 10;
+		left += group;
 	FObverse->Left = left;
-	FReverse->Left = left + FObverse->Width + 2;
-	FFit->Left     = FReverse->Left + FReverse->Width + 10;
-	FHint->Left    = FFit->Left + FFit->Width + 12;
+	FReverse->Left = left + FObverse->Width + gap;
+	FFit->Left     = FReverse->Left + FReverse->Width + group;
+	FHint->Left    = FFit->Left + FFit->Width + ScaleValue(12);
 	FHint->Caption = Tr(sets ? L"PhotoView.HintSets" : L"PhotoView.Hint");
 }
 //---------------------------------------------------------------------------

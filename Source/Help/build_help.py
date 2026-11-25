@@ -1451,7 +1451,7 @@ with the Coins Collection program</i>.</li>
 T['numista-cases', 'en'] = u"""
 <p>Find the case that looks like yours: what you see — what to do — where to read more.</p>
 <h2>1. The coin has a KM#, Y# or C# number</h2>
-<p><b>You see:</b> the number in the [[ui:uCoin number|Номер uCoin]] row of the details.<br>
+<p><b>You see:</b> the number in the [[ui:Catalogue number|Номер у каталозі]] row of the details.<br>
 <b>Do:</b> check the coins and press [[ui:Auto-link|Автозв'язок]]. Most such coins are linked at once — the program searches
 by the number together with the year, so coins of the German Empire, Italian or Indian states are found too.<br>
 <b>More:</b> [[page:numista-link|Numista: linking coins]].</p>
@@ -1509,7 +1509,7 @@ The phrase is saved with the coin. Not sure about the number — search the type
 T['numista-cases', 'uk'] = u"""
 <p>Знайдіть випадок, схожий на ваш: що ви бачите — що робити — де читати докладніше.</p>
 <h2>1. У монети є номер KM#, Y# або C#</h2>
-<p><b>Ви бачите:</b> номер у рядку [[ui:uCoin number|Номер uCoin]] у подробицях.<br>
+<p><b>Ви бачите:</b> номер у рядку [[ui:Catalogue number|Номер у каталозі]] у подробицях.<br>
 <b>Що робити:</b> позначте монети й натисніть [[ui:Auto-link|Автозв'язок]]. Більшість таких монет зв'язуються одразу — програма шукає
 за номером разом із роком, тож монети Німецької імперії, італійських чи індійських держав теж знаходяться.<br>
 <b>Докладніше:</b> [[page:numista-link|Numista: зв'язок монет]].</p>

@@ -166,7 +166,7 @@ __fastcall TfmMain::TfmMain(TComponent* Owner)
 {
 	for (int c = 0; c < icCount; ++c)
 	{
-		FColWidths[c] = cDefaultWidths[c];
+		FColWidths[c] = ScaleValue(cDefaultWidths[c]);	// масштаб экрана (задача 55)
 		FUserWidth[c] = false;
 		FFitWidth[c]  = 0;
 	}
@@ -176,6 +176,8 @@ __fastcall TfmMain::TfmMain(TComponent* Owner)
 	FColumnMoved   = false;
 	FNormalBounds  = TRect(0, 0, 0, 0);
 	FThumbHintKey  = -1;
+	FRowHeight     = cRowHeights[0];
+	OnAfterMonitorDpiChanged = FormAfterMonitorDpiChanged;
 	FDetailCredit[0] = FDetailCredit[1] = nullptr;
 	FMenuColumn    = -1;
 	for (int c = 0; c < icCount; ++c)
@@ -516,7 +518,7 @@ void TfmMain::ApplyTexts()
 	// Ширина колонок миниатюр — по заголовку на новом языке (задача 51).
 	if (!FColumns.empty())
 	{
-		SetRowHeight(dgItems->DefaultRowHeight);
+		SetRowHeight(FRowHeight);
 		FitColumns();
 	}
 	UpdateDetails();
@@ -3987,12 +3989,12 @@ int TfmMain::MinFitWidth(int AColumn)
 {
 	switch (AColumn)
 	{
-		case icCountry:      return 80;
-		case icPeriod:       return 80;
-		case icCurrency:     return 70;
-		case icDenomination: return 70;
-		case icSubject:      return 60;
-		case icComposition:  return 60;
+		case icCountry:      return ScaleValue(80);
+		case icPeriod:       return ScaleValue(80);
+		case icCurrency:     return ScaleValue(70);
+		case icDenomination: return ScaleValue(70);
+		case icSubject:      return ScaleValue(60);
+		case icComposition:  return ScaleValue(60);
 	}
 	return 0;
 }
@@ -4036,7 +4038,7 @@ void TfmMain::FitColumns(int ARetry)
 		if (c == icSubject && !FUserWidth[c])
 		{
 			subject = (int)i;
-			widths[i] = cMinSubjectWidth;	// растягивается на свободное место ниже
+			widths[i] = ScaleValue(cMinSubjectWidth);	// растягивается на свободное место ниже
 		}
 		need += widths[i] + dgItems->GridLineWidth;
 		if (!FUserWidth[c] && MinFitWidth(c) > 0)
@@ -4144,7 +4146,7 @@ void TfmMain::SaveGridSettings()
 		custom = custom || FOrder[i] != (int)i;
 	}
 	AppConfig().GridHidden    = hidden;
-	AppConfig().GridRowHeight = dgItems->DefaultRowHeight;
+	AppConfig().GridRowHeight = FRowHeight;
 	AppConfig().GridOrder     = custom ? order : String();
 	String align;
 	for (int c = icCountry; c < icCount; ++c)
@@ -4156,14 +4158,17 @@ void TfmMain::SaveGridSettings()
 }
 //---------------------------------------------------------------------------
 // Высота строк данных; заголовок — прежний. Колонки миниатюр — квадрат по высоте строки.
+// AHeight — как при масштабе 100% (18 / 40 / 64, так и в ini); в пикселях — по масштабу экрана (задача 55).
 void TfmMain::SetRowHeight(int AHeight)
 {
-	dgItems->DefaultRowHeight = AHeight;
-	dgItems->RowHeights[0] = cRowHeights[0];
+	FRowHeight = AHeight;
+	dgItems->DefaultRowHeight = ScaleValue(AHeight);
+	dgItems->RowHeights[0] = ScaleValue(cRowHeights[0]);
 	// Квадрат по высоте строки, но не уже заголовка («Аверс Numista», задача 51).
 	dgItems->Canvas->Font = dgItems->Font;
 	for (int c = icObverse; c <= icTypeReverse; ++c)
-		FColWidths[c] = std::max(dgItems->Canvas->TextWidth(Tr(cColumnKeys[c])) + 12, AHeight + 8);
+		FColWidths[c] = std::max(dgItems->Canvas->TextWidth(Tr(cColumnKeys[c])) + ScaleValue(12),
+			dgItems->DefaultRowHeight + ScaleValue(8));
 	for (size_t i = 0; i < FColumns.size() && (int)i < dgItems->ColCount; ++i)
 		if (IsThumbColumn(FColumns[i]))
 		{
@@ -4204,7 +4209,7 @@ void __fastcall TfmMain::ColumnsMenuPopup(TObject *Sender)
 		item->Caption    = Tr(heightKeys[i]);
 		item->RadioItem  = true;
 		item->GroupIndex = 1;
-		item->Checked    = dgItems->DefaultRowHeight == cRowHeights[i];
+		item->Checked    = FRowHeight == cRowHeights[i];
 		item->Tag        = cRowHeights[i];
 		item->OnClick    = RowHeightMenuClick;
 		heights->Add(item);
@@ -4238,7 +4243,7 @@ void __fastcall TfmMain::ColumnMenuClick(TObject *Sender)
 	const int c = static_cast<TMenuItem *>(Sender)->Tag;
 	FColumnOn[c] = !FColumnOn[c];
 	// Миниатюры в строке 18 px не видны — средняя высота.
-	if (IsThumbColumn(c) && FColumnOn[c] && dgItems->DefaultRowHeight == cRowHeights[0])
+	if (IsThumbColumn(c) && FColumnOn[c] && FRowHeight == cRowHeights[0])
 		SetRowHeight(cRowHeights[1]);
 	UpdateColumns();
 	UpdateRowCount();
@@ -4284,7 +4289,7 @@ void __fastcall TfmMain::DefaultColumnsClick(TObject *Sender)
 	for (int c = 0; c < icCount; ++c)
 	{
 		FOrder.push_back(c);
-		FColWidths[c] = cDefaultWidths[c];	// и ширины по умолчанию (задача 44)
+		FColWidths[c] = ScaleValue(cDefaultWidths[c]);	// и ширины по умолчанию (задача 44)
 		FUserWidth[c] = false;
 		FAlign[c]     = DefaultAlign(c);	// и выравнивание (задача 46)
 	}
@@ -4654,26 +4659,28 @@ void __fastcall TfmMain::dgItemsDrawCell(TObject *Sender, int ACol, int ARow,
 		text = CellText(FItems[ARow - 1], column);
 
 	TCanvas *canvas = dgItems->Canvas;
-	RECT r = { Rect.Left + 4, Rect.Top, Rect.Right - 4, Rect.Bottom };
+	const int pad = ScaleValue(4);
+	RECT r = { Rect.Left + pad, Rect.Top, Rect.Right - pad, Rect.Bottom };
 
 	// Стрелка сортировки справа в заголовке текущей колонки.
-	if (ARow == 0 && column == FSortColumn && r.right - r.left > 16)
+	if (ARow == 0 && column == FSortColumn && r.right - r.left > ScaleValue(16))
 	{
-		const int cx = r.right - 5, cy = (Rect.Top + Rect.Bottom) / 2;
+		const int cx = r.right - ScaleValue(5), cy = (Rect.Top + Rect.Bottom) / 2;
+		const int w = ScaleValue(4), h = ScaleValue(2);
 		TPoint arrow[3];
 		if (FSortAscending)
 		{
-			arrow[0] = TPoint(cx - 4, cy + 2); arrow[1] = TPoint(cx + 4, cy + 2); arrow[2] = TPoint(cx, cy - 2);
+			arrow[0] = TPoint(cx - w, cy + h); arrow[1] = TPoint(cx + w, cy + h); arrow[2] = TPoint(cx, cy - h);
 		}
 		else
 		{
-			arrow[0] = TPoint(cx - 4, cy - 2); arrow[1] = TPoint(cx + 4, cy - 2); arrow[2] = TPoint(cx, cy + 2);
+			arrow[0] = TPoint(cx - w, cy - h); arrow[1] = TPoint(cx + w, cy - h); arrow[2] = TPoint(cx, cy + h);
 		}
 		canvas->Pen->Color   = clGrayText;
 		canvas->Brush->Style = bsSolid;
 		canvas->Brush->Color = clGrayText;
 		canvas->Polygon(arrow, 2);
-		r.right -= 14;
+		r.right -= ScaleValue(14);
 	}
 
 	// Выравнивание колонки (задача 46) — и у заголовка.
@@ -4707,14 +4714,15 @@ void __fastcall TfmMain::dgItemsDrawCell(TObject *Sender, int ACol, int ARow,
 		RECT measure = r, measureExtra = r;
 		DrawTextW(canvas->Handle, text.c_str(), -1, &measure, (leftFlags & ~DT_END_ELLIPSIS) | DT_CALCRECT);
 		DrawTextW(canvas->Handle, extra.c_str(), -1, &measureExtra, (leftFlags & ~DT_END_ELLIPSIS) | DT_CALCRECT);
-		const int total = (measure.right - measure.left) + 6 + (measureExtra.right - measureExtra.left);
+		const int gap = ScaleValue(6);
+		const int total = (measure.right - measure.left) + gap + (measureExtra.right - measureExtra.left);
 		if (FAlign[column] != L'l' && total < r.right - r.left)
 			r.left += FAlign[column] == L'r' ? (r.right - r.left) - total : ((r.right - r.left) - total) / 2;
 		measure.right = r.left + (measure.right - measure.left);
 		flags = leftFlags;
 		DrawTextW(canvas->Handle, text.c_str(), -1, &r, flags);
 		RECT rest = r;
-		rest.left = measure.right + 6;
+		rest.left = measure.right + gap;
 		if (rest.left < rest.right)
 		{
 			if (!State.Contains(gdSelected))
@@ -4963,7 +4971,7 @@ int TfmMain::CheckedState() const
 // Флажок по центру ячейки в стиле системы; AState: 0 — снят, 1 — частично, 2 — отмечен.
 void TfmMain::DrawCheckBox(const TRect &ARect, int AState)
 {
-	const int size = 13;
+	const int size = ScaleValue(13);
 	TRect box(0, 0, size, size);
 	OffsetRect(&box, ARect.Left + (ARect.Width() - size) / 2, ARect.Top + (ARect.Height() - size) / 2);
 	if (StyleServices()->Enabled)
@@ -5060,7 +5068,7 @@ void TfmMain::CreateDetailRows()
 	// Переключатель «моє фото / каталог» (задача 30) — поверх фото, в левом верхнем углу аверса.
 	FPhotoSwitch = new TSpeedButton(this);
 	FPhotoSwitch->Parent     = pnlObverse;
-	FPhotoSwitch->SetBounds(2, 2, 30, 26);
+	FPhotoSwitch->SetBounds(ScaleValue(2), ScaleValue(2), ScaleValue(30), ScaleValue(26));
 	FPhotoSwitch->Flat       = true;
 	FPhotoSwitch->Font->Name = L"Segoe UI Symbol";
 	FPhotoSwitch->Font->Size = 14;
@@ -5075,7 +5083,7 @@ void TfmMain::CreateDetailRows()
 		credit->Parent           = s == psObverse ? pnlObverse : pnlReverse;
 		credit->Align            = alBottom;
 		credit->AutoSize         = false;
-		credit->Height           = 14;
+		credit->Height           = ScaleValue(14);
 		credit->Alignment        = taCenter;
 		credit->Layout           = tlCenter;
 		credit->EllipsisPosition = epEndEllipsis;
@@ -5346,6 +5354,27 @@ void __fastcall TfmMain::PhotoSwitchClick(TObject *Sender)
 	UpdateDetails();
 }
 //---------------------------------------------------------------------------
+// Окно перенесено на монитор с другим масштабом или масштаб Windows изменён (задача 55): элементы
+// .dfm VCL пересчитал сам; ширины колонок, высота строк и раскладка панели — здесь.
+void __fastcall TfmMain::FormAfterMonitorDpiChanged(TObject *Sender, int OldDPI, int NewDPI)
+{
+	if (OldDPI <= 0 || OldDPI == NewDPI)
+		return;
+	for (int c = 0; c < icCount; ++c)
+		FColWidths[c] = MulDiv(FColWidths[c], NewDPI, OldDPI);
+	SetRowHeight(FRowHeight);
+	for (size_t i = 0; i < FColumns.size() && (int)i < dgItems->ColCount; ++i)
+	{
+		dgItems->ColWidths[(int)i] = FColWidths[FColumns[i]];
+		FFitWidth[FColumns[i]]     = FColWidths[FColumns[i]];
+	}
+	FitColumns();
+	LayoutDetails();
+	FDetailPhotos[0] = FDetailPhotos[1] = L"#";	// рамки фото стали другого размера — вписать заново
+	UpdateDetails();
+	dgItems->Invalidate();
+}
+//---------------------------------------------------------------------------
 void __fastcall TfmMain::DetailCreditClick(TObject *Sender)
 {
 	const String url = FDetailCredits[static_cast<TComponent *>(Sender)->Tag].AuthorUrl;
@@ -5428,16 +5457,18 @@ void TfmMain::LayoutDetails()
 {
 	if (!HandleAllocated())
 		return;
-	const int left = 8, captionWidth = 110, gap = 6, right = 8, columnGap = 16, minValueWidth = 120;
-	const int width = std::max(80, sbInfo->ClientWidth - left - right);
+	// Отступы — при масштабе 100%, в пикселях — по масштабу экрана (задача 55).
+	const int left = ScaleValue(8), captionWidth = ScaleValue(110), gap = ScaleValue(6), right = ScaleValue(8),
+		columnGap = ScaleValue(16), minValueWidth = ScaleValue(120), rowGap = ScaleValue(4);
+	const int width = std::max(ScaleValue(80), sbInfo->ClientWidth - left - right);
 	const bool twoColumns = width >= 2 * (captionWidth + gap + minValueWidth) + columnGap;
 	const int columnWidth = twoColumns ? (width - columnGap) / 2 : width;
-	const int valueWidth = std::max(60, columnWidth - captionWidth - gap);
-	int y = 8 - sbInfo->VertScrollBar->Position;
+	const int valueWidth = std::max(ScaleValue(60), columnWidth - captionWidth - gap);
+	int y = ScaleValue(8) - sbInfo->VertScrollBar->Position;
 
 	const int titleHeight = TextHeight(lblDetailsTitle, width);
 	lblDetailsTitle->SetBounds(left, y, width, titleHeight);
-	y += titleHeight + 8;
+	y += titleHeight + ScaleValue(8);
 	int y1 = y, y2 = y;	// низ первой и второй колонки
 	for (size_t i = 0; i < FDetailRows.size(); ++i)
 	{
@@ -5449,9 +5480,9 @@ void TfmMain::LayoutDetails()
 		const int h = TextHeight(FDetailRows[i].Value, valueWidth);
 		FDetailRows[i].Caption->SetBounds(x, top, captionWidth, TextHeight(FDetailRows[i].Caption, captionWidth));
 		FDetailRows[i].Value->SetBounds(x + captionWidth + gap, top, valueWidth, h);
-		top += h + 4;
+		top += h + rowGap;
 	}
-	sbInfo->VertScrollBar->Range = std::max(y1, y2) + sbInfo->VertScrollBar->Position + 4;
+	sbInfo->VertScrollBar->Range = std::max(y1, y2) + sbInfo->VertScrollBar->Position + rowGap;
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::sbInfoResize(TObject *Sender)

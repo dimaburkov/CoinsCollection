@@ -98,11 +98,12 @@ void __fastcall TfmNumistaIssue::chkAllYearsClick(TObject *Sender)
 //---------------------------------------------------------------------------
 void __fastcall TfmNumistaIssue::FormResize(TObject *Sender)
 {
-	const int fixed = 80 + 70 + 100;
-	dgIssues->ColWidths[icYear]    = 80;
-	dgIssues->ColWidths[icMint]    = 70;
-	dgIssues->ColWidths[icMintage] = 100;
-	dgIssues->ColWidths[icComment] = std::max(150, dgIssues->ClientWidth - fixed - 4 * dgIssues->GridLineWidth);
+	// Ширины при масштабе 100% — в пикселях экрана (задача 55).
+	dgIssues->ColWidths[icYear]    = ScaleValue(80);
+	dgIssues->ColWidths[icMint]    = ScaleValue(70);
+	dgIssues->ColWidths[icMintage] = ScaleValue(100);
+	const int fixed = dgIssues->ColWidths[icYear] + dgIssues->ColWidths[icMint] + dgIssues->ColWidths[icMintage];
+	dgIssues->ColWidths[icComment] = std::max(ScaleValue(150), dgIssues->ClientWidth - fixed - 4 * dgIssues->GridLineWidth);
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmNumistaIssue::dgIssuesDrawCell(TObject *Sender, int ACol, int ARow, TRect &Rect, TGridDrawState State)

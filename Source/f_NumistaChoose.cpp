@@ -108,11 +108,12 @@ int TfmNumistaChoose::Selected() const
 //---------------------------------------------------------------------------
 void __fastcall TfmNumistaChoose::FormResize(TObject *Sender)
 {
-	const int fixed = 70 + 150 + 80;
-	dgTypes->ColWidths[ccId]     = 70;
-	dgTypes->ColWidths[ccIssuer] = 150;
-	dgTypes->ColWidths[ccYears]  = 80;
-	dgTypes->ColWidths[ccTitle]  = std::max(150, dgTypes->ClientWidth - fixed - 4 * dgTypes->GridLineWidth);
+	// Ширины при масштабе 100% — в пикселях экрана (задача 55).
+	dgTypes->ColWidths[ccId]     = ScaleValue(70);
+	dgTypes->ColWidths[ccIssuer] = ScaleValue(150);
+	dgTypes->ColWidths[ccYears]  = ScaleValue(80);
+	const int fixed = dgTypes->ColWidths[ccId] + dgTypes->ColWidths[ccIssuer] + dgTypes->ColWidths[ccYears];
+	dgTypes->ColWidths[ccTitle]  = std::max(ScaleValue(150), dgTypes->ClientWidth - fixed - 4 * dgTypes->GridLineWidth);
 }
 //---------------------------------------------------------------------------
 void __fastcall TfmNumistaChoose::dgTypesDrawCell(TObject *Sender, int ACol, int ARow, TRect &Rect, TGridDrawState State)
