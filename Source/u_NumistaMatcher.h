@@ -111,6 +111,15 @@ public:
 	// false — не найден (нет issuers.json или вымышленное государство).
 	bool IssuerContinent(const String &AIssuer, int &AContinentId, bool &AIsExist, bool &ATerritory) const;
 
+	// Каталог Numista (задача 56). Иерархия эмитентов — из issuers.json (LoadReferences).
+	bool   HasIssuer(const String &AIssuer) const;
+	String IssuerName(const String &AIssuer) const;
+	std::vector<String> IssuerChildren(const String &AIssuer) const;	// по названию
+	// Типы-монеты эмитента (и правителя, ARulerId != 0) по 100 на страницу, по дате выпуска.
+	static String CatalogPath(const String &AIssuer, int ARulerId, int APage);
+	// Страница каталога: из кэша, иначе запрос (ARefresh — мимо кэша); ACount — всего типов.
+	std::vector<TNumistaType> CatalogPage(const String &AIssuer, int ARulerId, int APage, bool ARefresh, int &ACount);
+
 	// Выпуск типа для монеты: год совпадает и (если указана разновидность)
 	// совпадает знак монетного двора (без точек и пробелов, кириллица — латиницей:
 	// "Е.М." = "EM"; задача 28a); из нескольких — единственный без комментария, иначе
@@ -143,6 +152,8 @@ private:
 	std::map<String, std::vector<String> > FIssuersByName;  // название (lower) → коды
 	std::map<String, int> FLevel;                           // код → уровень
 	std::map<String, String> FParentName;                   // код → название родителя (lower)
+	std::map<String, String> FIssuerName;                   // код → название (задача 56)
+	std::map<String, std::vector<String> > FIssuerChildren; // код → коды подразделов
 	std::map<String, int> FCatalogues;                      // код каталога (upper) → id
 
 	String RootOf(const String &AIssuer) const;

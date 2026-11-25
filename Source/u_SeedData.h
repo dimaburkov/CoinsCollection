@@ -49,5 +49,19 @@ struct TSeedIssuerContinentRow
 
 extern const TSeedIssuerContinentRow SeedIssuerContinents[];
 extern const int                     SeedIssuerContinentCount;
+
+// Правители эмитента Numista (задача 56): у Roman Empire (rome) нет подразделов по императорам, а в API
+// нет списка правителей — ID собраны из /types?issuer=rome&ruler=N и getType (25.11.2026). Порядок —
+// хронологический; Group — группа Numista (династия). Каталог фильтрует типы по ruler=Id.
+struct TSeedRulerRow
+{
+	const wchar_t *Issuer;
+	int            RulerId;
+	const wchar_t *Name;
+	const wchar_t *Group;
+};
+
+extern const TSeedRulerRow SeedRulers[];
+extern const int           SeedRulerCount;
 //---------------------------------------------------------------------------
 #endif

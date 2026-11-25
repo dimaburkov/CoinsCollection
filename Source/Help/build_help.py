@@ -20,6 +20,7 @@ PAGES = [
  ('getting-started', 'Installation and settings', 'Встановлення та налаштування'),
  ('import', 'Import from uCoin', 'Імпорт з uCoin'),
  ('main-window', 'Main window', 'Головне вікно'),
+ ('catalog', 'Numista catalogue', 'Каталог Numista'),
  ('checks', 'Checking coins', 'Позначки монет'),
  ('coin-card', 'Coin card', 'Картка монети'),
  ('photos', 'Photos', 'Фото'),
@@ -299,7 +300,8 @@ Numista порівнює його зі списками обміну інших 
 T['main-window', 'en'] = u"""
 [[shot:01-main-window.png|The main window.]]
 <h2>Navigation tree</h2>
-<p>On the left: [[ui:My collection|Моя колекція]], continents with their countries, [[ui:No continent|Без континенту]],
+<p>At the top: [[ui:Numista catalogue|Каталог Numista]] — all coins of the Numista catalogue with marks of what you have, see [[page:catalog|Numista catalogue]].
+Below it: [[ui:My collection|Моя колекція]], continents with their countries, [[ui:No continent|Без континенту]],
 [[ui:Extinct states|Зниклі держави]], [[ui:For swap|На обмін]] and [[ui:Wish list|Бажані]] (your swap and wish lists, see [[page:import|Import from uCoin]])
 and [[ui:Checked|Позначені]] (all checked coins from any country, see [[page:checks|Checking coins]]).
 The number in brackets is the number of items. The collection nodes and the totals in the status bar do not include the swap and wish lists.</p>
@@ -364,7 +366,8 @@ estimate of the shown coins (estimate × quantity) and how many of them have no 
 T['main-window', 'uk'] = u"""
 [[shot:01-main-window.png|Головне вікно.]]
 <h2>Дерево навігації</h2>
-<p>Ліворуч: [[ui:My collection|Моя колекція]], континенти з країнами, [[ui:No continent|Без континенту]],
+<p>Угорі: [[ui:Numista catalogue|Каталог Numista]] — усі монети каталогу Numista з позначками, що у вас є, див. [[page:catalog|Каталог Numista]].
+Нижче: [[ui:My collection|Моя колекція]], континенти з країнами, [[ui:No continent|Без континенту]],
 [[ui:Extinct states|Зниклі держави]], [[ui:For swap|На обмін]] і [[ui:Wish list|Бажані]] (ваші списки обміну й бажаних, див. [[page:import|Імпорт з uCoin]])
 і [[ui:Checked|Позначені]] (усі позначені монети з будь-яких країн, див. [[page:checks|Позначки монет]]).
 Число в дужках — кількість примірників. Вузли колекції й підсумки в рядку стану не враховують списки обміну й бажаних.</p>
@@ -586,6 +589,66 @@ T['photos', 'uk'] = u"""
 <p>Подвійне клацання по фото в подробицях. Якщо в монети є і ваші фото, і фото каталогу, кнопки
 [[ui:My photo|Моє фото]] / [[ui:Catalogue|Каталог]] (або ↑/↓) перемикають між ними. Коліщатко миші — масштаб, перетягування — зсув, ←/→ або Пробіл — інша сторона,
 <b>0</b> або Home — за розміром вікна, Esc — закрити.</p>
+"""
+
+# =====================================================================
+T['catalog', 'en'] = u"""
+<p>The node [[ui:Numista catalogue|Каталог Numista]] at the top of the tree shows <b>all coins of the Numista catalogue</b>
+for a country, an issuer or a Roman emperor — not only yours. You see at once what you have and what you are missing.</p>
+<h2>Where the countries come from</h2>
+<p>The tree is built from the list of Numista issuers (it is loaded once with the Numista lists:
+[[ui:Numista → Connect / Settings|Numista → Підключення / налаштування]]): continents, [[ui:Extinct states|Зниклі держави]],
+then the Numista countries and their issuers — for example <i>Switzerland → Swiss cantons → Basel</i>
+or <i>Central and Eastern Europe (ancient) → Celts</i>. Opening the tree costs no requests.
+Fantasy states and micronations are not shown.</p>
+<p><i>Roman Empire</i> is one issuer on Numista; in the program it is divided into dynasties and emperors
+(from Augustus to Theodosius I).</p>
+<h2>Loading the coins</h2>
+<p>Choose an issuer or an emperor and press [[ui:Load from Numista|Завантажити з Numista]].
+One request loads 100 types: a small issuer — 1–2 requests, a big emperor — 10–30. If more than 10 requests are needed,
+the program asks first. Loaded types stay on your computer: choosing the node again costs nothing, also without internet.
+[[ui:Refresh from Numista|Оновити з Numista]] loads the list again (the program suggests it after a week:
+new types appear on Numista).</p>
+<h2>The list</h2>
+<ul>
+<li>Column [[ui:Mine|У мене]]: ✓ — in your collection, ⇄ — in the swap list, ★ — in the wish list, empty — you do not have it.
+Only coins linked with Numista are recognized — link your coins first ([[page:numista-link|Numista: linking coins]]).</li>
+<li>[[ui:Only missing|Лише відсутні]] — only the types you do not have; [[ui:By century|За століттями]] — grouped by century.</li>
+<li>Click a column header to sort; the search field above the list searches the titles.</li>
+<li>Right-click a type: [[ui:Load type details from Numista|Завантажити характеристики з Numista]] (1 request by the N#, no search) — composition, weight, size, ruler and other details appear below; [[ui:Open on Numista|Відкрити на Numista]].</li>
+<li>Double-click — the type page on Numista. The details below show the type; if the type is linked with one of your coins —
+its characteristics and catalogue photos.</li>
+</ul>
+<div class="note">The catalogue is read-only: countries cannot be dragged into it or out of it.</div>
+"""
+T['catalog', 'uk'] = u"""
+<p>Вузол [[ui:Numista catalogue|Каталог Numista]] угорі дерева показує <b>усі монети каталогу Numista</b>
+країни, емітента чи римського імператора — не лише ваші. Одразу видно, що у вас є, а чого бракує.</p>
+<h2>Звідки країни</h2>
+<p>Дерево будується зі списку емітентів Numista (він завантажується один раз разом зі списками Numista:
+[[ui:Numista → Connect / Settings|Numista → Підключення / налаштування]]): континенти, [[ui:Extinct states|Зниклі держави]],
+далі країни Numista та їхні емітенти — наприклад, <i>Switzerland → Swiss cantons → Basel</i>
+або <i>Central and Eastern Europe (ancient) → Celts</i>. Розгортання дерева запитів не витрачає.
+Вигадані держави й мікронації не показуються.</p>
+<p><i>Roman Empire</i> у Numista — один емітент; у програмі він поділений на династії та імператорів
+(від Августа до Феодосія I).</p>
+<h2>Завантаження монет</h2>
+<p>Виберіть емітента чи імператора й натисніть [[ui:Load from Numista|Завантажити з Numista]].
+Один запит — 100 типів: невеликий емітент — 1–2 запити, великий імператор — 10–30. Якщо потрібно понад 10 запитів,
+програма спершу спитає. Завантажені типи залишаються на вашому комп'ютері: повторний вибір вузла нічого не коштує, навіть без інтернету.
+[[ui:Refresh from Numista|Оновити з Numista]] завантажує список заново (програма підкаже це через тиждень:
+на Numista з'являються нові типи).</p>
+<h2>Список</h2>
+<ul>
+<li>Колонка [[ui:Mine|У мене]]: ✓ — у вашій колекції, ⇄ — у списку обміну, ★ — у бажаних, порожньо — у вас немає.
+Розпізнаються лише монети, пов'язані з Numista, — спершу пов'яжіть свої монети ([[page:numista-link|Numista: зв'язок монет]]).</li>
+<li>[[ui:Only missing|Лише відсутні]] — лише типи, яких у вас немає; [[ui:By century|За століттями]] — групування за століттями.</li>
+<li>Клацання по заголовку колонки — сортування; поле пошуку над списком шукає в назвах.</li>
+<li>Праве клацання по типу: [[ui:Load type details from Numista|Завантажити характеристики з Numista]] (1 запит за N#, без пошуку) — сплав, вага, розмір, правитель та інші характеристики зявляться унизу; [[ui:Open on Numista|Відкрити на Numista]].</li>
+<li>Подвійне клацання — сторінка типу на Numista. Унизу — подробиці типу; якщо тип пов'язаний з вашою монетою, —
+його характеристики й фото каталогу.</li>
+</ul>
+<div class="note">Каталог лише для перегляду: країни не перетягуються ні в нього, ні з нього.</div>
 """
 
 # =====================================================================
