@@ -53,6 +53,7 @@ public:
 	int       GridRowHeight;
 	// Колонки фото Numista известны ([Grid] TypeThumbs, задача 51); false — настройки 0.5.0 и раньше.
 	bool      GridTypeThumbs;
+	bool      CatalogThumbs;   // [Catalog] Thumbs — мини-фото в таблице каталога Numista (задача 58)
 	// Порядок колонок (задача 42): ключи через запятую; пусто — по умолчанию.
 	String    GridOrder;
 	// Выравнивание колонок, отличное от умолчания ([Grid] Align = "ключ:l|c|r,...", задача 46).

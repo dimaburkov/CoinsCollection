@@ -28,6 +28,7 @@
 struct TPhotoEdits;
 class TNumistaClient;
 class TNumistaMatcher;
+class TThumbLoader;
 //---------------------------------------------------------------------------
 struct TImportError;
 //---------------------------------------------------------------------------
@@ -275,7 +276,10 @@ private:	// User declarations
 	// Узел дерева навигации: что он отбирает.
 	// nkChecked — отмеченные экземпляры из любых стран (задача 13e).
 	// nkSwap — список обмена (задача 47); остальные узлы, кроме nkChecked, — только коллекция.
-	enum TNavKind { nkAll, nkContinent, nkNoContinent, nkExtinct, nkCountry, nkChecked, nkSwap, nkWish };
+	// nkCat... — узлы каталога Numista (задача 56): только для чтения, дети добавляются при раскрытии
+	// (nkCatDummy — заглушка «есть дети»); nkCatIssuer — Id = индекс кода в FCatCodes.
+	enum TNavKind { nkAll, nkContinent, nkNoContinent, nkExtinct, nkCountry, nkChecked, nkSwap, nkWish,
+		nkCatalog, nkCatContinent, nkCatExtinct, nkCatIssuer, nkCatGroup, nkCatRuler, nkCatDummy };
 	struct TNavNode
 	{
 		int    Kind;   // TNavKind
@@ -340,6 +344,40 @@ private:	// User declarations
 	// Автор фото Numista под фото в панели (задача 53): подпись в рамке снизу, клик — сайт автора.
 	TPhotoCredit                     FDetailCredits[2];
 	TLabel                          *FDetailCredit[2];
+	// Каталог Numista (задача 56).
+	// Category — object_type Numista (задача 58), Thumb — ссылки на мини-фото сторон.
+	struct TCatType { int Id; String Title; int MinYear, MaxYear; int Category; String CategoryName; String Thumb[2]; };
+	struct TCatRow  { int Type; int Status; int Century; };	// Type — индекс в FCatTypes, -1 — заголовок века
+	std::vector<String>              FCatCodes;        // коды эмитентов узлов nkCatIssuer
+	std::map<String, int>            FCatCodeIndex;
+	std::vector<String>              FCatGroups;       // группы правителей (узлы nkCatGroup)
+	std::unique_ptr<TNumistaClient>  FCatClient;
+	std::unique_ptr<TNumistaMatcher> FCatMatcher;      // иерархия эмитентов из issuers.json — при первом раскрытии
+	bool                             FCatRefs;         // issuers.json прочитан
+	TPanel                          *FCatPanel;
+	TLabel                          *FCatInfo;
+	TButton                         *FCatLoad;
+	TCheckBox                       *FCatMissing;
+	TCheckBox                       *FCatCentury;
+	TDrawGrid                       *FCatGrid;
+	TPopupMenu                      *FCatMenu;
+	TComboBox                       *FCatCategory;     // категория (задача 58)
+	TCheckBox                       *FCatThumbs;
+	TTimer                          *FCatTimer;        // перерисовка по мере загрузки мини-фото
+	TThumbLoader                    *FThumbLoader;     // фоновая загрузка мини-фото каталога
+	LONG                             FThumbSeen;
+	int                              FCatCategoryId;   // выбранная категория (0 — все), на сеанс
+	std::vector<int>                 FCatCols;         // колонки таблицы каталога (логические)
+	std::vector<TCatType>            FCatTypes;        // загруженные типы узла
+	std::vector<TCatRow>             FCatRows;         // показанные строки
+	std::map<int, int>               FCatStatus;       // N# -> 1 коллекция | 2 обмен | 4 желаемое
+	String                           FCatIssuer;       // эмитент узла ("" — узел без типов)
+	int                              FCatRuler;
+	int                              FCatTotal;        // типов у Numista; -1 — не загружено
+	int                              FCatPages, FCatPagesCached;
+	TDateTime                        FCatDate;
+	int                              FCatSort;         // колонка сортировки
+	bool                             FCatAsc;
 	__int64                          FThumbHintKey;    // мини-фото под курсором с подсказкой автора (-1 — нет)
 	int                              FRowHeight;       // высота строк при масштабе 100% (18 / 40 / 64; задача 55)
 	String                           FDetailPhotoTitle; // заголовок окна просмотра
@@ -373,6 +411,20 @@ private:	// User declarations
 	void BuildTree();
 	TTreeNode *AddNavNode(TTreeNode *AParent, int AKind, int AId, const String &AName, int ACount);
 	const TNavNode *CurrentNode() const;
+	static bool IsCatalogKind(int AKind) { return AKind >= nkCatalog; }
+	TTreeNode *AddCatNode(TTreeNode *AParent, int AKind, int AId, const String &AKey, const String &AName, bool AChildren);
+	void AddCatIssuer(TTreeNode *AParent, const String &AIssuer);
+	void PopulateCatalogNode(TTreeNode *ANode);
+	bool EnsureCatalogRefs();
+	void ShowCatalog(bool AReload = false);	// AReload — перечитать кэш и для того же узла
+	void ReadCatalogCache();
+	void RebuildCatalogRows();
+	void UpdateCatalogTop();
+	void UpdateCatalogStatus();
+	void ShowCatalogDetails(int AIndex);
+	void LayoutCatalogGrid();
+	static String CenturyText(int ACentury);
+	void CreateCatalogView();
 	bool MatchNode(const TCoinRecord &ARecord, const TNavNode &ANode) const;
 	void ApplyFilter();
 	void UpdateColumns();
@@ -442,6 +494,7 @@ private:
 
 	void CreateDetailRows();
 	void ShowDetails(int AIndex);	// AIndex в FItems, -1 — пусто
+	void ShowRecordDetails(const TCoinRecord *ARecord);	// nullptr — пусто
 	void UpdateDetails();
 	void LayoutDetails();
 	int  TextHeight(TLabel *ALabel, int AWidth);
@@ -463,7 +516,9 @@ private:
 	std::vector<TCoinRecord> CheckedRecords() const;
 	void UpdateNumistaMenuTitles();
 	void ShowTypeDetails(int ATypeId);
-	void ShowDetailPhotos(const TCoinRecord *ARecord);
+	// ATypeFiles / ATypeCredits — фото типа не из базы (мини-фото каталога, задача 58).
+	void ShowDetailPhotos(const TCoinRecord *ARecord, const String *ATypeFiles = nullptr,
+		const TPhotoCredit *ATypeCredits = nullptr);
 	int  DownloadTypePhotos(TNumistaClient &AClient, const TNumistaTypeInfo &AType, int ACoinId,
 		bool AReplaceNumista, int &AFailed);
 	void BackfillPhotoCredits();
@@ -492,6 +547,32 @@ private:
 	void __fastcall DetailCreditClick(TObject *Sender);
 	void __fastcall FormAfterMonitorDpiChanged(TObject *Sender, int OldDPI, int NewDPI);
 	void __fastcall dgItemsMouseMove(TObject *Sender, TShiftState Shift, int X, int Y);
+	void __fastcall tvNavExpanding(TObject *Sender, TTreeNode *Node, bool &AllowExpansion);
+	void __fastcall CatLoadClick(TObject *Sender);
+	void __fastcall CatFilterClick(TObject *Sender);
+	void __fastcall CatPanelResize(TObject *Sender);
+	void __fastcall CatGridDrawCell(TObject *Sender, int ACol, int ARow, const TRect &Rect, TGridDrawState State);
+	void __fastcall CatGridSelectCell(TObject *Sender, int ACol, int ARow, bool &CanSelect);
+	void __fastcall CatGridDblClick(TObject *Sender);
+	void __fastcall CatGridFixedCellClick(TObject *Sender, int ACol, int ARow);
+	void __fastcall CatGridMouseDown(TObject *Sender, TMouseButton Button, TShiftState Shift, int X, int Y);
+	void __fastcall CatMenuPopup(TObject *Sender);
+	void __fastcall CatMenuLoadTypeClick(TObject *Sender);
+	void __fastcall CatMenuOpenClick(TObject *Sender);
+	int  CatalogTypeId() const;	// N# строки каталога под курсором; 0 — нет
+	void RebuildCategoryCombo();
+	int  CatalogCategory() const;	// выбранная категория; 0 — все
+	static String CategoryText(int AId, const String &AName);
+	void CatalogCredits(int ATypeId, TPhotoCredit (&ACredits)[2]);
+	void StopThumbLoader();
+	void FocusList();
+	void OpenCatalogPhoto(int ASide);
+	// AWaiting — лучший файл стороны, которого ещё нет (загружается в фоне); "" — ждать нечего.
+	void CatalogPictureFiles(const TCatType &AType, String (&AFiles)[2], String *AWaiting = nullptr);
+	String                           FCatDetailWait[2];	// фото выбранного типа, которые ещё загружаются
+	void __fastcall CatCategoryChange(TObject *Sender);
+	void __fastcall CatThumbsClick(TObject *Sender);
+	void __fastcall CatTimer(TObject *Sender);
 	void UploadItems(const std::vector<TCoinRecord> &ACandidates);
 	// Автосвязь (задача 28): тип от связанной монеты той же страны с тем же номером
 	// (ANumberTypes: ключ NumberKey → типы), если год монеты — в годах ровно одного из них. 0 — нет.

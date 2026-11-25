@@ -273,17 +273,54 @@ std::unique_ptr<TJSONValue> TNumistaClient::GetCached(const String &APath, bool 
 	return json;
 }
 //---------------------------------------------------------------------------
-TGraphic *TNumistaClient::DownloadImage(const String &AUrl)
+// Только сайт Numista по https: ссылка пришла из ответа API, но в чужой адрес не ходим.
+bool TNumistaClient::IsImageUrl(const String &AUrl)
 {
-	// Только сайт Numista по https: ссылка пришла из ответа API, но в чужой адрес не ходим.
 	const String prefix = L"https://";
 	String host = SameText(AUrl.SubString(1, prefix.Length()), prefix) ? AUrl.SubString(prefix.Length() + 1, AUrl.Length()) : String();
 	if (host.Pos(L"/") > 0)
 		host = host.SubString(1, host.Pos(L"/") - 1);
 	host = host.LowerCase();
 	const String domain = L".numista.com";
-	if (!(host == L"numista.com" || (host.Length() > domain.Length()
-		&& host.SubString(host.Length() - domain.Length() + 1, domain.Length()) == domain)))
+	return host == L"numista.com" || (host.Length() > domain.Length()
+		&& host.SubString(host.Length() - domain.Length() + 1, domain.Length()) == domain);
+}
+//---------------------------------------------------------------------------
+String TNumistaClient::ThumbFile(const String &AUrl)
+{
+	return CacheDir() + L"thumbs\\" + THashMD5::GetHashString(AUrl) + L".jpg";
+}
+//---------------------------------------------------------------------------
+// Временный файл и переименование: прерванная загрузка не оставляет «битую» картинку.
+bool TNumistaClient::DownloadFile(const String &AUrl, const String &AFile)
+{
+	if (!IsImageUrl(AUrl))
+		return false;
+	try
+	{
+		std::unique_ptr<THTTPClient> http(THTTPClient::Create());
+		http->ConnectionTimeout = cConnectTimeoutMs;
+		http->ResponseTimeout   = cResponseTimeoutMs;
+		http->UserAgent         = UserAgent();
+		std::unique_ptr<TMemoryStream> data(new TMemoryStream());
+		_di_IHTTPResponse response = http->Get(AUrl, data.get());
+		if (response->StatusCode < 200 || response->StatusCode >= 300 || data->Size == 0)
+			return false;
+		ForceDirectories(ExtractFilePath(AFile));
+		const String temp = AFile + L".tmp";
+		data->SaveToFile(temp);
+		DeleteFile(AFile);
+		return RenameFile(temp, AFile);
+	}
+	catch (...)
+	{
+		return false;
+	}
+}
+//---------------------------------------------------------------------------
+TGraphic *TNumistaClient::DownloadImage(const String &AUrl)
+{
+	if (!IsImageUrl(AUrl))
 		throw ENumistaError(0, Tr(L"Numista.Error.ImageUrl") + L" " + AUrl);
 
 	std::unique_ptr<THTTPClient> http(THTTPClient::Create());

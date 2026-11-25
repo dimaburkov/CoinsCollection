@@ -33,6 +33,10 @@
 #include "u_Help.h"
 #include "f_NumistaImport.h"
 #include "u_Backup.h"
+#include "u_SeedData.h"
+#include <deque>
+#include <System.SyncObjs.hpp>
+#include <System.StrUtils.hpp>
 #include "f_About.h"
 #include <System.IOUtils.hpp>
 #include <System.IniFiles.hpp>
@@ -70,6 +74,31 @@ namespace
 	int CompareStrings(const String &A, const String &B)
 	{
 		return StrCmpLogicalW(A.c_str(), B.c_str());
+	}
+	//-----------------------------------------------------------------------
+	// Строка поиска (задача 58): части через «+», каждая — кусок текста, все обязательны, в любом
+	// порядке («Denarius + COS IIII»). Части — в верхнем регистре, пустые отброшены.
+	std::vector<String> SearchParts(const String &AText)
+	{
+		std::vector<String> parts;
+		String rest = AText;
+		while (!rest.IsEmpty())
+		{
+			const int plus = rest.Pos(L"+");
+			const String part = AnsiUpperCase((plus > 0 ? rest.SubString(1, plus - 1) : rest).Trim());
+			if (!part.IsEmpty())
+				parts.push_back(part);
+			rest = plus > 0 ? rest.SubString(plus + 1, rest.Length()) : String();
+		}
+		return parts;
+	}
+	// AText (в верхнем регистре) содержит все части поиска.
+	bool MatchesSearch(const String &AText, const std::vector<String> &AParts)
+	{
+		for (size_t i = 0; i < AParts.size(); ++i)
+			if (AText.Pos(AParts[i]) == 0)
+				return false;
+		return true;
 	}
 	// Номер без числового подномера через точку: "C#118.3" -> "C#118" (задача 40); буквы —
 	// другой тип ("KM#865a" остаётся).
@@ -179,12 +208,15 @@ __fastcall TfmMain::TfmMain(TComponent* Owner)
 	FRowHeight     = cRowHeights[0];
 	OnAfterMonitorDpiChanged = FormAfterMonitorDpiChanged;
 	FDetailCredit[0] = FDetailCredit[1] = nullptr;
+	FCatPanel = nullptr;
+	FThumbLoader = nullptr;
 	FMenuColumn    = -1;
 	for (int c = 0; c < icCount; ++c)
 		FAlign[c] = DefaultAlign(c);
 	LoadGridSettings();	// задача 41: колонки и высота строк из [Grid]
 	// Строки подробностей — до колонок: смена ColCount вызывает OnSelectCell → ShowDetails.
 	CreateDetailRows();
+	CreateCatalogView();	// задача 56
 	UpdateColumns();
 	// Не в .dfm: OnResize при загрузке формы пришёл бы до создания полей (FColumns).
 	pnlRight->OnResize = pnlRightResize;
@@ -488,6 +520,7 @@ void __fastcall TfmMain::actRestoreExecute(TObject *Sender)
 //---------------------------------------------------------------------------
 void __fastcall TfmMain::FormDestroy(TObject *Sender)
 {
+	StopThumbLoader();
 	FItems.clear();
 	FAll.clear();
 	FRepository.reset();
@@ -509,6 +542,8 @@ void TfmMain::ApplyTexts()
 	// Кнопка связана с actImport, но подпись у неё короче, чем пункт меню.
 	tbImport->Caption = Tr(L"Main.Toolbar.Import");
 	edSearch->TextHint = Tr(L"Main.Search.Hint");
+	if (FCatPanel && FCatPanel->Visible)
+		UpdateCatalogTop();	// задача 56
 	lblObverse->Caption     = Tr(L"Main.Details.Obverse");
 	lblReverse->Caption     = Tr(L"Main.Details.Reverse");
 	lblObverseNone->Caption = Tr(L"Main.Details.NoPhoto");
@@ -2210,7 +2245,7 @@ void TfmMain::OfferSameNumber(TNumistaClient &AClient, TNumistaMatcher &AMatcher
 	for (size_t i = 0; i < coins.size() && i < 10; ++i)
 		years += (i == 0 ? String() : String(L", ")) + YearText(coins[i].Year, coins[i].YearTo);
 	if (coins.size() > 10)
-		years += L", …";
+		years += L", \u2026";
 	const TNumistaTypeInfo type = AMatcher.LoadType(ATypeId);	// из кэша: только что загружен
 	const String question = Format(Tr(L"Numista.Same.Offer"), ARRAYOFCONST(((int)coins.size(),
 		ACoin.CatalogNumber.Trim(), years, YearText(type.MinYear, type.MaxYear == type.MinYear ? 0 : type.MaxYear),
@@ -3017,7 +3052,7 @@ void __fastcall TfmMain::actNumistaRefreshOneExecute(TObject *Sender)
 					after = CellText(FAll[i], icMintage);
 			const String before = CellText(coin, icMintage);
 			message += nl + Format(Tr(L"Numista.Refresh.Mintage"), ARRAYOFCONST((
-				before.IsEmpty() ? String(L"—") : before, after.IsEmpty() ? String(L"—") : after)));
+				before.IsEmpty() ? String(L"\u2014") : before, after.IsEmpty() ? String(L"\u2014") : after)));
 		}
 	}
 	Application->MessageBox((CoinText(coin) + nl + nl + message + nl + nl + NumistaRequestsText(client.RequestsMade)).c_str(),
@@ -3815,6 +3850,8 @@ void TfmMain::BuildTree()
 	{
 		tvNav->Items->Clear();
 		FNav.clear();
+		// Каталог Numista (задача 56) — первым; содержимое — при раскрытии.
+		AddCatNode(nullptr, nkCatalog, 0, L"cat-root", Tr(L"Main.Tree.Catalog"), true);
 
 		TTreeNode *root = AddNavNode(nullptr, nkAll, 0, Tr(L"Main.Tree.All"), FCollectionCount);
 
@@ -3921,7 +3958,17 @@ void TfmMain::ApplyFilter()
 {
 	const int current = CurrentId();
 	const TNavNode *node = CurrentNode();
-	const String search = AnsiUpperCase(edSearch->Text.Trim());
+	if (node && IsCatalogKind(node->Kind))
+	{
+		ShowCatalog();	// задача 56
+		return;
+	}
+	if (FCatPanel && FCatPanel->Visible)
+	{
+		FCatPanel->Visible = false;
+		dgItems->Visible   = true;
+	}
+	const std::vector<String> search = SearchParts(edSearch->Text);
 	const bool onlyReplace = actNeedToReplace->Checked;
 
 	FItems.clear();
@@ -3932,7 +3979,7 @@ void TfmMain::ApplyFilter()
 			continue;
 		if (onlyReplace && !r.NeedToReplace)
 			continue;
-		if (!search.IsEmpty() && FSearchTexts[i].Pos(search) == 0)
+		if (!MatchesSearch(FSearchTexts[i], search))
 			continue;
 		FItems.push_back(r);
 	}
@@ -4462,7 +4509,7 @@ void __fastcall TfmMain::edSearchKeyDown(TObject *Sender, WORD &Key, TShiftState
 	}
 	else if (Key == VK_RETURN || Key == VK_DOWN)
 	{
-		dgItems->SetFocus();
+		FocusList();
 		Key = 0;
 	}
 }
@@ -4470,7 +4517,15 @@ void __fastcall TfmMain::edSearchKeyDown(TObject *Sender, WORD &Key, TShiftState
 void __fastcall TfmMain::tbClearSearchClick(TObject *Sender)
 {
 	edSearch->Text = L"";
-	dgItems->SetFocus();
+	FocusList();
+}
+//---------------------------------------------------------------------------
+// Фокус — показанному списку: таблице каталога (задача 56) или списку монет.
+void TfmMain::FocusList()
+{
+	TWinControl *list = FCatPanel && FCatPanel->Visible ? static_cast<TWinControl *>(FCatGrid) : dgItems;
+	if (list->CanFocus())
+		list->SetFocus();
 }
 //---------------------------------------------------------------------------
 // Сравнение по колонке; пустые значения — в начале (при сортировке по возрастанию).
@@ -4873,6 +4928,11 @@ void TfmMain::UpdateStatus()
 {
 	if (StatusBar->Panels->Count < 3)
 		return;
+	if (FCatPanel && FCatPanel->Visible)
+	{
+		UpdateCatalogStatus();
+		return;
+	}
 	int quantity = 0;
 	double value = 0.0;
 	for (size_t i = 0; i < FItems.size(); ++i)
@@ -5076,20 +5136,18 @@ void TfmMain::CreateDetailRows()
 	FPhotoSwitch->ShowHint   = true;
 	FPhotoSwitch->Visible    = false;
 	FPhotoSwitch->OnClick    = PhotoSwitchClick;
-	// Автор фото Numista (задача 53) — строка внизу рамки фото.
+	// Автор фото Numista (задача 53) — строка под рамкой фото (над подписью стороны); место под неё —
+	// за счёт высоты рамки, только когда подпись есть (ShowDetailPhotos).
 	for (int s = 0; s < 2; ++s)
 	{
 		TLabel *credit = new TLabel(this);
-		credit->Parent           = s == psObverse ? pnlObverse : pnlReverse;
-		credit->Align            = alBottom;
+		credit->Parent           = pnlPhotos;
 		credit->AutoSize         = false;
-		credit->Height           = ScaleValue(14);
 		credit->Alignment        = taCenter;
 		credit->Layout           = tlCenter;
 		credit->EllipsisPosition = epEndEllipsis;
 		credit->ShowAccelChar    = false;
-		credit->Transparent      = false;
-		credit->Color            = clWindow;
+		credit->Transparent      = true;
 		credit->Font->Size       = 7;
 		credit->Font->Color      = clGrayText;
 		credit->ShowHint         = true;
@@ -5110,18 +5168,27 @@ void __fastcall TfmMain::dgItemsSelectCell(TObject *Sender, int ACol, int ARow, 
 //---------------------------------------------------------------------------
 void TfmMain::UpdateDetails()
 {
-	ShowDetails(CurrentIndex());
+	if (FCatPanel && FCatPanel->Visible)
+		ShowCatalogDetails(FCatGrid->Row - 1);
+	else
+		ShowDetails(CurrentIndex());
 }
 //---------------------------------------------------------------------------
 // Пустые значения — «—»; нет записи — панель пустая.
 void TfmMain::ShowDetails(int AIndex)
 {
-	const bool has = AIndex >= 0 && AIndex < (int)FItems.size();
+	ShowRecordDetails(AIndex >= 0 && AIndex < (int)FItems.size() ? &FItems[AIndex] : nullptr);
+}
+//---------------------------------------------------------------------------
+// Запись — экземпляр из FItems или тип каталога Numista (задача 56).
+void TfmMain::ShowRecordDetails(const TCoinRecord *ARecord)
+{
+	const bool has = ARecord != nullptr;
 	auto value = [](const String &AText) { return AText.Trim().IsEmpty() ? String(L"\u2014") : AText; };
 
 	if (has)
 	{
-		const TCoinRecord &r = FItems[AIndex];
+		const TCoinRecord &r = *ARecord;
 		String title = r.Denomination;
 		const String extra = TitleExtra(r);	// задача 39
 		if (!extra.IsEmpty())
@@ -5157,7 +5224,7 @@ void TfmMain::ShowDetails(int AIndex)
 		lblDetailsTitle->Caption = L"";
 		FDetailsTypeId = 0;
 	}
-	ShowDetailPhotos(has ? &FItems[AIndex] : nullptr);
+	ShowDetailPhotos(ARecord);
 
 	TLabel *link = FDetailRows[drNumista].Value;
 	link->Cursor      = FDetailsTypeId != 0 ? crHandPoint : crDefault;
@@ -5179,7 +5246,7 @@ void TfmMain::ShowDetails(int AIndex)
 // Фото записи в рамках панели (задача 16): экземпляра, иначе типа — с пометкой в подписи.
 // Есть и свои фото, и фото типа — переключатель «⇄» (задача 30): FDetailShowType — фото типа.
 // Тот же файл повторно не читается; ошибка чтения — «Нет фото», без сообщений.
-void TfmMain::ShowDetailPhotos(const TCoinRecord *ARecord)
+void TfmMain::ShowDetailPhotos(const TCoinRecord *ARecord, const String *ATypeFiles, const TPhotoCredit *ATypeCredits)
 {
 	FDetailPhotoTitle = ARecord ? CoinText(*ARecord) : String();
 	String own[2], type[2];
@@ -5190,12 +5257,38 @@ void TfmMain::ShowDetailPhotos(const TCoinRecord *ARecord)
 			own[s] = FPhotos->PhotoFile(ARecord->Id, 0, (TPhotoSide)s);
 		if (ARecord->CoinId != 0)
 			type[s] = FPhotos->PhotoFile(0, ARecord->CoinId, (TPhotoSide)s, nullptr, &typeCredit[s]);
+		if (ATypeFiles)
+		{
+			type[s]       = ATypeFiles[s];
+			typeCredit[s] = ATypeCredits ? ATypeCredits[s] : TPhotoCredit();
+		}
 	}
 	const bool hasOwn  = !own[0].IsEmpty() || !own[1].IsEmpty();
 	const bool hasType = !type[0].IsEmpty() || !type[1].IsEmpty();
 	FDetailIsType = !hasOwn || (hasType && FDetailShowType);
 	FPhotoSwitch->Visible = hasOwn && hasType;
 	FPhotoSwitch->Hint    = Tr(FDetailIsType ? L"Main.Details.ShowOwn" : L"Main.Details.ShowType");
+	// Строка автора под рамкой (задача 53): есть хоть у одной стороны — обе рамки ниже на её высоту
+	// (одинаковые рамки), фото вписываются заново.
+	bool credits = false;
+	for (int s = 0; s < 2; ++s)
+	{
+		FDetailCredits[s] = FDetailIsType ? typeCredit[s] : TPhotoCredit();
+		credits = credits || (!(FDetailIsType ? type[s] : own[s]).IsEmpty() && FDetailCredits[s].Numista);
+	}
+	const int creditHeight = ScaleValue(14);
+	const int frameHeight = lblObverse->Top - ScaleValue(4) - pnlObverse->Top - (credits ? creditHeight + ScaleValue(1) : 0);
+	if (pnlObverse->Height != frameHeight)
+	{
+		pnlObverse->Height = frameHeight;
+		pnlReverse->Height = frameHeight;
+		FDetailPhotos[0] = FDetailPhotos[1] = L"#";
+	}
+	for (int s = 0; s < 2; ++s)
+	{
+		TPanel *frame = s == psObverse ? pnlObverse : pnlReverse;
+		FDetailCredit[s]->SetBounds(frame->Left, frame->Top + frame->Height + ScaleValue(1), frame->Width, creditHeight);
+	}
 	for (int s = 0; s < 2; ++s)
 	{
 		const TPhotoSide side = (TPhotoSide)s;
@@ -5205,18 +5298,11 @@ void TfmMain::ShowDetailPhotos(const TCoinRecord *ARecord)
 
 		const bool isType = FDetailIsType;
 		const String file = isType ? type[s] : own[s];
-		// Подпись автора — до вписывания фото: рамка для фото становится ниже на её высоту.
-		FDetailCredits[s] = isType ? typeCredit[s] : TPhotoCredit();
 		TLabel *credit = FDetailCredit[s];
 		credit->Caption = FDetailCredits[s].ShortText();
 		credit->Hint    = FDetailCredits[s].Hint();
 		credit->Cursor  = FDetailCredits[s].AuthorUrl.IsEmpty() ? crDefault : crHandPoint;
-		const bool showCredit = !file.IsEmpty() && FDetailCredits[s].Numista;
-		if (credit->Visible != showCredit)
-		{
-			credit->Visible = showCredit;
-			FDetailPhotos[s] = L"#";	// размер рамки изменился — вписать заново
-		}
+		credit->Visible = !file.IsEmpty() && FDetailCredits[s].Numista;
 		if (file != FDetailPhotos[s])
 		{
 			FDetailPhotos[s] = file;
@@ -5316,6 +5402,11 @@ void TfmMain::BackfillPhotoCredits()
 void __fastcall TfmMain::DetailPhotoDblClick(TObject *Sender)
 {
 	const TPhotoSide side = (TPhotoSide)static_cast<TComponent *>(Sender)->Tag;
+	if (FCatPanel && FCatPanel->Visible)
+	{
+		OpenCatalogPhoto(side);	// тип каталога (задача 58)
+		return;
+	}
 	const int index = CurrentIndex();
 	if (FDetailPhotos[side].IsEmpty() || index < 0)
 		return;
@@ -5375,6 +5466,1132 @@ void __fastcall TfmMain::FormAfterMonitorDpiChanged(TObject *Sender, int OldDPI,
 	dgItems->Invalidate();
 }
 //---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+// Фоновая загрузка мини-фото каталога (задача 58): очередь адресов, последний добавленный — первым
+// (видимые сейчас строки); файл — как есть (TNumistaClient::DownloadFile), без графики VCL в потоке.
+// Адрес загружается один раз за сеанс (и при ошибке — без повторов). В очереди — не больше
+// cMaxQueue последних: при быстрой прокрутке пролистанные строки выпадают (вернётесь — встанут снова).
+class TThumbLoader : public TThread
+{
+public:
+	__fastcall TThumbLoader() : TThread(true), FDone(0)
+	{
+		FLock = new TCriticalSection();
+		FWake = new TEvent(nullptr, false, false, L"", false);
+		FreeOnTerminate = false;
+	}
+	__fastcall ~TThumbLoader()
+	{
+		delete FWake;
+		delete FLock;
+	}
+	void Add(const String &AUrl)
+	{
+		FLock->Enter();
+		try
+		{
+			if (FSeen.insert(AUrl).second)
+			{
+				FQueue.push_back(AUrl);
+				while (FQueue.size() > cMaxQueue)
+				{
+					FSeen.erase(FQueue.front());
+					FQueue.pop_front();
+				}
+			}
+		}
+		__finally
+		{
+			FLock->Leave();
+		}
+		FWake->SetEvent();
+	}
+	void Stop()
+	{
+		Terminate();
+		FWake->SetEvent();
+		WaitFor();
+	}
+	LONG Done() const { return FDone; }
+protected:
+	void __fastcall Execute()
+	{
+		while (!Terminated)
+		{
+			String url;
+			FLock->Enter();
+			try
+			{
+				if (!FQueue.empty())
+				{
+					url = FQueue.back();
+					FQueue.pop_back();
+				}
+			}
+			__finally
+			{
+				FLock->Leave();
+			}
+			if (url.IsEmpty())
+			{
+				FWake->WaitFor(500);
+				continue;
+			}
+			const String file = TNumistaClient::ThumbFile(url);
+			if (!FileExists(file))
+				TNumistaClient::DownloadFile(url, file);
+			InterlockedIncrement(&FDone);
+		}
+	}
+private:
+	static const size_t   cMaxQueue = 60;	// примерно несколько экранов таблицы
+	TCriticalSection     *FLock;
+	TEvent               *FWake;
+	std::deque<String>    FQueue;
+	std::set<String>      FSeen;
+	volatile LONG         FDone;
+};
+//---------------------------------------------------------------------------
+// Каталог Numista (задача 56)
+//---------------------------------------------------------------------------
+// Таблица каталога — на месте списка монет (тот же pnlRight), видна, когда выбран узел каталога.
+void TfmMain::CreateCatalogView()
+{
+	tvNav->OnExpanding = tvNavExpanding;	// дети узлов каталога — при раскрытии
+
+	FCatPanel = new TPanel(this);
+	FCatPanel->Parent     = pnlRight;
+	FCatPanel->Align      = alClient;
+	FCatPanel->BevelOuter = bvNone;
+	FCatPanel->Visible    = false;
+	FCatPanel->OnResize   = CatPanelResize;
+
+	TPanel *top = new TPanel(this);
+	top->Parent     = FCatPanel;
+	top->Align      = alTop;
+	top->Height     = ScaleValue(34);
+	top->BevelOuter = bvNone;
+
+	FCatInfo = new TLabel(this);
+	FCatInfo->Parent        = top;
+	FCatInfo->ShowAccelChar = false;
+	FCatInfo->Layout        = tlCenter;	// положение и ширина — UpdateCatalogTop
+	FCatInfo->SetBounds(ScaleValue(8), ScaleValue(10), ScaleValue(300), ScaleValue(15));
+
+	FCatLoad = new TButton(this);
+	FCatLoad->Parent  = top;
+	FCatLoad->SetBounds(ScaleValue(320), ScaleValue(5), ScaleValue(190), ScaleValue(25));
+	FCatLoad->OnClick = CatLoadClick;
+
+	auto check = [this, top]() {
+		TCheckBox *box = new TCheckBox(this);
+		box->Parent           = top;
+		box->Align            = alRight;
+		box->AlignWithMargins = true;
+		box->Margins->Right   = ScaleValue(8);
+		box->Width            = ScaleValue(150);
+		box->OnClick          = CatFilterClick;
+		return box;
+	};
+	FCatMissing = check();
+	FCatCentury = check();
+	// Мини-фото (задача 58): флажок запоминается; категория — список по загруженным типам.
+	FCatThumbs = new TCheckBox(this);
+	FCatThumbs->Parent           = top;
+	FCatThumbs->Align            = alRight;
+	FCatThumbs->AlignWithMargins = true;
+	FCatThumbs->Margins->Right   = ScaleValue(8);
+	FCatThumbs->Width            = ScaleValue(110);
+	FCatThumbs->Checked          = AppConfig().CatalogThumbs;
+	FCatThumbs->OnClick          = CatThumbsClick;
+	FCatCategory = new TComboBox(this);
+	FCatCategory->Parent           = top;
+	FCatCategory->Style            = csDropDownList;
+	FCatCategory->Align            = alRight;
+	FCatCategory->AlignWithMargins = true;
+	FCatCategory->Margins->Top     = ScaleValue(6);
+	FCatCategory->Margins->Right   = ScaleValue(12);
+	FCatCategory->Width            = ScaleValue(220);
+	FCatCategory->DropDownCount    = 12;
+	FCatCategory->OnChange         = CatCategoryChange;
+	FCatCategoryId = 0;
+
+	FCatTimer = new TTimer(this);
+	FCatTimer->Interval = 300;
+	FCatTimer->OnTimer  = CatTimer;
+	FThumbLoader = new TThumbLoader();
+	FThumbLoader->Start();
+	FThumbSeen = 0;
+
+	FCatGrid = new TDrawGrid(this);
+	FCatGrid->Parent           = FCatPanel;
+	FCatGrid->Align            = alClient;
+	FCatGrid->ColCount         = 4;
+	FCatGrid->RowCount         = 2;
+	FCatGrid->FixedCols        = 0;
+	FCatGrid->FixedRows        = 1;
+	FCatGrid->DefaultRowHeight = ScaleValue(cRowHeights[0]);
+	FCatGrid->DefaultDrawing   = false;
+	FCatGrid->Options          = TGridOptions() << goFixedVertLine << goFixedHorzLine << goVertLine << goHorzLine
+		<< goRowSelect << goThumbTracking << goFixedColClick;
+	FCatGrid->OnDrawCell       = CatGridDrawCell;
+	FCatGrid->OnSelectCell     = CatGridSelectCell;
+	FCatGrid->OnDblClick       = CatGridDblClick;
+	FCatGrid->OnFixedCellClick = CatGridFixedCellClick;
+	FCatGrid->OnMouseDown      = CatGridMouseDown;
+
+	// Меню строки: характеристики типа по N# (getType, без поиска), страница на Numista.
+	FCatMenu = new TPopupMenu(this);
+	FCatMenu->OnPopup = CatMenuPopup;
+	TMenuItem *loadType = new TMenuItem(FCatMenu);
+	loadType->OnClick = CatMenuLoadTypeClick;
+	FCatMenu->Items->Add(loadType);
+	TMenuItem *open = new TMenuItem(FCatMenu);
+	open->OnClick = CatMenuOpenClick;
+	FCatMenu->Items->Add(open);
+	FCatGrid->PopupMenu = FCatMenu;
+
+	FCatRefs  = false;
+	FCatRuler = 0;
+	FCatTotal = -1;
+	FCatPages = FCatPagesCached = 0;
+	FCatDate  = 0;
+	FCatSort  = 6;	// по годам (логическая колонка ccYears)
+	FCatAsc   = true;
+}
+//---------------------------------------------------------------------------
+// Иерархия эмитентов — один раз, при первом раскрытии каталога (issuers.json, ~3 МБ).
+bool TfmMain::EnsureCatalogRefs()
+{
+	if (!FCatMatcher)
+	{
+		FCatClient.reset(new TNumistaClient());
+		FCatMatcher.reset(new TNumistaMatcher(*FCatClient));
+		try
+		{
+			FCatRefs = FCatMatcher->LoadReferences();
+		}
+		catch (Exception &)
+		{
+			FCatRefs = false;
+		}
+	}
+	return FCatRefs;
+}
+//---------------------------------------------------------------------------
+// Узел каталога: ключ — постоянный (код эмитента, ID правителя), для выбора и раскрытия при перестройке
+// дерева; AChildren — заглушка, дети появятся при раскрытии.
+TTreeNode *TfmMain::AddCatNode(TTreeNode *AParent, int AKind, int AId, const String &AKey, const String &AName,
+	bool AChildren)
+{
+	TNavNode node;
+	node.Kind = AKind;
+	node.Id   = AId;
+	node.Key  = AKey;
+	FNav.push_back(node);
+	TTreeNode *result = tvNav->Items->AddChildObject(AParent, AName, reinterpret_cast<void *>((NativeInt)(FNav.size() - 1)));
+	if (AChildren)
+	{
+		TNavNode dummy;
+		dummy.Kind = nkCatDummy;
+		dummy.Id   = 0;
+		dummy.Key  = L"cat-dummy:" + AKey;
+		FNav.push_back(dummy);
+		tvNav->Items->AddChildObject(result, L"\u2026", reinterpret_cast<void *>((NativeInt)(FNav.size() - 1)));
+	}
+	return result;
+}
+//---------------------------------------------------------------------------
+// Раздел с единственным одноимённым подразделом (Afghanistan → Afghanistan) — одним узлом.
+void TfmMain::AddCatIssuer(TTreeNode *AParent, const String &AIssuer)
+{
+	String code = AIssuer;
+	for (int guard = 0; guard < 5; ++guard)
+	{
+		const std::vector<String> children = FCatMatcher->IssuerChildren(code);
+		if (children.size() != 1 || !AnsiSameText(FCatMatcher->IssuerName(children[0]), FCatMatcher->IssuerName(code)))
+			break;
+		code = children[0];
+	}
+	bool rulers = false;
+	for (int i = 0; i < SeedRulerCount && !rulers; ++i)
+		rulers = SameText(SeedRulers[i].Issuer, code);
+	std::map<String, int>::const_iterator it = FCatCodeIndex.find(code);
+	int index = 0;
+	if (it != FCatCodeIndex.end())
+		index = it->second;
+	else
+	{
+		index = (int)FCatCodes.size();
+		FCatCodes.push_back(code);
+		FCatCodeIndex[code] = index;
+	}
+	AddCatNode(AParent, nkCatIssuer, index, L"cat-issuer:" + code, FCatMatcher->IssuerName(code),
+		rulers || !FCatMatcher->IssuerChildren(code).empty());
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::tvNavExpanding(TObject *Sender, TTreeNode *Node, bool &AllowExpansion)
+{
+	TTreeNode *first = Node->getFirstChild();
+	if (!first || FNav[(NativeInt)first->Data].Kind != nkCatDummy)
+		return;
+	tvNav->Items->BeginUpdate();
+	try
+	{
+		first->Delete();
+		PopulateCatalogNode(Node);
+	}
+	__finally
+	{
+		tvNav->Items->EndUpdate();
+	}
+}
+//---------------------------------------------------------------------------
+// Каталог → континенты и «Зниклі держави» → разделы Numista (таблица задачи 54, без «Інше») →
+// эмитенты по иерархии issuers.json; Roman Empire → династии → императоры (SeedRulers).
+void TfmMain::PopulateCatalogNode(TTreeNode *ANode)
+{
+	const TNavNode node = FNav[(NativeInt)ANode->Data];
+	if (!EnsureCatalogRefs())
+		return;
+	switch (node.Kind)
+	{
+		case nkCatalog:
+		{
+			std::vector<TContinent> continents = FRepository->Lookups().Continents();
+			std::sort(continents.begin(), continents.end(),
+				[](const TContinent &A, const TContinent &B) { return A.Id < B.Id; });
+			for (size_t i = 0; i < continents.size(); ++i)
+				AddCatNode(ANode, nkCatContinent, continents[i].Id, L"cat-continent:" + IntToStr(continents[i].Id),
+					continents[i].Name, true);
+			AddCatNode(ANode, nkCatExtinct, 0, L"cat-extinct", Tr(L"Main.Tree.Extinct"), true);
+			break;
+		}
+		case nkCatContinent:
+		case nkCatExtinct:
+		{
+			std::vector<String> sections;
+			for (int i = 0; i < SeedIssuerContinentCount; ++i)
+			{
+				const TSeedIssuerContinentRow &row = SeedIssuerContinents[i];
+				if (row.Territory || !FCatMatcher->HasIssuer(row.Issuer))
+					continue;
+				if (node.Kind == nkCatExtinct ? !row.IsExist : row.IsExist && row.ContinentId == node.Id)
+					sections.push_back(row.Issuer);
+			}
+			std::sort(sections.begin(), sections.end(), [this](const String &A, const String &B)
+				{ return AnsiCompareText(FCatMatcher->IssuerName(A), FCatMatcher->IssuerName(B)) < 0; });
+			for (size_t i = 0; i < sections.size(); ++i)
+				AddCatIssuer(ANode, sections[i]);
+			break;
+		}
+		case nkCatIssuer:
+		{
+			const String code = FCatCodes[node.Id];
+			std::vector<String> groups;
+			for (int i = 0; i < SeedRulerCount; ++i)
+				if (SameText(SeedRulers[i].Issuer, code)
+					&& std::find(groups.begin(), groups.end(), String(SeedRulers[i].Group)) == groups.end())
+					groups.push_back(SeedRulers[i].Group);
+			for (size_t i = 0; i < groups.size(); ++i)
+			{
+				std::vector<String>::const_iterator it = std::find(FCatGroups.begin(), FCatGroups.end(), groups[i]);
+				const int index = it != FCatGroups.end() ? (int)(it - FCatGroups.begin()) : (int)FCatGroups.size();
+				if (it == FCatGroups.end())
+					FCatGroups.push_back(groups[i]);
+				AddCatNode(ANode, nkCatGroup, index, L"cat-group:" + groups[i], groups[i], true);
+			}
+			const std::vector<String> children = FCatMatcher->IssuerChildren(code);
+			for (size_t i = 0; i < children.size(); ++i)
+				AddCatIssuer(ANode, children[i]);
+			break;
+		}
+		case nkCatGroup:
+			for (int i = 0; i < SeedRulerCount; ++i)
+				if (FCatGroups[node.Id] == SeedRulers[i].Group)
+					AddCatNode(ANode, nkCatRuler, SeedRulers[i].RulerId, L"cat-ruler:" + IntToStr(SeedRulers[i].RulerId),
+						SeedRulers[i].Name, false);
+			break;
+	}
+}
+//---------------------------------------------------------------------------
+// Выбран узел каталога: эмитент или правитель — его типы из кэша; иначе — подсказка. Кэш читается
+// при смене узла (поиск и фильтры — только по уже прочитанным типам).
+void TfmMain::ShowCatalog(bool AReload)
+{
+	const TNavNode *node = CurrentNode();
+	String issuer;
+	int ruler = 0;
+	if (node && node->Kind == nkCatIssuer && EnsureCatalogRefs())
+		issuer = FCatCodes[node->Id];
+	else if (node && node->Kind == nkCatRuler && EnsureCatalogRefs())
+		for (int i = 0; i < SeedRulerCount; ++i)
+			if (SeedRulers[i].RulerId == node->Id)
+			{
+				issuer = SeedRulers[i].Issuer;
+				ruler  = node->Id;
+				break;
+			}
+	if (AReload || !FCatPanel->Visible || issuer != FCatIssuer || ruler != FCatRuler)
+	{
+		FCatIssuer = issuer;
+		FCatRuler  = ruler;
+		ReadCatalogCache();
+	}
+	RebuildCategoryCombo();
+
+	// Статусы — по связанным с Numista экземплярам: коллекция, обмен, желаемое.
+	FCatStatus.clear();
+	for (size_t i = 0; i < FAll.size(); ++i)
+		if (FAll[i].NumistaTypeId != 0)
+			FCatStatus[FAll[i].NumistaTypeId] |= FAll[i].List == L"swap" ? 2 : (FAll[i].List == L"wish" ? 4 : 1);
+
+	FItems.clear();
+	dgItems->Visible  = false;
+	FCatPanel->Visible = true;
+	RebuildCatalogRows();
+	UpdateCatalogTop();
+	UpdateCatalogStatus();
+	UpdateDetails();
+}
+//---------------------------------------------------------------------------
+// Типы узла — только из кэша (без запросов); страницы, которых нет в кэше, — «недозагружено».
+void TfmMain::ReadCatalogCache()
+{
+	FCatTypes.clear();
+	FCatTotal = -1;
+	FCatPages = FCatPagesCached = 0;
+	FCatDate  = 0;
+	if (FCatIssuer.IsEmpty() || !TNumistaClient::IsCached(TNumistaMatcher::CatalogPath(FCatIssuer, FCatRuler, 1)))
+		return;
+	try
+	{
+		for (int page = 1; page == 1 || page <= FCatPages; ++page)
+		{
+			if (!TNumistaClient::IsCached(TNumistaMatcher::CatalogPath(FCatIssuer, FCatRuler, page)))
+				continue;
+			int count = 0;
+			const std::vector<TNumistaType> types = FCatMatcher->CatalogPage(FCatIssuer, FCatRuler, page, false, count);
+			if (page == 1)
+			{
+				FCatTotal = count;
+				FCatPages = std::max(1, (count + 99) / 100);
+				FCatDate  = TNumistaClient::CachedAt(TNumistaMatcher::CatalogPath(FCatIssuer, FCatRuler, 1));
+			}
+			++FCatPagesCached;
+			for (size_t i = 0; i < types.size(); ++i)
+			{
+				TCatType t;
+				t.Id      = types[i].Id;
+				t.Title   = types[i].Title;
+				t.MinYear = types[i].MinYear;
+				t.MaxYear = types[i].MaxYear;
+				t.Category     = types[i].ObjectTypeId;
+				t.CategoryName = types[i].ObjectTypeName;
+				t.Thumb[0]     = types[i].Thumbnail[0];
+				t.Thumb[1]     = types[i].Thumbnail[1];
+				FCatTypes.push_back(t);
+			}
+		}
+	}
+	catch (Exception &)
+	{
+		// повреждённый ответ в кэше — «Оновити з Numista» перезапишет
+	}
+}
+//---------------------------------------------------------------------------
+// Век года: 1 — I век н. э., -1 — I век до н. э., 0 — год неизвестен.
+namespace
+{
+	int CenturyOf(int AYear)
+	{
+		return AYear > 0 ? (AYear - 1) / 100 + 1 : (AYear < 0 ? -((-AYear - 1) / 100 + 1) : 0);
+	}
+	String Roman(int AValue)
+	{
+		const int values[] = { 10, 9, 5, 4, 1 };
+		const wchar_t *const letters[] = { L"X", L"IX", L"V", L"IV", L"I" };
+		String result;
+		for (int i = 0; i < 5; ++i)
+			for (; AValue >= values[i]; AValue -= values[i])
+				result += letters[i];
+		return result;
+	}
+}
+//---------------------------------------------------------------------------
+String TfmMain::CenturyText(int ACentury)
+{
+	if (ACentury == 0)
+		return Tr(L"Catalog.NoYear");
+	return Format(Tr(ACentury > 0 ? L"Catalog.Century" : L"Catalog.CenturyBC"), ARRAYOFCONST((Roman(std::abs(ACentury)))));
+}
+//---------------------------------------------------------------------------
+// Строки: поиск по названию (части через «+») или N#, «Лише відсутні»; по векам — заголовки веков, внутри — по годам.
+void TfmMain::RebuildCatalogRows()
+{
+	const std::vector<String> search = SearchParts(edSearch->Text);
+	std::vector<TCatRow> rows;
+	for (size_t i = 0; i < FCatTypes.size(); ++i)
+	{
+		const TCatType &t = FCatTypes[i];
+		std::map<int, int>::const_iterator s = FCatStatus.find(t.Id);
+		TCatRow row;
+		row.Type    = (int)i;
+		row.Status  = s == FCatStatus.end() ? 0 : s->second;
+		row.Century = CenturyOf(t.MinYear);
+		if (FCatMissing->Checked && row.Status != 0)
+			continue;
+		if (CatalogCategory() != 0 && t.Category != CatalogCategory())
+			continue;
+		if (!MatchesSearch(AnsiUpperCase(t.Title), search) && !(search.size() == 1 && IntToStr(t.Id) == search[0]))
+			continue;
+		rows.push_back(row);
+	}
+	const bool century = FCatCentury->Checked;
+	const int sort = century ? 6 : FCatSort;
+	const bool asc = century || FCatAsc;
+	std::stable_sort(rows.begin(), rows.end(), [this, sort, asc](const TCatRow &A, const TCatRow &B)
+	{
+		const TCatType &a = FCatTypes[A.Type], &b = FCatTypes[B.Type];
+		int cmp = 0;
+		switch (sort)
+		{
+			case 0:  cmp = A.Status - B.Status; break;
+			case 3:  cmp = a.Id - b.Id; break;
+			case 4:  cmp = AnsiCompareText(a.Title, b.Title); break;
+			case 5:  cmp = AnsiCompareText(CategoryText(a.Category, a.CategoryName), CategoryText(b.Category, b.CategoryName)); break;
+			default:	// годы; неизвестный год — в конце
+				cmp = (a.MinYear == 0) != (b.MinYear == 0) ? (a.MinYear == 0 ? 1 : -1) : a.MinYear - b.MinYear;
+				if (cmp == 0)
+					cmp = a.MaxYear - b.MaxYear;
+		}
+		return asc ? cmp < 0 : cmp > 0;
+	});
+	FCatRows.clear();
+	for (size_t i = 0; i < rows.size(); ++i)
+	{
+		if (century && (i == 0 || rows[i].Century != rows[i - 1].Century))
+		{
+			TCatRow header;
+			header.Type    = -1;
+			header.Status  = 0;
+			header.Century = rows[i].Century;
+			FCatRows.push_back(header);
+		}
+		FCatRows.push_back(rows[i]);
+	}
+	FCatGrid->RowCount = std::max(2, (int)FCatRows.size() + 1);
+	FCatGrid->Row = FCatRows.size() > 1 && FCatRows[0].Type < 0 ? 2 : 1;	// первая монета, не заголовок века
+	LayoutCatalogGrid();
+	FCatGrid->Invalidate();
+}
+//---------------------------------------------------------------------------
+// Колонки (логические): 0 — у мене, 1 / 2 — мини-фото аверса / реверса (флажок «Мініатюри»),
+// 3 — N#, 4 — название, 5 — категория, 6 — годы. С мини-фото — большая высота строк.
+void TfmMain::LayoutCatalogGrid()
+{
+	const bool thumbs = FCatThumbs->Checked;
+	FCatCols.clear();
+	FCatCols.push_back(0);
+	if (thumbs)
+	{
+		FCatCols.push_back(1);
+		FCatCols.push_back(2);
+	}
+	for (int c = 3; c <= 6; ++c)
+		FCatCols.push_back(c);
+	FCatGrid->ColCount = (int)FCatCols.size();
+	FCatGrid->DefaultRowHeight = ScaleValue(thumbs ? cRowHeights[2] : cRowHeights[0]);
+	FCatGrid->RowHeights[0] = ScaleValue(cRowHeights[0]);
+	int fixed = 0, title = 0;
+	for (size_t i = 0; i < FCatCols.size(); ++i)
+	{
+		int width = 0;
+		switch (FCatCols[i])
+		{
+			case 0: width = ScaleValue(44); break;
+			case 1: case 2: width = FCatGrid->DefaultRowHeight + ScaleValue(8); break;
+			case 3: width = ScaleValue(70); break;
+			case 4: title = (int)i; continue;
+			case 5: width = ScaleValue(150); break;
+			case 6: width = ScaleValue(110); break;
+		}
+		FCatGrid->ColWidths[(int)i] = width;
+		fixed += width;
+	}
+	FCatGrid->ColWidths[title] = std::max(ScaleValue(150),
+		FCatGrid->ClientWidth - fixed - (int)FCatCols.size() * FCatGrid->GridLineWidth);
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::CatPanelResize(TObject *Sender)
+{
+	LayoutCatalogGrid();
+	if (FCatPanel->Visible)
+		UpdateCatalogTop();	// ширина подписи
+}
+//---------------------------------------------------------------------------
+// Подпись и кнопка над таблицей: что загружено и что можно сделать.
+void TfmMain::UpdateCatalogTop()
+{
+	String info;
+	bool button = true;
+	if (!EnsureCatalogRefs())
+	{
+		info = Tr(L"Catalog.NoLists");
+		button = false;
+	}
+	else if (FCatIssuer.IsEmpty())
+	{
+		info = Tr(L"Catalog.ChooseIssuer");
+		button = false;
+	}
+	else if (FCatPagesCached == 0)
+	{
+		info = Tr(L"Catalog.NotLoaded");
+		FCatLoad->Caption = Tr(L"Catalog.Load");
+	}
+	else if (FCatPagesCached < FCatPages)
+	{
+		info = Format(Tr(L"Catalog.Partial"), ARRAYOFCONST(((int)FCatTypes.size(), FCatTotal)));
+		FCatLoad->Caption = Tr(L"Catalog.Continue");
+	}
+	else
+	{
+		info = FCatTotal == 0 ? Tr(L"Catalog.Empty")
+			: Format(Tr(L"Catalog.Loaded"), ARRAYOFCONST((FormatDateTime(L"dd.mm.yyyy", FCatDate))));
+		if ((double)FCatDate != 0.0 && (double)Now() - (double)FCatDate > 7.0)
+			info += L" " + Tr(L"Catalog.Old");
+		FCatLoad->Caption = Tr(L"Catalog.Refresh");
+	}
+	// Кнопка — слева (всегда видна целиком), подпись — справа от неё до флажков, с переносом.
+	FCatMissing->Caption = Tr(L"Catalog.Missing");
+	FCatCentury->Caption = Tr(L"Catalog.ByCentury");
+	FCatLoad->Visible = button;
+	FCatLoad->Left    = ScaleValue(8);
+	FCatLoad->Width   = std::max(ScaleValue(150), Canvas->TextWidth(FCatLoad->Caption) + ScaleValue(24));
+	const int left = button ? FCatLoad->Left + FCatLoad->Width + ScaleValue(12) : ScaleValue(8);
+	FCatThumbs->Caption = Tr(L"Catalog.Thumbs");
+	const int right = std::min(std::min(FCatMissing->Left, FCatCentury->Left), std::min(FCatThumbs->Left, FCatCategory->Left))
+		- ScaleValue(8);
+	FCatInfo->AutoSize = false;
+	FCatInfo->WordWrap = true;
+	FCatInfo->Caption  = info;
+	FCatInfo->SetBounds(left, ScaleValue(1), std::max(ScaleValue(100), right - left), FCatInfo->Parent->Height - ScaleValue(2));
+	FCatMissing->Enabled = !FCatTypes.empty();
+	FCatCentury->Enabled = !FCatTypes.empty();
+}
+//---------------------------------------------------------------------------
+// Итог по всем загруженным типам узла (без учёта фильтров).
+void TfmMain::UpdateCatalogStatus()
+{
+	if (StatusBar->Panels->Count < 3)
+		return;
+	int have = 0, swap = 0, wish = 0, missing = 0, types = 0;
+	for (size_t i = 0; i < FCatTypes.size(); ++i)
+	{
+		if (CatalogCategory() != 0 && FCatTypes[i].Category != CatalogCategory())
+			continue;
+		++types;
+		std::map<int, int>::const_iterator s = FCatStatus.find(FCatTypes[i].Id);
+		const int status = s == FCatStatus.end() ? 0 : s->second;
+		have    += (status & 1) ? 1 : 0;
+		swap    += (status & 2) ? 1 : 0;
+		wish    += (status & 4) ? 1 : 0;
+		missing += status == 0 ? 1 : 0;
+	}
+	const wchar_t *const keys[] = { L"Catalog.Status.Types", L"Catalog.Status.Have", L"Catalog.Status.Swap",
+		L"Catalog.Status.Wish", L"Catalog.Status.Missing" };
+	const int values[] = { types, have, swap, wish, missing };
+	for (int i = 0; i < StatusBar->Panels->Count; ++i)
+		StatusBar->Panels->Items[i]->Text = i < 5 && !FCatTypes.empty()
+			? Format(Tr(keys[i]), ARRAYOFCONST((values[i]))) : String();
+}
+//---------------------------------------------------------------------------
+// Загрузка: первая страница (100 типов, 1 запрос) даёт число типов; остальные страницы, которых нет в кэше
+// (или все — «Оновити»), — только после вопроса с числом запросов. Не хватает квоты месяца — отказ.
+// Отказ от остальных: первая страница остаётся, надпись предлагает «Завантажити решту».
+void __fastcall TfmMain::CatLoadClick(TObject *Sender)
+{
+	if (FCatIssuer.IsEmpty() || !EnsureCatalogRefs())
+		return;
+	const String caption = StringReplace(FCatLoad->Caption, L"...", L"", TReplaceFlags());
+	const bool refresh = FCatPagesCached > 0 && FCatPagesCached >= FCatPages;
+	const String name = FCatRuler != 0 ? FCatMatcher->IssuerName(FCatIssuer) + L" \u2014 " + tvNav->Selected->Text
+		: FCatMatcher->IssuerName(FCatIssuer);
+	int left = AppConfig().NumistaMonthlyQuota - TNumistaClient::RequestsThisMonth();
+	try
+	{
+		int count = FCatTotal;
+		if (refresh || FCatPagesCached == 0)
+		{
+			if (left < 1)
+			{
+				Application->MessageBox(Format(Tr(L"Catalog.Quota"), ARRAYOFCONST((1, left))).c_str(), caption.c_str(),
+					MB_OK | MB_ICONWARNING);
+				return;
+			}
+			Screen->Cursor = crHourGlass;
+			try
+			{
+				FCatMatcher->CatalogPage(FCatIssuer, FCatRuler, 1, refresh, count);
+			}
+			__finally
+			{
+				Screen->Cursor = crDefault;
+			}
+			--left;
+		}
+		const int pages = std::max(1, (count + 99) / 100);
+		std::vector<int> need;
+		for (int page = 2; page <= pages; ++page)
+			if (refresh || !TNumistaClient::IsCached(TNumistaMatcher::CatalogPath(FCatIssuer, FCatRuler, page)))
+				need.push_back(page);
+		if ((int)need.size() > left)
+		{
+			Application->MessageBox(Format(Tr(L"Catalog.Quota"), ARRAYOFCONST(((int)need.size(), left))).c_str(),
+				caption.c_str(), MB_OK | MB_ICONWARNING);
+			ShowCatalog(true);
+			return;
+		}
+		if (!need.empty())
+		{
+			const int loaded = std::min(count, (pages - (int)need.size()) * 100);
+			std::vector<String> buttons;
+			buttons.push_back(Format(Tr(L"Catalog.LoadRest"), ARRAYOFCONST(((int)need.size()))));
+			if (AskChoice(caption, Format(Tr(L"Catalog.Confirm"), ARRAYOFCONST((name, count, loaded, (int)need.size())))
+				+ L"\r\n\r\n" + Format(Tr(L"Numista.Prices.ConfirmUsed"), ARRAYOFCONST((TNumistaClient::RequestsThisMonth(),
+					AppConfig().NumistaMonthlyQuota))), buttons, 0) < 0)
+			{
+				ShowCatalog(true);
+				return;
+			}
+		}
+		if (!need.empty())
+		{
+			std::unique_ptr<TProgress> progress(new TProgress(this, caption, (int)need.size(), FCatClient.get()));
+			for (size_t i = 0; i < need.size(); ++i)
+			{
+				if (!progress->Step((int)i, name))
+					break;
+				int c = 0;
+				FCatMatcher->CatalogPage(FCatIssuer, FCatRuler, need[i], refresh, c);
+			}
+		}
+	}
+	catch (Exception &e)
+	{
+		Application->MessageBox(e.Message.c_str(), caption.c_str(), MB_OK | MB_ICONERROR);
+	}
+	ShowCatalog(true);
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::CatFilterClick(TObject *Sender)
+{
+	RebuildCatalogRows();
+	UpdateDetails();
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::CatGridDrawCell(TObject *Sender, int ACol, int ARow, const TRect &Rect, TGridDrawState State)
+{
+	TCanvas *canvas = FCatGrid->Canvas;
+	const bool header = ARow > 0 && ARow - 1 < (int)FCatRows.size() && FCatRows[ARow - 1].Type < 0;
+	const bool data = ARow > 0 && ARow - 1 < (int)FCatRows.size() && !header;
+	canvas->Font = FCatGrid->Font;
+	if (ARow == 0 || header)
+		canvas->Brush->Color = clBtnFace;
+	else if (data && State.Contains(gdSelected))
+	{
+		canvas->Brush->Color = clHighlight;
+		canvas->Font->Color  = clHighlightText;
+	}
+	else
+		canvas->Brush->Color = clWindow;
+	canvas->FillRect(Rect);
+
+	const int column = ACol >= 0 && ACol < (int)FCatCols.size() ? FCatCols[ACol] : -1;
+	String text;
+	UINT flags = DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX;
+	if (ARow == 0)
+	{
+		const wchar_t *const keys[] = { L"Catalog.Col.Status", L"Catalog.Col.Obverse", L"Catalog.Col.Reverse",
+			L"Catalog.Col.Number", L"Catalog.Col.Title", L"Catalog.Col.Category", L"Catalog.Col.Years" };
+		text = column >= 0 ? Tr(keys[column]) : String();
+		if (column == FCatSort && !FCatCentury->Checked)
+			text += FCatAsc ? L" \u25B2" : L" \u25BC";
+	}
+	else if (header)
+	{
+		if (column == 4)
+		{
+			canvas->Font->Style = TFontStyles() << fsBold;
+			text = CenturyText(FCatRows[ARow - 1].Century);
+		}
+	}
+	else if (ARow - 1 < (int)FCatRows.size())
+	{
+		const TCatRow &row = FCatRows[ARow - 1];
+		const TCatType &t = FCatTypes[row.Type];
+		// Мини-фото: из кэша, нет — в очередь фоновой загрузки (строка перерисуется по таймеру).
+		if (column == 1 || column == 2)
+		{
+			const String url = t.Thumb[column - 1];
+			if (!url.IsEmpty())
+			{
+				const String file = TNumistaClient::ThumbFile(url);
+				if (!FileExists(file))
+					FThumbLoader->Add(url);
+				else if (Graphics::TBitmap *thumb = Thumbnail(file, Rect.Height() - 2))
+					canvas->Draw((Rect.Left + Rect.Right - thumb->Width) / 2, (Rect.Top + Rect.Bottom - thumb->Height) / 2, thumb);
+			}
+			return;
+		}
+		switch (column)
+		{
+			case 0:
+				text = String((row.Status & 1) ? L"\u2713" : L"") + ((row.Status & 2) ? L"\u21C4" : L"")
+					+ ((row.Status & 4) ? L"\u2605" : L"");
+				flags |= DT_CENTER;
+				break;
+			case 3:
+				text = IntToStr(t.Id);
+				flags |= DT_RIGHT;
+				break;
+			case 4:
+				text = t.Title;
+				break;
+			case 5:
+				text = CategoryText(t.Category, t.CategoryName);
+				break;
+			case 6:
+				text = t.MinYear == 0 ? String() : YearText(t.MinYear, t.MaxYear != t.MinYear ? t.MaxYear : 0);
+				flags |= DT_RIGHT;
+				break;
+		}
+	}
+	const int pad = ScaleValue(4);
+	RECT r = { Rect.Left + pad, Rect.Top, Rect.Right - pad, Rect.Bottom };
+	canvas->Brush->Style = bsClear;
+	DrawTextW(canvas->Handle, text.c_str(), -1, &r, flags);
+	canvas->Brush->Style = bsSolid;
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::CatGridSelectCell(TObject *Sender, int ACol, int ARow, bool &CanSelect)
+{
+	ShowCatalogDetails(ARow - 1);
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::CatGridDblClick(TObject *Sender)
+{
+	const TPoint pt = FCatGrid->ScreenToClient(Mouse->CursorPos);
+	int col = -1, row = -1;
+	FCatGrid->MouseToCell(pt.X, pt.Y, col, row);
+	const int column = col >= 0 && col < (int)FCatCols.size() ? FCatCols[col] : -1;
+	if (row > 0 && (column == 1 || column == 2))
+		OpenCatalogPhoto(column - 1);
+	else
+		CatMenuOpenClick(Sender);
+}
+//---------------------------------------------------------------------------
+// Автор фото типа (задача 53): тип загружен getType — автор и лицензия, иначе «© Numista».
+void TfmMain::CatalogCredits(int ATypeId, TPhotoCredit (&ACredits)[2])
+{
+	TNumistaTypeInfo info;
+	const bool loaded = FRepository->LoadNumistaType(ATypeId, info);
+	for (int s = 0; s < 2; ++s)
+	{
+		ACredits[s] = TPhotoCredit();
+		ACredits[s].Numista = true;
+		if (!loaded)
+			continue;
+		ACredits[s].Author     = info.PictureCopyright[s];
+		ACredits[s].AuthorUrl  = info.PictureCopyrightUrl[s];
+		ACredits[s].License    = info.PictureLicense[s];
+		ACredits[s].LicenseUrl = info.PictureLicenseUrl[s];
+		if (!StartsText(L"http://", ACredits[s].AuthorUrl) && !StartsText(L"https://", ACredits[s].AuthorUrl))
+			ACredits[s].AuthorUrl = L"";
+	}
+}
+//---------------------------------------------------------------------------
+// Фото типа каталога: полные (obverse / reverse.picture из getType — после «Завантажити характеристики»),
+// иначе мини-фото 180 px. Файла ещё нет — фоновая загрузка (квоту не тратит), пока — то, что есть.
+void TfmMain::CatalogPictureFiles(const TCatType &AType, String (&AFiles)[2], String *AWaiting)
+{
+	TNumistaTypeInfo info;
+	const bool loaded = FRepository->LoadNumistaType(AType.Id, info);
+	for (int s = 0; s < 2; ++s)
+	{
+		AFiles[s] = L"";
+		if (AWaiting)
+			AWaiting[s] = L"";
+		const String full = loaded ? info.Picture[s] : String();
+		if (!full.IsEmpty())
+		{
+			const String file = TNumistaClient::ThumbFile(full);
+			if (FileExists(file))
+			{
+				AFiles[s] = file;
+				continue;
+			}
+			FThumbLoader->Add(full);
+			if (AWaiting)
+				AWaiting[s] = file;
+		}
+		if (AType.Thumb[s].IsEmpty())
+			continue;
+		const String thumb = TNumistaClient::ThumbFile(AType.Thumb[s]);
+		if (FileExists(thumb))
+			AFiles[s] = thumb;
+		else
+		{
+			FThumbLoader->Add(AType.Thumb[s]);
+			if (AWaiting && AWaiting[s].IsEmpty())
+				AWaiting[s] = thumb;
+		}
+	}
+}
+//---------------------------------------------------------------------------
+// Фото типа в окне просмотра: полные, если тип загружен getType, иначе мини-фото.
+void TfmMain::OpenCatalogPhoto(int ASide)
+{
+	const int index = FCatGrid->Row - 1;
+	if (index < 0 || index >= (int)FCatRows.size() || FCatRows[index].Type < 0)
+		return;
+	const TCatType &t = FCatTypes[FCatRows[index].Type];
+	TPhotoViewSet set;
+	set.Caption = Tr(L"PhotoView.Catalog");
+	CatalogPictureFiles(t, set.Files);
+	if (set.Empty())
+		return;
+	CatalogCredits(t.Id, set.Credits);
+	std::vector<TPhotoViewSet> sets;
+	sets.push_back(set);
+	TfmPhotoView::Execute(this, t.Title, sets, 0, (TPhotoSide)ASide);
+}
+//---------------------------------------------------------------------------
+// Категории загруженных типов — с числом типов; выбранная остаётся при переходе к другому эмитенту,
+// если она у него есть.
+void TfmMain::RebuildCategoryCombo()
+{
+	std::map<int, std::pair<String, int> > categories;
+	for (size_t i = 0; i < FCatTypes.size(); ++i)
+	{
+		std::pair<String, int> &c = categories[FCatTypes[i].Category];
+		c.first = FCatTypes[i].CategoryName;
+		++c.second;
+	}
+	FCatCategory->OnChange = nullptr;
+	FCatCategory->Items->BeginUpdate();
+	try
+	{
+		FCatCategory->Items->Clear();
+		FCatCategory->Items->AddObject(Format(Tr(L"Catalog.AllCategories"), ARRAYOFCONST(((int)FCatTypes.size()))),
+			reinterpret_cast<TObject *>((NativeInt)0));
+		int select = 0;
+		for (std::map<int, std::pair<String, int> >::const_iterator it = categories.begin(); it != categories.end(); ++it)
+		{
+			FCatCategory->Items->AddObject(CategoryText(it->first, it->second.first) + L" (" + IntToStr(it->second.second) + L")",
+				reinterpret_cast<TObject *>((NativeInt)it->first));
+			if (it->first == FCatCategoryId)
+				select = FCatCategory->Items->Count - 1;
+		}
+		FCatCategory->ItemIndex = select;
+	}
+	__finally
+	{
+		FCatCategory->Items->EndUpdate();
+		FCatCategory->OnChange = CatCategoryChange;
+	}
+	FCatCategory->Enabled = !FCatTypes.empty();
+}
+//---------------------------------------------------------------------------
+int TfmMain::CatalogCategory() const
+{
+	const int index = FCatCategory->ItemIndex;
+	return index > 0 ? (int)reinterpret_cast<NativeInt>(FCatCategory->Items->Objects[index]) : 0;
+}
+//---------------------------------------------------------------------------
+// Свои короткие названия известных категорий Numista; другие — как у Numista.
+String TfmMain::CategoryText(int AId, const String &AName)
+{
+	switch (AId)
+	{
+		case 1: return Tr(L"Catalog.Cat.Circulation");
+		case 2: return Tr(L"Catalog.Cat.Commemorative");
+		case 3: return Tr(L"Catalog.Cat.NonCirculating");
+		case 6: return Tr(L"Catalog.Cat.Pattern");
+	}
+	return AName.IsEmpty() ? String(L"\u2014") : AName;
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::CatCategoryChange(TObject *Sender)
+{
+	FCatCategoryId = CatalogCategory();
+	RebuildCatalogRows();
+	UpdateCatalogStatus();
+	UpdateDetails();
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::CatThumbsClick(TObject *Sender)
+{
+	AppConfig().CatalogThumbs = FCatThumbs->Checked;
+	try { AppConfig().Save(); } catch (Exception &) {}
+	LayoutCatalogGrid();
+	FCatGrid->Invalidate();
+}
+//---------------------------------------------------------------------------
+void TfmMain::StopThumbLoader()
+{
+	if (!FThumbLoader)
+		return;
+	FCatTimer->Enabled = false;
+	FThumbLoader->Stop();
+	delete FThumbLoader;
+	FThumbLoader = nullptr;
+}
+//---------------------------------------------------------------------------
+// Загружены новые мини-фото — перерисовать таблицу (без базы); подробности — только когда пришло
+// фото выбранного типа (подробности читают базу).
+void __fastcall TfmMain::CatTimer(TObject *Sender)
+{
+	if (!FThumbLoader || FThumbLoader->Done() == FThumbSeen)
+		return;
+	FThumbSeen = FThumbLoader->Done();
+	if (!FCatPanel->Visible)
+		return;
+	FCatGrid->Invalidate();
+	if ((!FCatDetailWait[0].IsEmpty() && FileExists(FCatDetailWait[0]))
+		|| (!FCatDetailWait[1].IsEmpty() && FileExists(FCatDetailWait[1])))
+		UpdateDetails();
+}
+//---------------------------------------------------------------------------
+int TfmMain::CatalogTypeId() const
+{
+	const int index = FCatGrid->Row - 1;
+	return index >= 0 && index < (int)FCatRows.size() && FCatRows[index].Type >= 0 ? FCatTypes[FCatRows[index].Type].Id : 0;
+}
+//---------------------------------------------------------------------------
+// Правый клик — сначала выделить строку под курсором (меню — для неё).
+void __fastcall TfmMain::CatGridMouseDown(TObject *Sender, TMouseButton Button, TShiftState Shift, int X, int Y)
+{
+	int col = -1, row = -1;
+	FCatGrid->MouseToCell(X, Y, col, row);
+	if (Button == mbRight && row > 0 && row < FCatGrid->RowCount)
+		FCatGrid->Row = row;
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::CatMenuPopup(TObject *Sender)
+{
+	const int id = CatalogTypeId();
+	TNumistaTypeInfo info;
+	const bool loaded = id != 0 && FRepository->LoadNumistaType(id, info) && info.MinYear != 0;
+	const bool cached = id != 0 && TNumistaClient::IsCached(TNumistaMatcher::TypePath(id));
+	FCatMenu->Items->Items[0]->Caption = Tr(loaded ? L"Catalog.Menu.Reload" : (cached ? L"Catalog.Menu.LoadCached"
+		: L"Catalog.Menu.LoadType"));
+	FCatMenu->Items->Items[0]->Enabled = id != 0;
+	FCatMenu->Items->Items[1]->Caption = Tr(L"Catalog.Menu.Open");
+	FCatMenu->Items->Items[1]->Enabled = id != 0;
+}
+//---------------------------------------------------------------------------
+// Характеристики типа по N#: getType (из кэша — без запроса; уже в базе — заново, мимо кэша) →
+// numista_types; панель подробностей показывает их сразу.
+void __fastcall TfmMain::CatMenuLoadTypeClick(TObject *Sender)
+{
+	const int id = CatalogTypeId();
+	if (id == 0 || !EnsureCatalogRefs())
+		return;
+	const String caption = StripHotkey(FCatMenu->Items->Items[0]->Caption);
+	TNumistaTypeInfo stored;
+	const bool refresh = FRepository->LoadNumistaType(id, stored) && stored.MinYear != 0;
+	if ((refresh || !TNumistaClient::IsCached(TNumistaMatcher::TypePath(id)))
+		&& AppConfig().NumistaMonthlyQuota - TNumistaClient::RequestsThisMonth() < 1)
+	{
+		Application->MessageBox(Format(Tr(L"Catalog.Quota"), ARRAYOFCONST((1, 0))).c_str(), caption.c_str(),
+			MB_OK | MB_ICONWARNING);
+		return;
+	}
+	Screen->Cursor = crHourGlass;
+	try
+	{
+		try
+		{
+			FRepository->SaveNumistaType(FCatMatcher->LoadType(id, refresh));
+		}
+		__finally
+		{
+			Screen->Cursor = crDefault;
+		}
+	}
+	catch (Exception &e)
+	{
+		Application->MessageBox(e.Message.c_str(), caption.c_str(), MB_OK | MB_ICONERROR);
+		return;
+	}
+	ShowCatalogDetails(FCatGrid->Row - 1);
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::CatMenuOpenClick(TObject *Sender)
+{
+	if (const int id = CatalogTypeId())
+		ShellExecuteW(Handle, L"open", TNumistaMatcher::TypeUrl(id).c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+}
+//---------------------------------------------------------------------------
+void __fastcall TfmMain::CatGridFixedCellClick(TObject *Sender, int ACol, int ARow)
+{
+	const int column = ACol >= 0 && ACol < (int)FCatCols.size() ? FCatCols[ACol] : -1;
+	if (ARow != 0 || FCatCentury->Checked || column < 0 || column == 1 || column == 2)
+		return;
+	FCatAsc  = column == FCatSort ? !FCatAsc : true;
+	FCatSort = column;
+	RebuildCatalogRows();
+	UpdateDetails();
+}
+//---------------------------------------------------------------------------
+// Панель подробностей для типа каталога: название, годы, N# (ссылка), характеристики и фото типа —
+// если тип уже есть в базе (связанные монеты).
+void TfmMain::ShowCatalogDetails(int AIndex)
+{
+	FCatDetailWait[0] = FCatDetailWait[1] = L"";
+	if (AIndex < 0 || AIndex >= (int)FCatRows.size() || FCatRows[AIndex].Type < 0)
+	{
+		ShowRecordDetails(nullptr);
+		return;
+	}
+	const TCatType &t = FCatTypes[FCatRows[AIndex].Type];
+	TCoinRecord r;
+	r.Denomination  = t.Title;
+	r.Country       = FCatMatcher ? FCatMatcher->IssuerName(FCatIssuer) : FCatIssuer;
+	r.Year          = t.MinYear;
+	r.YearTo        = t.MaxYear != t.MinYear ? t.MaxYear : 0;
+	r.NumistaTypeId = t.Id;
+	TNumistaTypeInfo info;
+	r.NumistaTypeLoaded = FRepository->LoadNumistaType(t.Id, info);
+	for (size_t i = 0; i < FAll.size(); ++i)
+		if (FAll[i].NumistaTypeId == t.Id && FAll[i].CoinId != 0)
+		{
+			r.CoinId = FAll[i].CoinId;	// фото типа — как у связанной монеты
+			break;
+		}
+	ShowRecordDetails(&r);
+	// Тип без связанной монеты — фото каталога (задача 58): полные после getType, иначе мини-фото.
+	if (r.CoinId == 0)
+	{
+		String files[2];
+		TPhotoCredit credits[2];
+		CatalogPictureFiles(t, files, FCatDetailWait);
+		CatalogCredits(t.Id, credits);
+		ShowDetailPhotos(&r, files, credits);
+	}
+	// Строки экземпляра (период, валюта, сюжет, цены…) у типа каталога пусты — не показываются.
+	for (size_t i = 0; i < FDetailRows.size(); ++i)
+		if ((int)i != drNumista && ((int)i == drPrices || (int)i == drNumistaItem || (int)i == drIssueComment
+			|| FDetailRows[i].Value->Caption == L"\u2014"))
+		{
+			FDetailRows[i].Caption->Visible = false;
+			FDetailRows[i].Value->Visible   = false;
+		}
+	LayoutDetails();
+}
+//---------------------------------------------------------------------------
 void __fastcall TfmMain::DetailCreditClick(TObject *Sender)
 {
 	const String url = FDetailCredits[static_cast<TComponent *>(Sender)->Tag].AuthorUrl;
@@ -5415,7 +6632,7 @@ void TfmMain::ShowTypeDetails(int ATypeId)
 
 	String size;
 	if (t.Size != 0.0)
-		size = NumberText(t.Size) + (t.Size2 != 0.0 ? L" × " + NumberText(t.Size2) : String());
+		size = NumberText(t.Size) + (t.Size2 != 0.0 ? L" \u00D7 " + NumberText(t.Size2) : String());
 	if (t.Thickness != 0.0)
 		size += (size.IsEmpty() ? String() : String(L"; ")) + Format(Tr(L"Main.Details.ThicknessValue"),
 			ARRAYOFCONST((NumberText(t.Thickness))));

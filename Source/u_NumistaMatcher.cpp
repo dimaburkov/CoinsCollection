@@ -103,6 +103,8 @@ bool TNumistaMatcher::LoadReferences()
 	FIssuersByName.clear();
 	FLevel.clear();
 	FParentName.clear();
+	FIssuerName.clear();
+	FIssuerChildren.clear();
 	FCatalogues.clear();
 
 	std::unique_ptr<TJSONValue> issuers = ReadCache(L"issuers");
@@ -122,6 +124,9 @@ bool TNumistaMatcher::LoadReferences()
 		FLevel[code] = JsonInt(item, L"level");
 		FIssuerParent[code] = JsonString(item, L"parent.code");
 		FParentName[code] = JsonString(item, L"parent.name").LowerCase();
+		FIssuerName[code] = JsonString(item, L"name");
+		if (!FIssuerParent[code].IsEmpty())
+			FIssuerChildren[FIssuerParent[code]].push_back(code);
 	}
 	for (int i = 0; i < catalogueList->Count; ++i)
 	{
@@ -245,6 +250,63 @@ std::vector<TNumistaType> TNumistaMatcher::QueryTypes(const String &APath, int *
 bool TNumistaMatcher::SameBranch(const String &AIssuer1, const String &AIssuer2) const
 {
 	return !AIssuer1.IsEmpty() && !AIssuer2.IsEmpty() && RootOf(AIssuer1) == RootOf(AIssuer2);
+}
+//---------------------------------------------------------------------------
+bool TNumistaMatcher::HasIssuer(const String &AIssuer) const
+{
+	return FIssuerName.find(AIssuer) != FIssuerName.end();
+}
+//---------------------------------------------------------------------------
+String TNumistaMatcher::IssuerName(const String &AIssuer) const
+{
+	auto it = FIssuerName.find(AIssuer);
+	return it == FIssuerName.end() ? AIssuer : it->second;
+}
+//---------------------------------------------------------------------------
+std::vector<String> TNumistaMatcher::IssuerChildren(const String &AIssuer) const
+{
+	auto it = FIssuerChildren.find(AIssuer);
+	if (it == FIssuerChildren.end())
+		return std::vector<String>();
+	std::vector<String> result = it->second;
+	std::sort(result.begin(), result.end(), [this](const String &A, const String &B)
+		{ return AnsiCompareText(IssuerName(A), IssuerName(B)) < 0; });
+	return result;
+}
+//---------------------------------------------------------------------------
+// object_type=147 — монеты (без банкнот и экзонумии), order=date — по дате первого выпуска.
+String TNumistaMatcher::CatalogPath(const String &AIssuer, int ARulerId, int APage)
+{
+	return L"/types?issuer=" + UrlParam(AIssuer) + (ARulerId != 0 ? L"&ruler=" + IntToStr(ARulerId) : String())
+		+ L"&object_type=147&order=date&count=100&page=" + IntToStr(APage) + L"&lang=en";
+}
+//---------------------------------------------------------------------------
+std::vector<TNumistaType> TNumistaMatcher::CatalogPage(const String &AIssuer, int ARulerId, int APage, bool ARefresh,
+	int &ACount)
+{
+	ACount = 0;
+	std::vector<TNumistaType> result;
+	std::unique_ptr<TJSONValue> json = FClient.GetCached(CatalogPath(AIssuer, ARulerId, APage), nullptr, ARefresh);
+	ACount = JsonInt(json.get(), L"count");
+	TJSONArray *types = dynamic_cast<TJSONArray *>(json->FindValue(L"types"));
+	for (int i = 0; types && i < types->Count; ++i)
+	{
+		TJSONValue *item = types->Items[i];
+		TNumistaType t;
+		t.Id         = JsonInt   (item, L"id");
+		t.Title      = JsonString(item, L"title");
+		t.IssuerCode = JsonString(item, L"issuer.code");
+		t.IssuerName = JsonString(item, L"issuer.name");
+		t.MinYear    = JsonInt   (item, L"min_year");
+		t.MaxYear    = JsonInt   (item, L"max_year");
+		t.ObjectTypeId   = JsonInt   (item, L"object_type.id");
+		t.ObjectTypeName = JsonString(item, L"object_type.name");
+		t.Thumbnail[0]   = JsonString(item, L"obverse_thumbnail");
+		t.Thumbnail[1]   = JsonString(item, L"reverse_thumbnail");
+		if (t.Id != 0)
+			result.push_back(t);
+	}
+	return result;
 }
 //---------------------------------------------------------------------------
 bool TNumistaMatcher::IssuerContinent(const String &AIssuer, int &AContinentId, bool &AIsExist,
