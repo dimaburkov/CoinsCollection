@@ -69,6 +69,7 @@ TAppConfig::TAppConfig()
 	  GridHidden(L"obverse,reverse,typeobverse,typereverse"),
 	  GridRowHeight(18),
 	  GridTypeThumbs(true),
+	  CatalogThumbs(true),
 	  WindowMaximized(false),
 	  WindowTreeWidth(0),
 	  WindowDetailsHeight(0),
@@ -196,6 +197,7 @@ void TAppConfig::Load()
 	GridHidden    = ini->ReadString(L"Grid", L"Hidden", L"obverse,reverse,typeobverse,typereverse").Trim().LowerCase();
 	// Нет ключа Hidden — новая установка (колонки по умолчанию); есть без TypeThumbs — настройки 0.5.0.
 	GridTypeThumbs = ini->ReadBool(L"Grid", L"TypeThumbs", !ini->ValueExists(L"Grid", L"Hidden"));
+	CatalogThumbs  = ini->ReadBool(L"Catalog", L"Thumbs", true);
 	GridRowHeight = ini->ReadInteger(L"Grid", L"RowHeight", 18);
 	if (GridRowHeight != 18 && GridRowHeight != 40 && GridRowHeight != 64)
 		GridRowHeight = 18;
@@ -277,6 +279,7 @@ void TAppConfig::Save()
 	ini->WriteString(cUiSection, cLanguageKey, Language);
 	ini->WriteString(L"Grid", L"Hidden", GridHidden);
 	ini->WriteBool(L"Grid", L"TypeThumbs", GridTypeThumbs);
+	ini->WriteBool(L"Catalog", L"Thumbs", CatalogThumbs);
 	ini->WriteInteger(L"Grid", L"RowHeight", GridRowHeight);
 	ini->WriteString(L"Grid", L"Order", GridOrder);
 	ini->WriteString(L"Grid", L"Align", GridAlign);

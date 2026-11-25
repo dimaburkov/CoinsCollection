@@ -80,6 +80,12 @@ public:
 	// (Numista внёс "CoinsCollection/" в белый список, 28.10.2026). Другой адрес или
 	// не изображение — ENumistaError. Возвращает изображение (владеет вызывающий).
 	TGraphic *DownloadImage(const String &AUrl);
+	// Адрес картинки сайта Numista (https://...numista.com/...).
+	static bool IsImageUrl(const String &AUrl);
+	// Мини-фото каталога (задача 58): файл в кэше Numista\thumbs\ (имя — по адресу) и загрузка
+	// файла как есть, без разбора картинки — можно из фонового потока; false — не удалось.
+	static String ThumbFile(const String &AUrl);
+	static bool   DownloadFile(const String &AUrl, const String &AFile);
 
 	// Подпись программы в запросах (User-Agent): "CoinsCollection/<версия> (uCoin to Numista
 	// migration tool)". Numista вносит её в белый список (переписка 27.10.2026): по ней

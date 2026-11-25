@@ -317,7 +317,8 @@ The country node then shows its own coins and the coins of the countries inside;
 The country stays a country with its periods, Numista issuer and coins, so a repeated import from uCoin or Numista keeps everything in place.
 The same settings are in [[page:references|Reference → Countries]] ([[ui:Continent|Континент]], [[ui:Part of|Входить у]]).</p>
 <h2>Search</h2>
-<p>The search field on the toolbar filters the list by country, period, currency, denomination, year, subject, variety, catalogue number, comment and the Numista title (for example <i>Crispina</i>).</p>
+<p>The search field on the toolbar filters the list by country, period, currency, denomination, year, subject, variety, catalogue number, comment and the Numista title (for example <i>Crispina</i>). Several parts joined with <b>+</b> must all be found, in any order:
+<i>Denarius + COS IIII</i>.</p>
 <h2>Coin list</h2>
 <table>
 <tr><th>Column</th><th>Meaning</th></tr>
@@ -383,7 +384,8 @@ T['main-window', 'uk'] = u"""
 Країна залишається країною зі своїми періодами, емітентом Numista й монетами, тож повторний імпорт з uCoin чи Numista нічого не зсуває.
 Те саме налаштовується в [[page:references|Довідники → Країни]] ([[ui:Continent|Континент]], [[ui:Part of|Входить у]]).</p>
 <h2>Пошук</h2>
-<p>Поле пошуку на панелі інструментів фільтрує список за країною, періодом, валютою, номіналом, роком, сюжетом, різновидом, номером у каталозі, коментарем і назвою Numista (наприклад <i>Crispina</i>).</p>
+<p>Поле пошуку на панелі інструментів фільтрує список за країною, періодом, валютою, номіналом, роком, сюжетом, різновидом, номером у каталозі, коментарем і назвою Numista (наприклад <i>Crispina</i>). Кілька частин через <b>+</b> мають знайтися всі, у будь-якому порядку:
+<i>Denarius + COS IIII</i>.</p>
 <h2>Список монет</h2>
 <table>
 <tr><th>Колонка</th><th>Значення</th></tr>
@@ -614,10 +616,16 @@ new types appear on Numista).</p>
 <li>Column [[ui:Mine|У мене]]: ✓ — in your collection, ⇄ — in the swap list, ★ — in the wish list, empty — you do not have it.
 Only coins linked with Numista are recognized — link your coins first ([[page:numista-link|Numista: linking coins]]).</li>
 <li>[[ui:Only missing|Лише відсутні]] — only the types you do not have; [[ui:By century|За століттями]] — grouped by century.</li>
-<li>Click a column header to sort; the search field above the list searches the titles.</li>
+<li><b>Category</b> (the list above the table): [[ui:Circulation|Обігові]], [[ui:Circulating commemorative|Пам'ятні обігові]],
+[[ui:Non-circulating (collector)|Колекційні (необігові)]], [[ui:Patterns|Пробні]] — as Numista divides them; the number of types is shown
+for each, the totals below count only the chosen category. For example, Ukraine: 22 circulation coins of 1123 types.</li>
+<li>[[ui:Thumbnails|Мініатюри]] — small obverse and reverse pictures in the list. They are downloaded in the background only for the rows
+you see and kept on your computer; pictures do not use Numista requests. Double-click a picture — the photo viewer.</li>
+<li>Click a column header to sort; the search field above the list searches the titles of the loaded types or the N#; parts joined with <b>+</b> must all be in the title
+(<i>Denarius + COS IIII</i>). Legends that are not in the title are not found.</li>
 <li>Right-click a type: [[ui:Load type details from Numista|Завантажити характеристики з Numista]] (1 request by the N#, no search) — composition, weight, size, ruler and other details appear below; [[ui:Open on Numista|Відкрити на Numista]].</li>
-<li>Double-click — the type page on Numista. The details below show the type; if the type is linked with one of your coins —
-its characteristics and catalogue photos.</li>
+<li>Double-click — the type page on Numista. The details below show the type and its pictures (© Numista; with the author's name
+after the type details are loaded); if the type is linked with one of your coins — its characteristics and full catalogue photos.</li>
 </ul>
 <div class="note">The catalogue is read-only: countries cannot be dragged into it or out of it.</div>
 """
@@ -643,10 +651,16 @@ T['catalog', 'uk'] = u"""
 <li>Колонка [[ui:Mine|У мене]]: ✓ — у вашій колекції, ⇄ — у списку обміну, ★ — у бажаних, порожньо — у вас немає.
 Розпізнаються лише монети, пов'язані з Numista, — спершу пов'яжіть свої монети ([[page:numista-link|Numista: зв'язок монет]]).</li>
 <li>[[ui:Only missing|Лише відсутні]] — лише типи, яких у вас немає; [[ui:By century|За століттями]] — групування за століттями.</li>
-<li>Клацання по заголовку колонки — сортування; поле пошуку над списком шукає в назвах.</li>
+<li><b>Категорія</b> (список над таблицею): [[ui:Circulation|Обігові]], [[ui:Circulating commemorative|Пам'ятні обігові]],
+[[ui:Non-circulating (collector)|Колекційні (необігові)]], [[ui:Patterns|Пробні]] — так, як їх ділить Numista; біля кожної — кількість типів,
+підсумки внизу — лише за вибраною категорією. Наприклад, Україна: 22 обігові монети з 1123 типів.</li>
+<li>[[ui:Thumbnails|Мініатюри]] — маленькі фото аверсу й реверсу у списку. Завантажуються у фоні лише для рядків, які ви бачите,
+і зберігаються на комп'ютері; фото не витрачають запитів Numista. Подвійне клацання по фото — перегляд.</li>
+<li>Клацання по заголовку колонки — сортування; поле пошуку над списком шукає в назвах завантажених типів або за N#; частини через <b>+</b> мають усі бути в назві
+(<i>Denarius + COS IIII</i>). Легенди, яких немає в назві, не знаходяться.</li>
 <li>Праве клацання по типу: [[ui:Load type details from Numista|Завантажити характеристики з Numista]] (1 запит за N#, без пошуку) — сплав, вага, розмір, правитель та інші характеристики зявляться унизу; [[ui:Open on Numista|Відкрити на Numista]].</li>
-<li>Подвійне клацання — сторінка типу на Numista. Унизу — подробиці типу; якщо тип пов'язаний з вашою монетою, —
-його характеристики й фото каталогу.</li>
+<li>Подвійне клацання — сторінка типу на Numista. Унизу — подробиці типу та його фото (© Numista; з іменем автора — після
+завантаження характеристик); якщо тип пов'язаний з вашою монетою, — його характеристики й повні фото каталогу.</li>
 </ul>
 <div class="note">Каталог лише для перегляду: країни не перетягуються ні в нього, ні з нього.</div>
 """

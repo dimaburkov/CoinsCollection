@@ -28,7 +28,13 @@ struct TNumistaType
 	bool   OtherIssuer;     // эмитент вне ветки страны / периода (задача 15a) — только с подтверждением
 	bool   ByAutoQuery;     // найден по автофразе (задача 15b) — только с подтверждением
 	bool   YearMismatch;    // годы типа не включают год монеты (задача 36) — только с подтверждением
-	TNumistaType() : Id(0), MinYear(0), MaxYear(0), OtherIssuer(false), ByAutoQuery(false), YearMismatch(false) {}
+	// Каталог (задача 58): категория Numista (object_type: 1 обиходные, 2 памятные обиходные, 3 необиходные,
+	// 6 пробные...) и мини-фото сторон (ссылки 180 px; "" — нет).
+	int    ObjectTypeId;
+	String ObjectTypeName;
+	String Thumbnail[2];
+	TNumistaType() : Id(0), MinYear(0), MaxYear(0), OtherIssuer(false), ByAutoQuery(false), YearMismatch(false),
+		ObjectTypeId(0) {}
 };
 //---------------------------------------------------------------------------
 // Продажа на аукционе (getSalesRecords; задача 38).

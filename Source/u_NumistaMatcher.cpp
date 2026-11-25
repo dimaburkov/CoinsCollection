@@ -299,6 +299,10 @@ std::vector<TNumistaType> TNumistaMatcher::CatalogPage(const String &AIssuer, in
 		t.IssuerName = JsonString(item, L"issuer.name");
 		t.MinYear    = JsonInt   (item, L"min_year");
 		t.MaxYear    = JsonInt   (item, L"max_year");
+		t.ObjectTypeId   = JsonInt   (item, L"object_type.id");
+		t.ObjectTypeName = JsonString(item, L"object_type.name");
+		t.Thumbnail[0]   = JsonString(item, L"obverse_thumbnail");
+		t.Thumbnail[1]   = JsonString(item, L"reverse_thumbnail");
 		if (t.Id != 0)
 			result.push_back(t);
 	}
