@@ -174,9 +174,9 @@
 
 **Номер версии** — `a.b.c` (в exe — `a.b.c.0`). Меняется в трёх местах, одинаково:
 
-- `Source/versionConfig.cpp` — `AppInfo::Version` (`L"0.6.0.0"`); там же `AppInfo::Email` и `AppInfo::SupportUrl` (группа поддержки, задача 37: «Про програму», «Повідомити про проблему»);
+- `Source/versionConfig.cpp` — `AppInfo::Version` (`L"0.7.0.0"`); там же `AppInfo::Email` и `AppInfo::SupportUrl` (группа поддержки, задача 37: «Про програму», «Повідомити про проблему»);
 - `Source/_CoinsCollection.cbproj` — `VerInfo_MajorVer` / `VerInfo_MinorVer` / `VerInfo_Release`, `FileVersion` и `ProductVersion` в `VerInfo_Keys`;
-- `Setup/CoinsCollection.iss` — `#define AppVersion "0.6.0"`.
+- `Setup/CoinsCollection.iss` — `#define AppVersion "0.7.0"`.
 
 **Порядок выпуска**
 
@@ -191,6 +191,7 @@
 - Установка: `CoinsCollection-Setup-a.b.c.exe /VERYSILENT /SUPPRESSMSGBOXES /NOICONS /LANG=ukrainian /DIR="C:\Temp\cc-test"`.
 - Запустить `C:\Temp\cc-test\CoinsCollection.exe`: открывается, пустая коллекция, язык — как у мастера.
 - Удаление: `C:\Temp\cc-test\unins000.exe /VERYSILENT` — должны остаться только `Db\` и `CoinsCollection.ini`.
+- **Если программа на этом компьютере уже установлена** (0.7.0: так испортились ярлыки владельца): у всех версий один `AppId`, поэтому тестовая установка перезаписывает запись удаления `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\{1789D0DF-…}_is1` и ярлыки «Пуск» / рабочего стола (`/NOICONS` без `AllowNoIcons=yes` не действует; задачи берутся из прежней установки — `desktopicon`), а `unins000.exe` тестовой папки удалил бы запись и ярлыки совсем. Порядок: до установки — `reg export` этого ключа; после проверки — удалить тестовую папку **без** `unins000.exe`, `reg delete` + `reg import` ключа, ярлыки `Coins Collection.lnk` в `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Coins Collection\` и на рабочем столе вернуть на `%LOCALAPPDATA%\Programs\CoinsCollection\CoinsCollection.exe`, удалить ярлык удаления, созданный тестовой установкой (`Видалити Coins Collection.lnk` при `/LANG=ukrainian`).
 
 **Публикация на GitHub** (репозиторий публичный, лицензия MIT; README — страница загрузки)
 
