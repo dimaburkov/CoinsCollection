@@ -55,7 +55,8 @@ struct TCoinRecord
 	TDateTime PublishedDate;   // "Published"; 0 = нет
 	String    SwapInfo;        // "Swap", напр. "Adler /uid86829"
 	TDateTime PurchaseDate;    // "Purchase"; 0 = нет ("00/01/1900" в файле)
-	double    MyValueUah;      // "Value, UAH [My]"
+	double    PurchasePrice;   // цена покупки ("Value, UAH [My]"; coin_items.my_value_uah)
+	String    PurchaseCurrency;// её валюта, код ISO 4217 (задача 57); "" — UAH
 
 	String    GradingCompany;
 	String    GradingNumber;
@@ -78,6 +79,9 @@ struct TCoinRecord
 	// Тип из numista_types (задача 13d)
 	bool      NumistaTypeLoaded;   // характеристики типа загружены
 	String    NumistaComposition;  // металл ("Silver (.925)", "Aluminium" ...)
+	// Свои тираж и металл монеты (задача 57): важнее данных Numista; -1 / "" — нет своих
+	__int64   MintageManual;
+	String    CompositionManual;
 	// Название типа Numista (задача 39): numista_types.title, если тип загружен, иначе coins.numista_title
 	String    NumistaTitle;
 	// Фото типа из Numista (задача 17b): у Numista есть изображение стороны, а у монеты
@@ -93,7 +97,7 @@ struct TCoinRecord
 		  CatalogValueUah(0.0),
 		  Quantity(1),
 		  NeedToReplace(false),
-		  MyValueUah(0.0),
+		  PurchasePrice(0.0),
 		  NumistaTypeId(0),
 		  NumistaIssueId(0),
 		  NumistaItemId(0),
@@ -101,9 +105,14 @@ struct TCoinRecord
 		  NumistaIssueLoaded(false),
 		  NumistaMintage(-1),
 		  NumistaTypeLoaded(false),
+		  MintageManual(-1),
 		  NumistaPhotoPending(false)
 	{
 	}
+	// Валюта цены покупки: старые записи и uCoin — UAH.
+	String PurchaseCurrencyCode() const { return PurchaseCurrency.IsEmpty() ? String(L"UAH") : PurchaseCurrency; }
+	// Показываемый металл: свой, иначе Numista.
+	String Composition() const { return CompositionManual.IsEmpty() ? NumistaComposition : CompositionManual; }
 };
 
 //---------------------------------------------------------------------------

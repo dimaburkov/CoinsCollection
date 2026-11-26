@@ -50,9 +50,12 @@ after you change its width with the mouse, it keeps your width.</td></tr>
 <tr><td><span class="ui">Swap</span></td><td>How many you have for swap: in <span class="ui">For swap</span> — the quantity of the item, in the collection — all items for swap
 of the same coin. <b>✓</b> after the number — uploaded to your Numista swap list (in the collection — all of them).</td></tr>
 <tr><td>Rarity</td><td>Rarity index from your Numista collection comment (<a href="numista-upload.html">Numista: upload</a>).</td></tr>
-<tr><td>Mintage</td><td>Mintage of the issue. <code>n/a</code> — Numista has no mintage for it; empty — not loaded yet.</td></tr>
-<tr><td>Composition</td><td>Metal of the type from Numista.</td></tr>
-<tr><td>Year, Condition, Value</td><td>From uCoin.</td></tr>
+<tr><td>Mintage</td><td>Mintage of the issue. <code>n/a</code> — Numista has no mintage for it; empty — not loaded yet.
+A mintage entered in the <a href="coin-card.html">coin card</a> is shown instead.</td></tr>
+<tr><td>Composition</td><td>Metal of the type from Numista, or the metal entered in the coin card.</td></tr>
+<tr><td>Year, Condition, <span class="ui">Catalogue value</span></td><td>From uCoin (the catalogue value is the uCoin estimate, not your price).</td></tr>
+<tr><td><span class="ui">Purchase price</span></td><td>What you paid, with the currency: <code>85.00 USD</code>. Hidden by default — turn it on
+in the <span class="ui">Columns</span> menu. Sorted by currency, then by amount.</td></tr>
 <tr><td><span class="ui">Numista, UAH</span></td><td>Numista price estimate for the condition of the coin; shown when Numista prices are on
 (<a href="numista-catalog.html">Numista catalogue data</a>).</td></tr>
 </table>
@@ -76,8 +79,9 @@ The #Numista value is a link to the type page on Numista. The right column shows
 (weight, size, shape, ruler, series, years, mints, demonetization). With Numista prices on — the row
 <span class="ui">Numista prices</span>.</p>
 <h2>Status bar</h2>
-<p>Number of shown items, their quantity and value, and the number of checked items. With Numista prices on — the Numista
-estimate of the shown coins (estimate × quantity) and how many of them have no estimate.</p>
+<p>Number of shown items, their quantity and catalogue value, and the number of checked items. With Numista prices on — the Numista
+estimate of the shown coins (estimate × quantity) and how many of them have no estimate. If the shown coins have a purchase price —
+<span class="ui">Spent</span>: price × quantity for each currency (<i>12 300.00 UAH + 150.00 USD</i>; currencies are not converted).</p>
 </main>
 <footer>Coins Collection</footer>
 </body>

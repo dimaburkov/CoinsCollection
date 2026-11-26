@@ -190,7 +190,7 @@ the type details and photos — the type photos and your own photos of the item 
 A new country gets its continent from the built-in list of Numista issuers (<i>Gabon</i> — Africa, <i>Bermuda</i> — North America,
 ancient states like <i>Roman Empire</i> — [[ui:Extinct states|Зниклі держави]]). Countries the list does not know
 (fantasy and private issues) stay under [[ui:No continent|Без континенту]] — drag them onto a continent in the tree. Years can be a range (<code>174–179</code>) and before Christ (<code>44 BC</code>).
-A price in another currency than UAH is added to the comment.</p>
+The price of the item goes to [[ui:Purchase price|Ціна купівлі]] with its currency.</p>
 <h3>The coin is already in the program (from uCoin)</h3>
 <p>The column [[ui:In the program|У програмі]] shows what happens to each item:</p>
 <ul>
@@ -281,7 +281,7 @@ Numista порівнює його зі списками обміну інших 
 Нова країна отримує континент із вбудованого списку емітентів Numista (<i>Gabon</i> — Африка, <i>Bermuda</i> — Північна Америка,
 античні держави, як <i>Roman Empire</i>, — [[ui:Extinct states|Зниклі держави]]). Країни, яких список не знає
 (вигадані й приватні випуски), залишаються в [[ui:No continent|Без континенту]] — перетягніть їх у дереві на континент. Роки можуть бути діапазоном (<code>174–179</code>) і до нашої ери (<code>44 до н. е.</code>).
-Ціна в іншій валюті, ніж гривня, додається до коментаря.</p>
+Ціна примірника потрапляє в [[ui:Purchase price|Ціна купівлі]] разом з валютою.</p>
 <h3>Монета вже є в програмі (з uCoin)</h3>
 <p>Колонка [[ui:In the program|У програмі]] показує, що буде з кожним предметом:</p>
 <ul>
@@ -335,9 +335,12 @@ after you change its width with the mouse, it keeps your width.</td></tr>
 <tr><td>[[ui:Swap|Обмін]]</td><td>How many you have for swap: in [[ui:For swap|На обмін]] — the quantity of the item, in the collection — all items for swap
 of the same coin. <b>✓</b> after the number — uploaded to your Numista swap list (in the collection — all of them).</td></tr>
 <tr><td>Rarity</td><td>Rarity index from your Numista collection comment ([[page:numista-upload|Numista: upload]]).</td></tr>
-<tr><td>Mintage</td><td>Mintage of the issue. <code>n/a</code> — Numista has no mintage for it; empty — not loaded yet.</td></tr>
-<tr><td>Composition</td><td>Metal of the type from Numista.</td></tr>
-<tr><td>Year, Condition, Value</td><td>From uCoin.</td></tr>
+<tr><td>Mintage</td><td>Mintage of the issue. <code>n/a</code> — Numista has no mintage for it; empty — not loaded yet.
+A mintage entered in the [[page:coin-card|coin card]] is shown instead.</td></tr>
+<tr><td>Composition</td><td>Metal of the type from Numista, or the metal entered in the coin card.</td></tr>
+<tr><td>Year, Condition, [[ui:Catalogue value|Ціна за каталогом]]</td><td>From uCoin (the catalogue value is the uCoin estimate, not your price).</td></tr>
+<tr><td>[[ui:Purchase price|Ціна купівлі]]</td><td>What you paid, with the currency: <code>85.00 USD</code>. Hidden by default — turn it on
+in the [[ui:Columns|Стовпці]] menu. Sorted by currency, then by amount.</td></tr>
 <tr><td>[[ui:Numista, UAH|Numista, UAH]]</td><td>Numista price estimate for the condition of the coin; shown when Numista prices are on
 ([[page:numista-catalog|Numista catalogue data]]).</td></tr>
 </table>
@@ -361,8 +364,9 @@ The #Numista value is a link to the type page on Numista. The right column shows
 (weight, size, shape, ruler, series, years, mints, demonetization). With Numista prices on — the row
 [[ui:Numista prices|Ціни Numista]].</p>
 <h2>Status bar</h2>
-<p>Number of shown items, their quantity and value, and the number of checked items. With Numista prices on — the Numista
-estimate of the shown coins (estimate × quantity) and how many of them have no estimate.</p>
+<p>Number of shown items, their quantity and catalogue value, and the number of checked items. With Numista prices on — the Numista
+estimate of the shown coins (estimate × quantity) and how many of them have no estimate. If the shown coins have a purchase price —
+[[ui:Spent|Витрачено]]: price × quantity for each currency (<i>12 300.00 UAH + 150.00 USD</i>; currencies are not converted).</p>
 """
 T['main-window', 'uk'] = u"""
 [[shot:01-main-window.png|Головне вікно.]]
@@ -402,9 +406,12 @@ T['main-window', 'uk'] = u"""
 <tr><td>[[ui:Swap|Обмін]]</td><td>Скільки у вас на обмін: у [[ui:For swap|На обмін]] — кількість примірника, у колекції — усі примірники на обмін
 тієї ж монети. <b>✓</b> після числа — вивантажено у ваш список обміну на Numista (у колекції — усі).</td></tr>
 <tr><td>[[ui:Rarity|Рідкість]]</td><td>Індекс рідкісності з коментаря вашої колекції на Numista ([[page:numista-upload|Numista: вивантаження]]).</td></tr>
-<tr><td>[[ui:Mintage|Тираж]]</td><td>Тираж випуску. <code>н/д</code> — у Numista тиражу немає; порожньо — ще не завантажено.</td></tr>
-<tr><td>[[ui:Composition|Метал]]</td><td>Метал типу з Numista.</td></tr>
-<tr><td>[[ui:Year|Рік]], [[ui:Condition|Стан]], [[ui:Value|Вартість]]</td><td>З uCoin.</td></tr>
+<tr><td>[[ui:Mintage|Тираж]]</td><td>Тираж випуску. <code>н/д</code> — у Numista тиражу немає; порожньо — ще не завантажено.
+Тираж, вписаний у [[page:coin-card|картці монети]], показується замість нього.</td></tr>
+<tr><td>[[ui:Composition|Метал]]</td><td>Метал типу з Numista або метал, вписаний у картці монети.</td></tr>
+<tr><td>[[ui:Year|Рік]], [[ui:Condition|Стан]], [[ui:Catalogue value|Ціна за каталогом]]</td><td>З uCoin (ціна за каталогом — оцінка uCoin, а не ваша ціна).</td></tr>
+<tr><td>[[ui:Purchase price|Ціна купівлі]]</td><td>Скільки ви заплатили, з валютою: <code>85,00 USD</code>. Типово прихована — увімкніть
+у меню [[ui:Columns|Стовпці]]. Сортування — за валютою, потім за сумою.</td></tr>
 <tr><td>[[ui:Numista, UAH|Numista, UAH]]</td><td>Оцінка ціни Numista для стану монети; показується, коли ціни Numista увімкнено
 ([[page:numista-catalog|Дані каталогу Numista]]).</td></tr>
 </table>
@@ -427,8 +434,9 @@ T['main-window', 'uk'] = u"""
 (вага, розмір, форма, правитель, серія, роки, монетні двори, демонетизація). Якщо ціни Numista увімкнено — рядок
 [[ui:Numista prices|Ціни Numista]].</p>
 <h2>Рядок стану</h2>
-<p>Кількість показаних примірників, їх кількість і вартість, кількість позначених. Якщо ціни Numista увімкнено — оцінка Numista
-показаних монет (оцінка × кількість) і скільки з них без оцінки.</p>
+<p>Кількість показаних примірників, їх кількість і ціна за каталогом, кількість позначених. Якщо ціни Numista увімкнено — оцінка Numista
+показаних монет (оцінка × кількість) і скільки з них без оцінки. Якщо в показаних монет є ціна купівлі —
+[[ui:Spent|Витрачено]]: ціна × кількість для кожної валюти (<i>12 300,00 UAH + 150,00 USD</i>; валюти не перераховуються).</p>
 """
 
 # =====================================================================
@@ -488,9 +496,16 @@ the new coin by the coin with the same number. With the same year the card adds 
 <ul>
 <li><b>Coin</b> — data of the coin type: country, period, currency, denomination, year (a range — the second field; before Christ — a negative year, <code>-44</code>), variety, diameter, catalogue number, subject.
 They are shared by all items of this coin; if there are several items, the card warns you.</li>
+<li>[[ui:Mintage|Тираж]] and [[ui:Metal|Метал]] — your own values for coins Numista has no data for (Roman coins, coins without a link or issue).
+Choose the metal from the list (metals already in your collection and Numista types, and a basic set: Gold, Silver, Billon, Orichalcum, Bronze…)
+or type your own.
+An empty field shows the Numista value in grey; a value you type wins over Numista and is marked <i>(manual)</i> in the details.
+[[ui:Update catalogue data|Оновити дані каталогу]], linking and re-import from uCoin keep it; clear the field to show the Numista value again.</li>
 <li>[[ui:Numista search|Пошук Numista]] — your own search phrase for Numista. Empty — an automatic phrase is used (shown in grey):
 country, year and subject (or country, denomination, year if there is no subject). See [[page:numista-link|Numista: linking coins]].</li>
-<li><b>My item</b> — your copy: condition, quantity, prices, dates, swap, comment, grading.</li>
+<li><b>My item</b> — your copy: condition, quantity, prices, dates, swap, comment, grading.
+[[ui:Catalog value|Ціна за каталогом]] — the uCoin estimate; [[ui:Purchase price|Ціна купівлі]] — what you paid, with the currency next to it
+(UAH, USD, EUR, GBP, PLN or any other three-letter code). The purchase price with its currency is uploaded to Numista.</li>
 </ul>
 <h2>Photo</h2>
 <p>Two columns: on the left the <b>coin type</b> photos (pictures from the Numista catalogue or your own type photo, shared by all items
@@ -509,9 +524,16 @@ T['coin-card', 'uk'] = u"""
 <ul>
 <li><b>[[ui:Coin|Монета]]</b> — дані типу монети: країна, період, валюта, номінал, рік (діапазон — друге поле; до н. е. — від'ємний рік, <code>-44</code>), різновид, діаметр, номер у каталозі, сюжет.
 Вони спільні для всіх примірників цієї монети; якщо примірників кілька, картка попереджає.</li>
+<li>[[ui:Mintage|Тираж]] і [[ui:Metal|Метал]] — свої значення для монет, про які Numista не має даних (римські, без зв'язку чи без випуску).
+Метал виберіть зі списку (метали, що вже є у вашій колекції й типах Numista, і базовий набір: Gold, Silver, Billon, Orichalcum, Bronze…)
+або впишіть свій.
+Порожнє поле показує значення Numista сірим; вписане значення важливіше за Numista і в подробицях позначається <i>(вручну)</i>.
+[[ui:Update catalogue data|Оновити дані каталогу]], зв'язок і повторний імпорт з uCoin його не змінюють; очистіть поле — знову значення Numista.</li>
 <li>[[ui:Numista search|Пошук Numista]] — власна фраза пошуку на Numista. Порожньо — автоматична фраза (сірим):
 країна, рік і сюжет (або країна, номінал, рік, якщо сюжету немає). Див. [[page:numista-link|Numista: зв'язок монет]].</li>
-<li><b>[[ui:My item|Мій примірник]]</b> — ваш примірник: стан, кількість, ціни, дати, обмін, коментар, грейдинг.</li>
+<li><b>[[ui:My item|Мій примірник]]</b> — ваш примірник: стан, кількість, ціни, дати, обмін, коментар, грейдинг.
+[[ui:Catalog value|Ціна за каталогом]] — оцінка uCoin; [[ui:Purchase price|Ціна купівлі]] — скільки ви заплатили, валюта — поруч
+(UAH, USD, EUR, GBP, PLN або інший код із трьох літер). Ціна купівлі з валютою вивантажується на Numista.</li>
 </ul>
 <h2>Фото</h2>
 <p>Дві колонки: ліворуч фото <b>типу</b> (зображення з каталогу Numista або ваше фото типу, спільне для всіх примірників монети;
@@ -723,7 +745,7 @@ auto-link confirmation) and type photos (catalogue pictures). With photos off, l
 only the details; photos already loaded stay. Numista prices: on / off, currency, whether to load them together with type details, after how many days to update them —
 [[page:numista-catalog|Numista catalogue data]].</li>
 <li>[[ui:What to upload to Numista|Що вивантажувати на Numista]] — which fields of an item are sent on upload: condition,
-my price, purchase date, comment and swap. Type, issue and quantity are always sent. Items already on Numista are not changed.</li>
+purchase price (with its currency), purchase date, comment and swap. Type, issue and quantity are always sent. Items already on Numista are not changed.</li>
 <li>[[ui:Requests|Запити]] — requests used this month, the monthly quota (change it if you have a paid Numista plan) and the
 counter (correct it if the same key was used elsewhere).</li>
 </ul>
@@ -762,7 +784,7 @@ T['numista-connect', 'uk'] = u"""
 завантажують лише характеристики; вже завантажені фото залишаються. Ціни Numista: увімк. / вимк., валюта, чи завантажувати разом з характеристиками,
 через скільки днів оновлювати — [[page:numista-catalog|Дані каталогу Numista]].</li>
 <li>[[ui:What to upload to Numista|Що вивантажувати на Numista]] — які поля примірника надсилати при вивантаженні: стан,
-моя ціна, дата покупки, коментар і обмін. Тип, випуск і кількість надсилаються завжди. Примірники, вже вивантажені на Numista, не змінюються.</li>
+ціна купівлі (з валютою), дата покупки, коментар і обмін. Тип, випуск і кількість надсилаються завжди. Примірники, вже вивантажені на Numista, не змінюються.</li>
 <li>[[ui:Requests|Запити]] — використано цього місяця, місячна квота (змініть, якщо у вас платний тариф Numista) і
 лічильник (виправте, якщо той самий ключ використовувався деінде).</li>
 </ul>
@@ -927,7 +949,7 @@ T['numista-upload', 'en'] = u"""
 [[shot:09-numista-comment.png|Numista: the private comment of a collection item with the rarity index.]]
 <h2>Upload to your Numista collection</h2>
 <p>One coin: right-click → [[ui:Upload to Numista|Вивантажити в Numista]]. Many: check items → [[ui:Upload|Вивантажити]].
-Only items linked with Numista (#Numista) are uploaded: condition, price, purchase date and comment. Photos are not uploaded.
+Only items linked with Numista (#Numista) are uploaded: condition, purchase price with its currency, purchase date and comment. Photos are not uploaded.
 Which of these fields are sent — [[page:numista-connect|Numista settings]], tab [[ui:What to upload to Numista|Що вивантажувати на Numista]].</p>
 <ul>
 <li>Uploaded items get ✓ and are not sent again.</li>
@@ -959,7 +981,7 @@ T['numista-upload', 'uk'] = u"""
 [[shot:09-numista-comment.png|Numista: приватний коментар предмета колекції з індексом рідкісності.]]
 <h2>Вивантаження у вашу колекцію на Numista</h2>
 <p>Одна монета: праве клацання → [[ui:Upload to Numista|Вивантажити в Numista]]. Багато: позначте примірники → [[ui:Upload|Вивантажити]].
-Вивантажуються лише примірники, пов'язані з Numista (#Numista): стан, ціна, дата купівлі та коментар. Фото не вивантажуються.
+Вивантажуються лише примірники, пов'язані з Numista (#Numista): стан, ціна купівлі з валютою, дата купівлі та коментар. Фото не вивантажуються.
 Які з цих полів надсилати — [[page:numista-connect|налаштування Numista]], вкладка [[ui:What to upload to Numista|Що вивантажувати на Numista]].</p>
 <ul>
 <li>Вивантажені примірники отримують ✓ і повторно не надсилаються.</li>

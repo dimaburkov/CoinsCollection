@@ -77,7 +77,8 @@ void TDatabase::EnsureSchema()
 		if (version < 13) { MigrateTo13(); version = 13; }
 		if (version < 14) { MigrateTo14(); version = 14; }
 		if (version < 15) { MigrateTo15(); version = 15; }
-		// if (version < 16) { MigrateTo16(); version = 16; }
+		if (version < 16) { MigrateTo16(); version = 16; }
+		// if (version < 17) { MigrateTo17(); version = 17; }
 
 		// PRAGMA не принимает параметры; version — целое из кода.
 		FConnection->ExecSQL(L"PRAGMA user_version = " + IntToStr(version));
@@ -372,6 +373,15 @@ void TDatabase::MigrateTo15()
 	for (const wchar_t *column : columns)
 		FConnection->ExecSQL(L"ALTER TABLE numista_types ADD COLUMN " + String(column) + L" TEXT");
 	FConnection->ExecSQL(L"ALTER TABLE numista_types ADD COLUMN credits_known INTEGER NOT NULL DEFAULT 0");
+}
+//---------------------------------------------------------------------------
+// v16 (задача 57): свои тираж и металл монеты (NULL — данные Numista); валюта цены покупки
+// экземпляра (my_value_uah — цена покупки; NULL — UAH).
+void TDatabase::MigrateTo16()
+{
+	FConnection->ExecSQL(L"ALTER TABLE coins ADD COLUMN mintage_manual INTEGER");
+	FConnection->ExecSQL(L"ALTER TABLE coins ADD COLUMN composition_manual TEXT");
+	FConnection->ExecSQL(L"ALTER TABLE coin_items ADD COLUMN purchase_currency TEXT");
 }
 //---------------------------------------------------------------------------
 // Справочники с начальным составом (u_SeedData). «Extinct states» — не континент:

@@ -56,14 +56,15 @@ namespace
 		L"Main.Column.Subject", L"Main.Column.Numista", L"Main.Column.Uploaded", L"Main.Column.Swap", L"Main.Column.Rarity",
 		L"Main.Column.Mintage",
 		L"Main.Column.Composition",
-		L"Main.Column.Year", L"Main.Column.Condition", L"Main.Column.Value", L"Main.Column.NumistaPrice",
+		L"Main.Column.Year", L"Main.Column.Condition", L"Main.Column.Value", L"Main.Column.PurchasePrice",
+		L"Main.Column.NumistaPrice",
 		L"Main.Column.Obverse", L"Main.Column.Reverse", L"Main.Column.TypeObverse", L"Main.Column.TypeReverse"
 	};
 	// Ключи колонок в [Grid] Hidden ini (задача 41; порядок = TItemColumn).
 	const wchar_t *const cColumnIni[] =
 	{
 		L"", L"country", L"period", L"currency", L"denomination", L"subject", L"numista", L"uploaded", L"swap", L"rarity",
-		L"mintage", L"composition", L"year", L"condition", L"value", L"numistaprice", L"obverse", L"reverse",
+		L"mintage", L"composition", L"year", L"condition", L"value", L"purchaseprice", L"numistaprice", L"obverse", L"reverse",
 		L"typeobverse", L"typereverse"
 	};
 	// Высоты строк (задача 41): обычная / средняя / большая.
@@ -135,7 +136,7 @@ namespace
 	// Ширина колонок по умолчанию (порядок = TItemColumn).
 	// Auto-link checked: больше стольких монет — подтверждение.
 	const int cConfirmCheckCoins = 10;
-	const int cDefaultWidths[] = { 22, 130, 160, 120, 200, 120, 70, 24, 50, 63, 85, 120, 50, 58, 85, 95, 46, 46, 46, 46 };
+	const int cDefaultWidths[] = { 22, 130, 160, 120, 200, 120, 70, 24, 50, 63, 85, 120, 50, 58, 85, 95, 95, 46, 46, 46, 46 };
 	// Наименьшая ширина колонки «Сюжет», растянутой на свободное место (задача 27).
 	const int cMinSubjectWidth = 90;
 	// Подписи строк панели подробностей (порядок = TDetailRowIndex).
@@ -144,7 +145,7 @@ namespace
 		L"Main.Details.Period", L"Main.Details.Currency", L"Main.Details.Ruler", L"Main.Details.Subject",
 		L"Main.Details.Number", L"Main.Details.Numista", L"Main.Details.NumistaItem", L"Main.Details.Swap",
 		L"Main.Details.Owned", L"Main.Details.IssueComment",
-		L"Main.Details.Prices", L"Main.Details.Weight", L"Main.Details.Size", L"Main.Details.Shape", L"Main.Details.Technique",
+		L"Main.Details.Prices", L"Main.Details.Composition", L"Main.Details.Mintage", L"Main.Details.Weight", L"Main.Details.Size", L"Main.Details.Shape", L"Main.Details.Technique",
 		L"Main.Details.Series", L"Main.Details.Commemorated", L"Main.Details.TypeYears", L"Main.Details.Mints",
 		L"Main.Details.Category", L"Main.Details.Demonetized"
 	};
@@ -161,10 +162,27 @@ namespace
 		return AMintage < 0 ? String() : FormatFloat(L"#,##0", (double)AMintage);
 	}
 	//-----------------------------------------------------------------------
-	// Ключ сортировки тиража: выпуск не загружен (-2) < у Numista тиража нет (-1) < тираж.
+	// Ключ сортировки тиража: выпуск не загружен (-2) < у Numista тиража нет (-1) < тираж; свой тираж
+	// (задача 57) — вместо Numista.
 	__int64 MintageKey(const TCoinRecord &R)
 	{
+		if (R.MintageManual >= 0)
+			return R.MintageManual;
 		return R.NumistaMintage >= 0 ? R.NumistaMintage : (R.NumistaIssueLoaded ? -1 : -2);
+	}
+	//-----------------------------------------------------------------------
+	// Тираж для показа: свой, иначе Numista ("н/д" — у выпуска Numista тиража нет).
+	String MintageCell(const TCoinRecord &R)
+	{
+		if (R.MintageManual >= 0)
+			return MintageText(R.MintageManual);
+		return R.NumistaMintage >= 0 || !R.NumistaIssueLoaded ? MintageText(R.NumistaMintage) : Tr(L"Main.Mintage.Unknown");
+	}
+	//-----------------------------------------------------------------------
+	// Цена покупки с валютой (задача 57): «1 200,00 UAH»; "" — нет.
+	String PurchaseText(const TCoinRecord &R)
+	{
+		return R.PurchasePrice == 0.0 ? String() : FormatFloat(L"#,##0.00", R.PurchasePrice) + L" " + R.PurchaseCurrencyCode();
 	}
 	//-----------------------------------------------------------------------
 	// Число без лишних нулей: 6.5, 21.25.
@@ -722,9 +740,11 @@ void __fastcall TfmMain::actImportExecute(TObject *Sender)
 	TPhotoRepository::MoveFiles(kept.LostPhotos, L"_" + stamp);
 
 	LoadItems();
+	// Монеты коллекции — по всем экземплярам, а не по показанному списку (поиск, узел дерева).
 	std::set<int> coins;
-	for (size_t i = 0; i < FItems.size(); ++i)
-		coins.insert(FItems[i].CoinId);
+	for (size_t i = 0; i < FAll.size(); ++i)
+		if (FAll[i].List.IsEmpty())
+			coins.insert(FAll[i].CoinId);
 	String done = Format(Tr(L"Import.Done"), ARRAYOFCONST((saved, (int)coins.size(), (int)errors.size())));
 	// Связи Numista, перенесённые на новые монеты (задача 13b).
 	if (kept.Coins + kept.CoinsLost > 0)
@@ -1046,7 +1066,10 @@ void __fastcall TfmMain::actAddSampleExecute(TObject *Sender)
 	record.CatalogNumber   = sample.CatalogNumber;
 	record.Condition       = sample.Condition;
 	record.CatalogValueUah = sample.CatalogValueUah;
-	record.MyValueUah      = sample.MyValueUah;
+	record.PurchasePrice   = sample.PurchasePrice;
+	record.PurchaseCurrency = sample.PurchaseCurrency;
+	record.MintageManual   = sample.MintageManual;
+	record.CompositionManual = sample.CompositionManual;
 	record.Color           = sample.Color;
 	record.Quantity        = sample.Quantity;
 	record.NeedToReplace   = sample.NeedToReplace;
@@ -3487,15 +3510,12 @@ void TfmMain::ImportNumistaItem(TNumistaClient &AClient, TNumistaMatcher &AMatch
 	r.Comment  = comment.Text;
 	if (comment.Swap.IsEmpty() && comment.Text.IsEmpty() && comment.Rarity < 0)
 		r.Comment = privateComment;
-	// Цена: в гривнах — My value, иначе — в комментарий.
+	// Цена покупки в любой валюте (задача 57).
 	const String price = JsonText(AItem, L"price.value"), currency = JsonText(AItem, L"price.currency");
 	if (!price.IsEmpty())
 	{
-		if (SameText(currency, L"UAH"))
-			r.MyValueUah = StrToFloatDef(price, 0.0, TFormatSettings::Invariant());
-		else
-			r.Comment += String(r.Comment.IsEmpty() ? L"" : L"\r\n") + Format(Tr(L"NumistaImport.Price"),
-				ARRAYOFCONST((price, currency)));
+		r.PurchasePrice    = StrToFloatDef(price, 0.0, TFormatSettings::Invariant());
+		r.PurchaseCurrency = r.PurchasePrice > 0.0 ? currency.Trim().UpperCase() : String();
 	}
 	r.Origin = L"numista";
 	// На обмен (задача 47a): в список обмена, заметка для партнёров — в комментарий.
@@ -3700,7 +3720,7 @@ void TfmMain::LoadItems()
 		const TCoinRecord &r = FAll[i];
 		FSearchTexts.push_back(AnsiUpperCase(r.Country + sep + r.Period + sep + r.Currency + sep
 			+ r.Denomination + sep + YearText(r.Year, r.YearTo) + sep + r.Subject + sep
-			+ r.Variety + sep + r.CatalogNumber + sep + r.Comment + sep + r.NumistaTitle));
+			+ r.Variety + sep + r.CatalogNumber + sep + r.Comment + sep + r.NumistaTitle + sep + r.Composition()));
 	}
 
 	LoadCountries();
@@ -4136,6 +4156,16 @@ void TfmMain::LoadGridSettings()
 				AppConfig().GridHidden += (AppConfig().GridHidden.IsEmpty() ? String() : String(L",")) + cColumnIni[c];
 		AppConfig().GridTypeThumbs = true;
 	}
+	// Колонка «Ціна купівлі» (задача 57): в прежних настройках её нет — скрыта по умолчанию.
+	if (!AppConfig().GridPurchasePrice)
+	{
+		if (FColumnOn[icPurchasePrice])
+		{
+			FColumnOn[icPurchasePrice] = false;
+			AppConfig().GridHidden += (AppConfig().GridHidden.IsEmpty() ? String() : String(L",")) + cColumnIni[icPurchasePrice];
+		}
+		AppConfig().GridPurchasePrice = true;
+	}
 	// Выравнивание (задача 46): "ключ:l|c|r"; неизвестное — по умолчанию.
 	std::unique_ptr<TStringList> align(new TStringList());
 	align->CommaText = AppConfig().GridAlign;
@@ -4303,7 +4333,7 @@ wchar_t TfmMain::DefaultAlign(int AColumn)
 {
 	switch (AColumn)
 	{
-		case icYear: case icValue: case icNumista: case icRarity: case icMintage: case icNumistaPrice:
+		case icYear: case icValue: case icPurchasePrice: case icNumista: case icRarity: case icMintage: case icNumistaPrice:
 			return L'r';
 		case icUploaded: case icSwap: case icObverse: case icReverse: case icTypeObverse: case icTypeReverse:
 			return L'c';
@@ -4538,7 +4568,7 @@ int TfmMain::CompareItems(const TCoinRecord &A, const TCoinRecord &B, int AColum
 		case icSwap:         return CompareValues(SwapKey(A), SwapKey(B));
 		case icRarity:       return CompareValues(A.NumistaRarity, B.NumistaRarity);
 		case icMintage:      return CompareValues(MintageKey(A), MintageKey(B));
-		case icComposition:  return CompareStrings(A.NumistaComposition, B.NumistaComposition);
+		case icComposition:  return CompareStrings(A.Composition(), B.Composition());
 		case icCountry:      return CompareStrings(A.Country, B.Country);
 		case icPeriod:       return CompareStrings(A.Period, B.Period);
 		case icCurrency:     return CompareStrings(A.Currency, B.Currency);
@@ -4546,6 +4576,12 @@ int TfmMain::CompareItems(const TCoinRecord &A, const TCoinRecord &B, int AColum
 		case icSubject:      return CompareStrings(A.Subject, B.Subject);
 		case icYear:         return A.Year != B.Year ? CompareValues(A.Year, B.Year) : CompareValues(A.YearTo, B.YearTo);
 		case icValue:        return CompareValues(A.CatalogValueUah, B.CatalogValueUah);
+		case icPurchasePrice:	// без цены — первыми, затем по валюте, внутри валюты — по сумме
+			if ((A.PurchasePrice == 0.0) != (B.PurchasePrice == 0.0))
+				return A.PurchasePrice == 0.0 ? -1 : 1;
+			if (A.PurchaseCurrencyCode() != B.PurchaseCurrencyCode())
+				return CompareStrings(A.PurchaseCurrencyCode(), B.PurchaseCurrencyCode());
+			return CompareValues(A.PurchasePrice, B.PurchasePrice);
 		case icNumistaPrice: return CompareValues(NumistaPrice(A), NumistaPrice(B));
 		case icCondition:
 		{
@@ -4614,9 +4650,8 @@ String TfmMain::CellText(const TCoinRecord &R, int AColumn) const
 		case icUploaded:     return UploadedMark(R) ? String(L"\u2713") : String();
 		case icSwap:         return SwapText(R);
 		case icRarity:       return R.NumistaRarity < 0 ? String() : IntToStr(R.NumistaRarity);
-		case icMintage:      return R.NumistaMintage >= 0 || !R.NumistaIssueLoaded ? MintageText(R.NumistaMintage)
-			: Tr(L"Main.Mintage.Unknown");
-		case icComposition:  return R.NumistaComposition;
+		case icMintage:      return MintageCell(R);
+		case icComposition:  return R.Composition();
 		case icCountry:      return R.Country;
 		case icPeriod:       return R.Period;
 		case icCurrency:     return R.Currency;
@@ -4625,6 +4660,7 @@ String TfmMain::CellText(const TCoinRecord &R, int AColumn) const
 		case icYear:         return YearText(R.Year, R.YearTo);
 		case icCondition:    return R.Condition;
 		case icValue:        return R.CatalogValueUah == 0.0 ? String() : FormatFloat(L"#,##0.00", R.CatalogValueUah);
+		case icPurchasePrice: return PurchaseText(R);
 		case icNumistaPrice:
 		{
 			const double price = NumistaPrice(R);
@@ -4935,10 +4971,13 @@ void TfmMain::UpdateStatus()
 	}
 	int quantity = 0;
 	double value = 0.0;
+	std::map<String, double> spent;	// цена покупки × количество по валютам (задача 57)
 	for (size_t i = 0; i < FItems.size(); ++i)
 	{
 		quantity += FItems[i].Quantity;
 		value    += FItems[i].CatalogValueUah * FItems[i].Quantity;
+		if (FItems[i].PurchasePrice > 0.0)
+			spent[FItems[i].PurchaseCurrencyCode()] += FItems[i].PurchasePrice * FItems[i].Quantity;
 	}
 	// Всего — в том же списке, что и узел: обмен, отмеченные (любые) или коллекция (задача 47).
 	const TNavNode *node = CurrentNode();
@@ -4976,6 +5015,18 @@ void TfmMain::UpdateStatus()
 				text += L" " + Format(Tr(L"Main.Status.NumistaPriceWithout"), ARRAYOFCONST((without)));
 		}
 		StatusBar->Panels->Items[4]->Text = text;
+	}
+	// Потрачено (задача 57): только если у показанных монет есть цена покупки; гривна — первой.
+	if (StatusBar->Panels->Count > 5)
+	{
+		String sums;
+		std::map<String, double>::const_iterator uah = spent.find(L"UAH");
+		if (uah != spent.end())
+			sums = FormatFloat(L"#,##0.00", uah->second) + L" UAH";
+		for (std::map<String, double>::const_iterator s = spent.begin(); s != spent.end(); ++s)
+			if (s != uah)
+				sums += (sums.IsEmpty() ? String() : String(L" + ")) + FormatFloat(L"#,##0.00", s->second) + L" " + s->first;
+		StatusBar->Panels->Items[5]->Text = sums.IsEmpty() ? String() : Format(Tr(L"Main.Status.Spent"), ARRAYOFCONST((sums)));
 	}
 	UpdateCheckedNode();
 }
@@ -5217,6 +5268,11 @@ void TfmMain::ShowRecordDetails(const TCoinRecord *ARecord)
 		FDetailRows[drIssueComment].Value->Caption = value(r.NumistaIssueComment);
 		FDetailRows[drPrices].Value->Caption = NumistaPricesText(r);
 		FDetailRows[drPrices].Value->Hint    = Tr(L"Main.Details.PricesHint");
+		// Металл и тираж (задача 57): свои — с пометкой «(вручну)».
+		const String manual = L" " + Tr(L"Main.Details.Manual");
+		FDetailRows[drComposition].Value->Caption = r.CompositionManual.IsEmpty() ? r.NumistaComposition
+			: r.CompositionManual + manual;
+		FDetailRows[drMintage].Value->Caption = MintageCell(r) + (r.MintageManual >= 0 ? manual : String());
 		ShowTypeDetails(r.NumistaTypeLoaded ? r.NumistaTypeId : 0);
 	}
 	else
@@ -5234,7 +5290,7 @@ void TfmMain::ShowRecordDetails(const TCoinRecord *ARecord)
 	for (size_t i = 0; i < FDetailRows.size(); ++i)
 	{
 		// Характеристики типа — только непустые.
-		const bool visible = has && (((int)i < drWeight && (int)i != drSwap && (int)i != drOwned)
+		const bool visible = has && (((int)i < drComposition && (int)i != drSwap && (int)i != drOwned)
 				|| !FDetailRows[i].Value->Caption.IsEmpty())
 			&& ((int)i != drPrices || AppConfig().NumistaLoadPrices);
 		FDetailRows[i].Caption->Visible = visible;
@@ -6668,7 +6724,7 @@ int TfmMain::TextHeight(TLabel *ALabel, int AWidth)
 	return std::max<int>(rc.bottom, Canvas->TextHeight(L"Wg"));
 }
 //---------------------------------------------------------------------------
-// Раскладка sbInfo: заголовок, затем строки в две колонки (вторая — с drWeight);
+// Раскладка sbInfo: заголовок, затем строки в две колонки (вторая — с drComposition);
 // узкая панель — одна колонка. Длинный текст переносится, не помещается по высоте — прокрутка.
 void TfmMain::LayoutDetails()
 {
@@ -6691,7 +6747,7 @@ void TfmMain::LayoutDetails()
 	{
 		if (!FDetailRows[i].Value->Visible)
 			continue;
-		const bool second = twoColumns && (int)i >= drWeight;
+		const bool second = twoColumns && (int)i >= drComposition;
 		const int x = left + (second ? columnWidth + columnGap : 0);
 		int &top = second ? y2 : y1;
 		const int h = TextHeight(FDetailRows[i].Value, valueWidth);

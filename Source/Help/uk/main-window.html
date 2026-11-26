@@ -50,9 +50,12 @@
 <tr><td><span class="ui">Swap/Обмін</span></td><td>Скільки у вас на обмін: у <span class="ui">For swap/На обмін</span> — кількість примірника, у колекції — усі примірники на обмін
 тієї ж монети. <b>✓</b> після числа — вивантажено у ваш список обміну на Numista (у колекції — усі).</td></tr>
 <tr><td><span class="ui">Rarity/Рідкість</span></td><td>Індекс рідкісності з коментаря вашої колекції на Numista (<a href="numista-upload.html">Numista: вивантаження</a>).</td></tr>
-<tr><td><span class="ui">Mintage/Тираж</span></td><td>Тираж випуску. <code>н/д</code> — у Numista тиражу немає; порожньо — ще не завантажено.</td></tr>
-<tr><td><span class="ui">Composition/Метал</span></td><td>Метал типу з Numista.</td></tr>
-<tr><td><span class="ui">Year/Рік</span>, <span class="ui">Condition/Стан</span>, <span class="ui">Value/Вартість</span></td><td>З uCoin.</td></tr>
+<tr><td><span class="ui">Mintage/Тираж</span></td><td>Тираж випуску. <code>н/д</code> — у Numista тиражу немає; порожньо — ще не завантажено.
+Тираж, вписаний у <a href="coin-card.html">картці монети</a>, показується замість нього.</td></tr>
+<tr><td><span class="ui">Composition/Метал</span></td><td>Метал типу з Numista або метал, вписаний у картці монети.</td></tr>
+<tr><td><span class="ui">Year/Рік</span>, <span class="ui">Condition/Стан</span>, <span class="ui">Catalogue value/Ціна за каталогом</span></td><td>З uCoin (ціна за каталогом — оцінка uCoin, а не ваша ціна).</td></tr>
+<tr><td><span class="ui">Purchase price/Ціна купівлі</span></td><td>Скільки ви заплатили, з валютою: <code>85,00 USD</code>. Типово прихована — увімкніть
+у меню <span class="ui">Columns/Стовпці</span>. Сортування — за валютою, потім за сумою.</td></tr>
 <tr><td><span class="ui">Numista, UAH/Numista, UAH</span></td><td>Оцінка ціни Numista для стану монети; показується, коли ціни Numista увімкнено
 (<a href="numista-catalog.html">Дані каталогу Numista</a>).</td></tr>
 </table>
@@ -75,8 +78,9 @@
 (вага, розмір, форма, правитель, серія, роки, монетні двори, демонетизація). Якщо ціни Numista увімкнено — рядок
 <span class="ui">Numista prices/Ціни Numista</span>.</p>
 <h2>Рядок стану</h2>
-<p>Кількість показаних примірників, їх кількість і вартість, кількість позначених. Якщо ціни Numista увімкнено — оцінка Numista
-показаних монет (оцінка × кількість) і скільки з них без оцінки.</p>
+<p>Кількість показаних примірників, їх кількість і ціна за каталогом, кількість позначених. Якщо ціни Numista увімкнено — оцінка Numista
+показаних монет (оцінка × кількість) і скільки з них без оцінки. Якщо в показаних монет є ціна купівлі —
+<span class="ui">Spent/Витрачено</span>: ціна × кількість для кожної валюти (<i>12 300,00 UAH + 150,00 USD</i>; валюти не перераховуються).</p>
 </main>
 <footer>Coins Collection</footer>
 </body>

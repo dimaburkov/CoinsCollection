@@ -87,6 +87,9 @@ public:
 	int  ItemCount(const String &AList = String());
 	// Число экземпляров монеты ACoinId.
 	int  ItemCount(int ACoinId);
+	// Металлы для выбора в картке (задача 57): металлы типов Numista и свои значения монет
+	// плюс базовый набор (римские Billon, Orichalcum…); по алфавиту, без повторов (без учёта регистра).
+	std::vector<String> Compositions();
 
 	// Связь монеты с типом и выпуском Numista (0 — нет); ATitle — название типа Numista
 	// (задача 39; "" — прежнее, если тип тот же, иначе пусто).

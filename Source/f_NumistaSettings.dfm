@@ -272,7 +272,7 @@ object fmNumistaSettings: TfmNumistaSettings
         Top = 64
         Width = 508
         Height = 17
-        Caption = 'My &price (UAH)'
+        Caption = 'Purchase &price (with currency)'
         TabOrder = 1
       end
       object chkUploadDate: TCheckBox

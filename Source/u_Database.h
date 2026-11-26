@@ -11,7 +11,7 @@ class TDatabase
 {
 public:
 	// Актуальная версия схемы (PRAGMA user_version).
-	static const int CurrentSchemaVersion = 15;
+	static const int CurrentSchemaVersion = 16;
 
 	explicit TDatabase(TFDConnection *AConnection);	// не владеет соединением
 	~TDatabase();
@@ -52,6 +52,7 @@ private:
 	void MigrateTo13();
 	void MigrateTo14();
 	void MigrateTo15();
+	void MigrateTo16();
 	void SeedReferenceData();
 	void BackupBeforeMigration(int AVersion);
 };
