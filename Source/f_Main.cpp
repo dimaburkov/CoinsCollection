@@ -5717,12 +5717,18 @@ void TfmMain::CreateCatalogView()
 }
 //---------------------------------------------------------------------------
 // Иерархия эмитентов — один раз, при первом раскрытии каталога (issuers.json, ~3 МБ).
+// Списков ещё нет (новая установка, ключ не введён) — читаются снова при следующем обращении:
+// после «Numista → Підключення» каталог работает без перезапуска.
 bool TfmMain::EnsureCatalogRefs()
 {
 	if (!FCatMatcher)
 	{
 		FCatClient.reset(new TNumistaClient());
 		FCatMatcher.reset(new TNumistaMatcher(*FCatClient));
+		FCatRefs = false;
+	}
+	if (!FCatRefs)
+	{
 		try
 		{
 			FCatRefs = FCatMatcher->LoadReferences();
@@ -5791,6 +5797,13 @@ void __fastcall TfmMain::tvNavExpanding(TObject *Sender, TTreeNode *Node, bool &
 	TTreeNode *first = Node->getFirstChild();
 	if (!first || FNav[(NativeInt)first->Data].Kind != nkCatDummy)
 		return;
+	// Списков Numista нет — заглушка остаётся (раскрыть можно будет после подключения), подсказка.
+	if (!EnsureCatalogRefs())
+	{
+		AllowExpansion = false;
+		Application->MessageBox(Tr(L"Catalog.NoLists").c_str(), Tr(L"Main.Tree.Catalog").c_str(), MB_OK | MB_ICONINFORMATION);
+		return;
+	}
 	tvNav->Items->BeginUpdate();
 	try
 	{

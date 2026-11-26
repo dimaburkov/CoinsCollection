@@ -1386,6 +1386,27 @@ of the issue (or of the whole type) with prices in your currency, the summary �
 <b>Expected:</b> your photos in the first two (empty if you have none), catalogue pictures in the other two.</li>
 <li>Double-click each photo. <b>Expected:</b> the viewer opens with that photo.</li>
 </ol>
+<h2>12. Numista catalogue</h2>
+<ol>
+<li>In the tree open [[ui:Numista catalogue|Каталог Numista]] → a continent → a country you collect, press [[ui:Load from Numista|Завантажити з Numista]].
+<b>Expected:</b> 1 request per 100 types; for more than 100 types the program asks before loading the rest; your coins are marked
+(✓ collection, ⇄ swap, ★ wish list).</li>
+<li>[[ui:Only missing|Лише відсутні]], the category list (circulation, commemorative, non-circulating, patterns) and [[ui:By century|За століттями]].
+<b>Expected:</b> the list and the totals in the status bar follow the filter.</li>
+<li>[[ui:Thumbnails|Мініатюри]] on; scroll a long list quickly. <b>Expected:</b> pictures appear as they load, scrolling does not freeze.</li>
+<li>Roman coins: [[ui:Extinct states|Зниклі держави]] → Rome → Roman Empire → a dynasty → an emperor; type in the search field
+<i>Denarius + COS IIII</i>. <b>Expected:</b> only the types with both parts in the title.</li>
+<li>Right-click a type → [[ui:Load type details from Numista|Завантажити характеристики з Numista]] (1 request).
+<b>Expected:</b> composition, weight, size and the full pictures in the details.</li>
+</ol>
+<h2>13. Purchase price, mintage and metal</h2>
+<ol>
+<li>In the coin card enter [[ui:Purchase price|Ціна купівлі]] <i>85</i> and choose <i>USD</i>; turn on the column [[ui:Purchase price|Ціна купівлі]].
+<b>Expected:</b> <i>85.00 USD</i> in the column, [[ui:Spent|Витрачено]] in the status bar — separately for each currency.</li>
+<li>For a coin without Numista data choose [[ui:Metal|Метал]] from the list (<i>Billon</i>) and enter [[ui:Mintage|Тираж]].
+<b>Expected:</b> the values in the columns and <i>(manual)</i> next to them in the details.</li>
+<li>Clear both fields. <b>Expected:</b> the Numista values again (grey hint in the card).</li>
+</ol>
 <h2>What to send with a problem</h2>
 <ul>
 <li>What you did and what happened — step by step; a screenshot of the message.</li>
@@ -1479,6 +1500,27 @@ T['testing', 'uk'] = u"""
 <li>Праве клацання по заголовку колонки → увімкніть [[ui:My obverse|Мій аверс]], [[ui:My reverse|Мій реверс]], [[ui:Numista obverse|Аверс Numista]], [[ui:Numista reverse|Реверс Numista]].
 <b>Очікується:</b> у перших двох — ваші фото (порожньо, якщо їх немає), в інших двох — зображення з каталогу.</li>
 <li>Двічі клацніть по кожному фото. <b>Очікується:</b> відкривається перегляд саме цього фото.</li>
+</ol>
+<h2>12. Каталог Numista</h2>
+<ol>
+<li>У дереві відкрийте [[ui:Numista catalogue|Каталог Numista]] → континент → країну, яку збираєте, натисніть [[ui:Load from Numista|Завантажити з Numista]].
+<b>Очікується:</b> 1 запит на 100 типів; якщо типів більше 100, програма питає перед завантаженням решти; ваші монети позначено
+(✓ колекція, ⇄ обмін, ★ бажані).</li>
+<li>[[ui:Only missing|Лише відсутні]], список категорій (обігові, пам'ятні обігові, колекційні, пробні) і [[ui:By century|За століттями]].
+<b>Очікується:</b> список і підсумки в рядку стану змінюються за фільтром.</li>
+<li>Увімкніть [[ui:Thumbnails|Мініатюри]]; швидко прокрутіть довгий список. <b>Очікується:</b> картинки з'являються в міру завантаження, прокрутка не замирає.</li>
+<li>Римські монети: [[ui:Extinct states|Зниклі держави]] → Rome → Roman Empire → династія → імператор; у полі пошуку введіть
+<i>Denarius + COS IIII</i>. <b>Очікується:</b> лише типи, в назві яких є обидві частини.</li>
+<li>Праве клацання по типу → [[ui:Load type details from Numista|Завантажити характеристики з Numista]] (1 запит).
+<b>Очікується:</b> сплав, вага, розмір і повні фото в подробицях.</li>
+</ol>
+<h2>13. Ціна купівлі, тираж і метал</h2>
+<ol>
+<li>У картці монети введіть [[ui:Purchase price|Ціна купівлі]] <i>85</i> і виберіть <i>USD</i>; увімкніть колонку [[ui:Purchase price|Ціна купівлі]].
+<b>Очікується:</b> <i>85,00 USD</i> у колонці, [[ui:Spent|Витрачено]] в рядку стану — окремо за кожною валютою.</li>
+<li>Для монети без даних Numista виберіть [[ui:Metal|Метал]] зі списку (<i>Billon</i>) і впишіть [[ui:Mintage|Тираж]].
+<b>Очікується:</b> значення в колонках і <i>(вручну)</i> поруч з ними в подробицях.</li>
+<li>Очистіть обидва поля. <b>Очікується:</b> знову значення Numista (сіра підказка в картці).</li>
 </ol>
 <h2>Що надіслати разом із проблемою</h2>
 <ul>
