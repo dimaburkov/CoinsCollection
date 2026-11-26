@@ -265,7 +265,7 @@ void TCoinImporter::ParseRow(const std::vector<String> &ARow, TCoinRecord &R) co
 	R.PublishedDate   = ParseDate(Cell(ARow, cPublished), cPublished);
 	R.SwapInfo        = Cell(ARow, cSwap);
 	R.PurchaseDate    = ParseDate(Cell(ARow, cPurchase), cPurchase);
-	R.MyValueUah      = ParseNumber(Cell(ARow, cMyValue), cMyValue);
+	R.PurchasePrice   = ParseNumber(Cell(ARow, cMyValue), cMyValue);	// UAH
 	R.GradingCompany  = Cell(ARow, cGradingCompany);
 	R.GradingNumber   = Cell(ARow, cGradingNumber);
 	R.Grade           = Cell(ARow, cGrade);

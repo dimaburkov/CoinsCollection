@@ -65,6 +65,10 @@ __published:	// IDE-managed Components
 	TEdit *edSubject;
 	TLabel *lblNumistaQuery;
 	TEdit *edNumistaQuery;
+	TLabel *lblMintage;
+	TEdit *edMintage;
+	TLabel *lblComposition;
+	TComboBox *cbComposition;
 	TGroupBox *gbItem;
 	TLabel *lblCondition;
 	TLabel *lblQuantity;
@@ -84,6 +88,7 @@ __published:	// IDE-managed Components
 	TUpDown *udQuantity;
 	TEdit *edCatalogValue;
 	TEdit *edMyValue;
+	TComboBox *cbPurchaseCurrency;
 	TDateTimePicker *dtPurchaseDate;
 	TDateTimePicker *dtPublishedDate;
 	TCheckBox *chkNeedToReplace;
@@ -140,6 +145,9 @@ private:	// User declarations
 	bool Fail(TWinControl *AControl, const String &AMessage);
 	static String FieldName(TLabel *ALabel);
 	static bool   TryParseNumber(const String &AText, double &AValue);
+	// Тираж (задача 57): целое >= 0, разделители разрядов допускаются; пусто — -1.
+	static bool   TryParseMintage(const String &AText, __int64 &AValue);
+	String        PurchaseCurrency() const;
 	static String NumberText(double AValue);
 
 	// Фото (задача 30): две колонки — фото типа (каталог; колонка из .dfm) и свои фото

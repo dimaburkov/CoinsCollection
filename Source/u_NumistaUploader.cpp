@@ -129,12 +129,12 @@ String TNumistaUploader::ItemJson(const TCoinRecord &AItem)
 	if (!grade.IsEmpty())
 		json->AddPair(L"grade", grade);
 
-	// Цена — только своя (My value); Catalog value — оценка uCoin, а не цена покупки.
-	if (config.NumistaUploadPrice && AItem.MyValueUah > 0.0)
+	// Цена — цена покупки в её валюте (задача 57); цена за каталогом — оценка uCoin, не отправляется.
+	if (config.NumistaUploadPrice && AItem.PurchasePrice > 0.0)
 	{
 		TJSONObject *price = new TJSONObject();
-		price->AddPair(L"value", new TJSONNumber(AItem.MyValueUah));
-		price->AddPair(L"currency", L"UAH");
+		price->AddPair(L"value", new TJSONNumber(AItem.PurchasePrice));
+		price->AddPair(L"currency", AItem.PurchaseCurrencyCode());
 		json->AddPair(L"price", price);
 	}
 	if (config.NumistaUploadDate && (double)AItem.PurchaseDate != 0.0)

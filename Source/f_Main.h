@@ -252,10 +252,12 @@ private:	// User declarations
 	// Колонки списка (логические; видимые и их порядок — FColumns).
 	// icCheck — флажок отметки, icNumista — N# (задача 12a), icUploaded — выгружен в коллекцию Numista (задача 13),
 	// icRarity — индекс редкости (задача 13a), icMintage — тираж выпуска (задача 13c),
-	// icComposition — металл типа (задача 13d), icNumistaPrice — оценка Numista для состояния (задача 34).
+	// icComposition — металл типа (задача 13d), icNumistaPrice — оценка Numista для состояния (задача 34);
+	// тираж и металл — свои, иначе Numista (задача 57). icValue — цена за каталогом (uCoin),
+	// icPurchasePrice — цена покупки с валютой (задача 57).
 	enum TItemColumn { icCheck, icCountry, icPeriod, icCurrency, icDenomination, icSubject, icNumista, icUploaded, icSwap, icRarity,
 		icMintage,
-		icComposition, icYear, icCondition, icValue, icNumistaPrice, icObverse, icReverse,
+		icComposition, icYear, icCondition, icValue, icPurchasePrice, icNumistaPrice, icObverse, icReverse,
 		icTypeObverse, icTypeReverse, icCount };	// миниатюры: свои фото / фото Numista (задача 51) — подряд
 
 	// Строка панели подробностей: подпись и значение (создаются в коде, см. CreateDetailRows).
@@ -265,12 +267,12 @@ private:	// User declarations
 		TLabel        *Caption;
 		TLabel        *Value;
 	};
-	// Две колонки: drPeriod … drIssueComment — всегда («—», если пусто); со drWeight — характеристики
-	// типа Numista (задача 13d), пустые не показываются. Металл — только в таблице.
+	// Две колонки: drPeriod … drIssueComment — всегда («—», если пусто); со drComposition — металл и тираж
+	// (задача 57) и характеристики типа Numista (задача 13d), пустые не показываются.
 	// drPrices — цены Numista (задача 34), только если цены включены.
 	enum TDetailRowIndex { drPeriod, drCurrency, drRuler, drSubject, drNumber, drNumista, drNumistaItem, drSwap, drOwned,
 		drIssueComment,
-		drPrices, drWeight, drSize, drShape, drTechnique, drSeries, drCommemorated, drTypeYears, drMints, drCategory,
+		drPrices, drComposition, drMintage, drWeight, drSize, drShape, drTechnique, drSeries, drCommemorated, drTypeYears, drMints, drCategory,
 		drDemonetized, drCount };
 
 	// Узел дерева навигации: что он отбирает.

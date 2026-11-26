@@ -3,7 +3,7 @@ object fmCoinEdit: TfmCoinEdit
   Top = 0
   BorderStyle = bsDialog
   Caption = 'Coin'
-  ClientHeight = 615
+  ClientHeight = 642
   ClientWidth = 900
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -34,7 +34,7 @@ object fmCoinEdit: TfmCoinEdit
     Left = 8
     Top = 26
     Width = 504
-    Height = 247
+    Height = 274
     Caption = 'Coin'
     TabOrder = 0
     object lblCountry: TLabel
@@ -196,9 +196,40 @@ object fmCoinEdit: TfmCoinEdit
       Height = 21
       TabOrder = 9
     end
-    object lblNumistaQuery: TLabel
+    object lblMintage: TLabel
+      Left = 300
+      Top = 162
+      Width = 42
+      Height = 13
+      Caption = 'Mintage:'
+      FocusControl = edMintage
+    end
+    object edMintage: TEdit
+      Left = 390
+      Top = 159
+      Width = 102
+      Height = 21
+      TabOrder = 11
+    end
+    object lblComposition: TLabel
       Left = 12
       Top = 216
+      Width = 31
+      Height = 13
+      Caption = 'Metal:'
+      FocusControl = cbComposition
+    end
+    object cbComposition: TComboBox
+      Left = 120
+      Top = 213
+      Width = 372
+      Height = 21
+      DropDownCount = 20
+      TabOrder = 12
+    end
+    object lblNumistaQuery: TLabel
+      Left = 12
+      Top = 243
       Width = 100
       Height = 13
       Caption = 'Numista search:'
@@ -206,7 +237,7 @@ object fmCoinEdit: TfmCoinEdit
     end
     object edNumistaQuery: TEdit
       Left = 120
-      Top = 213
+      Top = 240
       Width = 372
       Height = 21
       TabOrder = 10
@@ -214,7 +245,7 @@ object fmCoinEdit: TfmCoinEdit
   end
   object gbItem: TGroupBox
     Left = 8
-    Top = 281
+    Top = 308
     Width = 504
     Height = 292
     Caption = 'My item'
@@ -248,7 +279,7 @@ object fmCoinEdit: TfmCoinEdit
       Top = 54
       Width = 76
       Height = 13
-      Caption = 'My value, UAH:'
+      Caption = 'Purchase price:'
       FocusControl = edMyValue
     end
     object lblPurchaseDate: TLabel
@@ -363,9 +394,18 @@ object fmCoinEdit: TfmCoinEdit
     object edMyValue: TEdit
       Left = 390
       Top = 51
-      Width = 102
+      Width = 52
       Height = 21
       TabOrder = 4
+    end
+    object cbPurchaseCurrency: TComboBox
+      Left = 446
+      Top = 51
+      Width = 46
+      Height = 21
+      CharCase = ecUpperCase
+      MaxLength = 3
+      TabOrder = 15
     end
     object dtPurchaseDate: TDateTimePicker
       Left = 120
@@ -452,7 +492,7 @@ object fmCoinEdit: TfmCoinEdit
     Left = 520
     Top = 26
     Width = 372
-    Height = 547
+    Height = 574
     Caption = 'Photo'
     TabOrder = 2
     object lblObverse: TLabel
@@ -600,7 +640,7 @@ object fmCoinEdit: TfmCoinEdit
   end
   object lblList: TLabel
     Left = 8
-    Top = 587
+    Top = 614
     Width = 20
     Height = 13
     Caption = '&List:'
@@ -608,7 +648,7 @@ object fmCoinEdit: TfmCoinEdit
   end
   object cbList: TComboBox
     Left = 120
-    Top = 584
+    Top = 611
     Width = 170
     Height = 21
     Style = csDropDownList
@@ -616,7 +656,7 @@ object fmCoinEdit: TfmCoinEdit
   end
   object btnOK: TButton
     Left = 736
-    Top = 582
+    Top = 609
     Width = 75
     Height = 25
     Caption = 'OK'
@@ -626,7 +666,7 @@ object fmCoinEdit: TfmCoinEdit
   end
   object btnCancel: TButton
     Left = 817
-    Top = 582
+    Top = 609
     Width = 75
     Height = 25
     Cancel = True

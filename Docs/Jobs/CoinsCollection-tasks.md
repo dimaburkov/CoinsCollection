@@ -4345,7 +4345,7 @@ https://en.numista.com/api/doc/index.php, https://en.numista.com/api/doc/swagger
 
 ### Ветка
 
-57-purchase-price от коммита задачи 56. Коммит: «57 - Цена покупки с валютой, ручной тираж и металл».
+57-purchase-price от коммита задачи 58. Коммит: «57 - Цена покупки с валютой, ручной тираж и металл».
 
 ### Документация Numista API
 

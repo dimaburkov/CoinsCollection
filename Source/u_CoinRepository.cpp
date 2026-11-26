@@ -20,9 +20,10 @@ namespace
 		L"SELECT i.id, i.id_coin, co.name AS country, p.name AS period, cu.name AS currency,"
 		L"       c.denomination, c.year, c.year_to, c.variety, c.subject, c.diameter_mm, c.catalog_number,"
 		L"       cd.code AS condition, i.quantity, i.need_to_replace, i.catalog_value_uah,"
-		L"       i.my_value_uah, i.purchase_date, i.published_date, i.swap_info, i.color,"
+		L"       i.my_value_uah, i.purchase_currency, i.purchase_date, i.published_date, i.swap_info, i.color,"
 		L"       i.grading_company, i.grading_number, i.grade, i.label_text, i.comment, i.origin, i.list,"
 		L"       c.numista_type_id, c.numista_issue_id, i.numista_item_id, c.numista_rarity, c.numista_query,"
+		L"       c.mintage_manual, c.composition_manual,"
 		L"       ni.id AS issue_loaded, ni.mintage, ni.comment AS issue_comment,"
 		L"       nt.id AS type_loaded, nt.composition, COALESCE(nt.title, c.numista_title) AS numista_title,"
 		L"       CASE WHEN c.numista_type_id IS NULL THEN 0"
@@ -140,7 +141,8 @@ namespace
 		r.Quantity        = FieldInt  (D, L"quantity", 1);
 		r.NeedToReplace   = FieldInt  (D, L"need_to_replace") != 0;
 		r.CatalogValueUah = FieldFloat(D, L"catalog_value_uah");
-		r.MyValueUah      = FieldFloat(D, L"my_value_uah");
+		r.PurchasePrice   = FieldFloat(D, L"my_value_uah");
+		r.PurchaseCurrency = FieldText(D, L"purchase_currency");
 		r.PurchaseDate    = DateFromDb(FieldText(D, L"purchase_date"));
 		r.PublishedDate   = DateFromDb(FieldText(D, L"published_date"));
 		r.SwapInfo        = FieldText (D, L"swap_info");
@@ -162,6 +164,9 @@ namespace
 		r.NumistaIssueComment = FieldText(D, L"issue_comment");
 		r.NumistaTypeLoaded   = !D->FieldByName(L"type_loaded")->IsNull;
 		r.NumistaComposition  = FieldText(D, L"composition");
+		TField *manual = D->FieldByName(L"mintage_manual");
+		r.MintageManual       = manual->IsNull ? -1 : manual->AsLargeInt;
+		r.CompositionManual   = FieldText(D, L"composition_manual");
 		r.NumistaPhotoPending = FieldInt(D, L"photo_pending") != 0;
 		return r;
 	}
@@ -252,27 +257,28 @@ namespace
 {
 	const wchar_t *const cInsertCoin =
 		L"INSERT INTO coins (id_period, id_currency, denomination, year, year_to, variety, subject,"
-		L"                   diameter_mm, catalog_number, numista_query)"
+		L"                   diameter_mm, catalog_number, numista_query, mintage_manual, composition_manual)"
 		L" VALUES (:id_period, :id_currency, :denomination, :year, :year_to, :variety, :subject,"
-		L"         :diameter_mm, :catalog_number, :numista_query)";
+		L"         :diameter_mm, :catalog_number, :numista_query, :mintage_manual, :composition_manual)";
 	const wchar_t *const cUpdateCoin =
 		L"UPDATE coins SET id_period = :id_period, id_currency = :id_currency,"
 		L"       denomination = :denomination, year = :year, year_to = :year_to, variety = :variety,"
 		L"       subject = :subject, diameter_mm = :diameter_mm, catalog_number = :catalog_number,"
-		L"       numista_query = :numista_query"
+		L"       numista_query = :numista_query, mintage_manual = :mintage_manual,"
+		L"       composition_manual = :composition_manual"
 		L" WHERE id = :id";
 	const wchar_t *const cInsertItem =
 		L"INSERT INTO coin_items (id_coin, id_condition, quantity, need_to_replace,"
-		L"       catalog_value_uah, my_value_uah, purchase_date, published_date, swap_info,"
+		L"       catalog_value_uah, my_value_uah, purchase_currency, purchase_date, published_date, swap_info,"
 		L"       color, grading_company, grading_number, grade, label_text, comment, origin, list)"
 		L" VALUES (:id_coin, :id_condition, :quantity, :need_to_replace,"
-		L"       :catalog_value_uah, :my_value_uah, :purchase_date, :published_date, :swap_info,"
+		L"       :catalog_value_uah, :my_value_uah, :purchase_currency, :purchase_date, :published_date, :swap_info,"
 		L"       :color, :grading_company, :grading_number, :grade, :label_text, :comment, :origin, :list)";
 	const wchar_t *const cUpdateItem =
 		L"UPDATE coin_items SET id_coin = :id_coin, id_condition = :id_condition,"
 		L"       quantity = :quantity, need_to_replace = :need_to_replace,"
 		L"       catalog_value_uah = :catalog_value_uah, my_value_uah = :my_value_uah,"
-		L"       purchase_date = :purchase_date, published_date = :published_date,"
+		L"       purchase_currency = :purchase_currency, purchase_date = :purchase_date, published_date = :published_date,"
 		L"       swap_info = :swap_info, color = :color, grading_company = :grading_company,"
 		L"       grading_number = :grading_number, grade = :grade, label_text = :label_text,"
 		L"       comment = :comment, origin = :origin, list = :list"
@@ -290,6 +296,13 @@ namespace
 		SetFloatOrNull(Q->ParamByName(L"diameter_mm"),    R.DiameterMm);
 		SetText       (Q->ParamByName(L"catalog_number"), R.CatalogNumber);
 		SetText       (Q->ParamByName(L"numista_query"),  R.NumistaQuery);
+		TFDParam *mintage = Q->ParamByName(L"mintage_manual");
+		mintage->DataType = ftLargeint;
+		if (R.MintageManual < 0)
+			mintage->Clear();
+		else
+			mintage->AsLargeInt = R.MintageManual;
+		SetText       (Q->ParamByName(L"composition_manual"), R.CompositionManual);
 	}
 	//-----------------------------------------------------------------------
 	void BindItem(TFDQuery *Q, int ACoinId, int AConditionId, const TCoinRecord &R)
@@ -299,7 +312,9 @@ namespace
 		Q->ParamByName(L"quantity")->AsInteger        = R.Quantity;
 		Q->ParamByName(L"need_to_replace")->AsInteger = R.NeedToReplace ? 1 : 0;
 		SetFloatOrNull(Q->ParamByName(L"catalog_value_uah"), R.CatalogValueUah);
-		SetFloatOrNull(Q->ParamByName(L"my_value_uah"),      R.MyValueUah);
+		SetFloatOrNull(Q->ParamByName(L"my_value_uah"),      R.PurchasePrice);
+		// UAH — NULL, как у старых записей и импорта uCoin.
+		SetText       (Q->ParamByName(L"purchase_currency"), SameText(R.PurchaseCurrency, L"UAH") ? String() : R.PurchaseCurrency);
 		SetText       (Q->ParamByName(L"purchase_date"),     DateToDb(R.PurchaseDate));
 		SetText       (Q->ParamByName(L"published_date"),    DateToDb(R.PublishedDate));
 		SetText       (Q->ParamByName(L"swap_info"),         R.SwapInfo);
@@ -429,11 +444,13 @@ namespace
 	struct TOldCoin
 	{
 		Variant TypeId, IssueId, Rarity, Query, Title;
+		Variant MintageManual, CompositionManual;	// свои тираж и металл (задача 57)
 		bool    Kept;	// у монеты остаются экземпляры (из Numista, обмен — задача 47): она сама и её фото не удаляются
 		std::vector<TOldPhoto> Photos;	// фото типа
 		std::vector<TOldItem>  Items;	// выгруженные и / или с фото
 		TOldCoin() : Kept(false) {}
 		bool HasNumista() const { return !TypeId.IsNull() || !Rarity.IsNull() || !Query.IsNull(); }
+		bool HasManual() const { return !MintageManual.IsNull() || !CompositionManual.IsNull(); }
 	};
 	//-----------------------------------------------------------------------
 	void SetVariant(TFDParam *AParam, TFieldType AType, const Variant &AValue)
@@ -474,9 +491,11 @@ namespace
 		std::unique_ptr<TFDQuery> q = NewQuery(ADatabase,
 			L"SELECT id, id_period, id_currency, denomination, year, year_to, variety, subject, catalog_number,"
 			L"       numista_type_id, numista_issue_id, numista_rarity, numista_query, numista_title,"
+			L"       mintage_manual, composition_manual,"
 			L"       EXISTS (SELECT 1 FROM coin_items k WHERE k.id_coin = c.id AND (k.origin = 'numista' OR k.list IS NOT NULL)) AS kept"
 			L"  FROM coins c"
 			L" WHERE (numista_type_id IS NOT NULL OR numista_rarity IS NOT NULL OR numista_query IS NOT NULL"
+			L"    OR mintage_manual IS NOT NULL OR composition_manual IS NOT NULL"
 			L"    OR EXISTS (SELECT 1 FROM coin_items i WHERE i.id_coin = c.id AND i.numista_item_id IS NOT NULL)"
 			L"    OR EXISTS (SELECT 1 FROM coin_photos ph WHERE ph.id_coin = c.id)"
 			L"    OR EXISTS (SELECT 1 FROM coin_items i JOIN coin_photos ph ON ph.id_item = i.id WHERE i.id_coin = c.id))");
@@ -489,6 +508,8 @@ namespace
 			coin.Rarity  = q->FieldByName(L"numista_rarity")->Value;
 			coin.Query   = q->FieldByName(L"numista_query")->Value;
 			coin.Title   = q->FieldByName(L"numista_title")->Value;
+			coin.MintageManual     = q->FieldByName(L"mintage_manual")->Value;
+			coin.CompositionManual = q->FieldByName(L"composition_manual")->Value;
 			coin.Kept    = FieldInt(q.get(), L"kept") != 0;
 			keys[q->FieldByName(L"id")->AsInteger] = key;
 		}
@@ -572,7 +593,8 @@ namespace
 			L" VALUES (:owner, :side, :file_name, :source, :added_at, :copyright)";
 		std::unique_ptr<TFDQuery> updateCoin = NewQuery(ADatabase,
 			L"UPDATE coins SET numista_type_id = :type_id, numista_issue_id = :issue_id,"
-			L"       numista_rarity = :rarity, numista_query = :query, numista_title = :title WHERE id = :id");
+			L"       numista_rarity = :rarity, numista_query = :query, numista_title = :title,"
+			L"       mintage_manual = :mintage_manual, composition_manual = :composition_manual WHERE id = :id");
 		std::unique_ptr<TFDQuery> findItem = NewQuery(ADatabase,
 			L"SELECT id FROM coin_items"
 			L" WHERE id_coin = :id_coin AND numista_item_id IS NULL"
@@ -605,16 +627,19 @@ namespace
 			}
 			const int coinId = found->second;
 
-			if (coin.HasNumista() && !coin.Kept)	// оставшаяся монета сохранила свои связи
+			if ((coin.HasNumista() || coin.HasManual()) && !coin.Kept)	// оставшаяся монета сохранила свои связи и значения
 			{
 				SetVariant(updateCoin->ParamByName(L"type_id"),  ftInteger, coin.TypeId);
 				SetVariant(updateCoin->ParamByName(L"issue_id"), ftInteger, coin.IssueId);
 				SetVariant(updateCoin->ParamByName(L"rarity"),   ftInteger, coin.Rarity);
 				SetVariant(updateCoin->ParamByName(L"query"),    ftWideString, coin.Query);
 				SetVariant(updateCoin->ParamByName(L"title"),    ftWideString, coin.Title);
+				SetVariant(updateCoin->ParamByName(L"mintage_manual"),     ftLargeint,   coin.MintageManual);
+				SetVariant(updateCoin->ParamByName(L"composition_manual"), ftWideString, coin.CompositionManual);
 				updateCoin->ParamByName(L"id")->AsInteger = coinId;
 				updateCoin->ExecSQL();
-				++AKept.Coins;
+				if (coin.HasNumista())
+					++AKept.Coins;
 			}
 			AKept.Photos += InsertPhotos(coinPhoto.get(), coinId, coin.Photos);
 
@@ -952,6 +977,30 @@ int TCoinRepository::ItemCount(int ACoinId)
 	q->ParamByName(L"id_coin")->AsInteger = ACoinId;
 	q->Open();
 	return q->Fields->Fields[0]->AsInteger;
+}
+//---------------------------------------------------------------------------
+std::vector<String> TCoinRepository::Compositions()
+{
+	// Названия — по-английски, как у Numista.
+	const wchar_t *const base[] = {
+		L"Gold", L"Silver", L"Billon", L"Orichalcum", L"Bronze", L"Copper", L"Brass", L"Copper-nickel",
+		L"Nickel", L"Aluminium", L"Aluminium bronze", L"Steel", L"Iron", L"Zinc", L"Lead" };
+	std::map<String, String> sorted;	// ключ — в верхнем регистре
+	for (const wchar_t *name : base)
+		sorted[AnsiUpperCase(name)] = name;
+	std::unique_ptr<TFDQuery> q = NewQuery(FDatabase,
+		L"SELECT composition FROM numista_types WHERE composition IS NOT NULL"
+		L" UNION SELECT composition_manual FROM coins WHERE composition_manual IS NOT NULL");
+	for (q->Open(); !q->Eof; q->Next())
+	{
+		const String name = q->Fields->Fields[0]->AsString.Trim();
+		if (!name.IsEmpty() && !sorted.count(AnsiUpperCase(name)))
+			sorted[AnsiUpperCase(name)] = name;
+	}
+	std::vector<String> result;
+	for (std::map<String, String>::const_iterator it = sorted.begin(); it != sorted.end(); ++it)
+		result.push_back(it->second);
+	return result;
 }
 //---------------------------------------------------------------------------
 // Связь монеты с типом и выпуском Numista (0 — снять связь).

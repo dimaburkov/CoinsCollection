@@ -66,9 +66,10 @@ TAppConfig::TAppConfig()
 	  NumistaUploadPrice(true),
 	  NumistaUploadDate(true),
 	  NumistaUploadComment(true),
-	  GridHidden(L"obverse,reverse,typeobverse,typereverse"),
+	  GridHidden(L"obverse,reverse,typeobverse,typereverse,purchaseprice"),
 	  GridRowHeight(18),
 	  GridTypeThumbs(true),
+	  GridPurchasePrice(true),
 	  CatalogThumbs(true),
 	  WindowMaximized(false),
 	  WindowTreeWidth(0),
@@ -194,9 +195,10 @@ void TAppConfig::Load()
 	NumistaUploadDate      = ini->ReadBool(cNumistaSection, L"UploadDate", true);
 	NumistaUploadComment   = ini->ReadBool(cNumistaSection, L"UploadComment", true);
 
-	GridHidden    = ini->ReadString(L"Grid", L"Hidden", L"obverse,reverse,typeobverse,typereverse").Trim().LowerCase();
+	GridHidden    = ini->ReadString(L"Grid", L"Hidden", L"obverse,reverse,typeobverse,typereverse,purchaseprice").Trim().LowerCase();
 	// Нет ключа Hidden — новая установка (колонки по умолчанию); есть без TypeThumbs — настройки 0.5.0.
 	GridTypeThumbs = ini->ReadBool(L"Grid", L"TypeThumbs", !ini->ValueExists(L"Grid", L"Hidden"));
+	GridPurchasePrice = ini->ReadBool(L"Grid", L"PurchasePrice", !ini->ValueExists(L"Grid", L"Hidden"));
 	CatalogThumbs  = ini->ReadBool(L"Catalog", L"Thumbs", true);
 	GridRowHeight = ini->ReadInteger(L"Grid", L"RowHeight", 18);
 	if (GridRowHeight != 18 && GridRowHeight != 40 && GridRowHeight != 64)
@@ -279,6 +281,7 @@ void TAppConfig::Save()
 	ini->WriteString(cUiSection, cLanguageKey, Language);
 	ini->WriteString(L"Grid", L"Hidden", GridHidden);
 	ini->WriteBool(L"Grid", L"TypeThumbs", GridTypeThumbs);
+	ini->WriteBool(L"Grid", L"PurchasePrice", GridPurchasePrice);
 	ini->WriteBool(L"Catalog", L"Thumbs", CatalogThumbs);
 	ini->WriteInteger(L"Grid", L"RowHeight", GridRowHeight);
 	ini->WriteString(L"Grid", L"Order", GridOrder);

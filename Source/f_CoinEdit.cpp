@@ -32,6 +32,13 @@ __fastcall TfmCoinEdit::TfmCoinEdit(TComponent* Owner)
 	edYear->OnChange         = QueryPartChange;
 	cbPeriod->OnChange       = QueryPartChange;
 	edSubject->OnChange      = QueryPartChange;
+	// Свои тираж и металл (задача 57) — в порядке обхода рядом с соседями по строке.
+	edMintage->TabOrder          = edCatalogNumber->TabOrder + 1;
+	cbComposition->TabOrder      = edSubject->TabOrder + 1;
+	cbPurchaseCurrency->TabOrder = edMyValue->TabOrder + 1;
+	const wchar_t *const currencies[] = { L"UAH", L"USD", L"EUR", L"GBP", L"PLN" };
+	for (const wchar_t *code : currencies)
+		cbPurchaseCurrency->Items->Add(code);
 }
 //---------------------------------------------------------------------------
 bool TfmCoinEdit::Execute(TComponent *AOwner, TCoinRepository &ARepository, TPhotoRepository &APhotos,
@@ -77,6 +84,14 @@ void TfmCoinEdit::LoadLookups()
 	cbCurrency->Items->EndUpdate();
 
 	FConditions = FRepository->Lookups().Conditions();
+	// Металлы (задача 57): уже известные в базе и базовый набор; вписать своё тоже можно.
+	const std::vector<String> compositions = FRepository->Compositions();
+	cbComposition->Items->BeginUpdate();
+	cbComposition->Items->Clear();
+	for (size_t i = 0; i < compositions.size(); ++i)
+		cbComposition->Items->Add(compositions[i]);
+	cbComposition->Items->EndUpdate();
+
 	cbCondition->Items->Clear();
 	cbCondition->Items->Add(L"");
 	for (size_t i = 0; i < FConditions.size(); ++i)
@@ -134,6 +149,12 @@ void TfmCoinEdit::LoadFrom(const TCoinRecord &R)
 	edSubject->Text       = R.Subject;
 	edNumistaQuery->Text  = R.NumistaQuery;
 	QueryPartChange(nullptr);
+	// Свои тираж и металл (задача 57); данные Numista — серой подсказкой в пустом поле.
+	edMintage->Text         = R.MintageManual < 0 ? String() : IntToStr(R.MintageManual);
+	edMintage->TextHint     = R.NumistaMintage >= 0 ? FormatFloat(L"#,##0", (double)R.NumistaMintage)
+		: R.NumistaIssueLoaded ? Tr(L"Main.Mintage.Unknown") : String();
+	cbComposition->Text     = R.CompositionManual;
+	cbComposition->TextHint = R.NumistaComposition;
 
 	cbCondition->ItemIndex = 0;
 	for (size_t i = 0; i < FConditions.size(); ++i)
@@ -142,7 +163,8 @@ void TfmCoinEdit::LoadFrom(const TCoinRecord &R)
 	udQuantity->Position   = (short)std::max(1, std::min(999, R.Quantity));
 	chkNeedToReplace->Checked = R.NeedToReplace;
 	edCatalogValue->Text   = NumberText(R.CatalogValueUah);
-	edMyValue->Text        = NumberText(R.MyValueUah);
+	edMyValue->Text        = NumberText(R.PurchasePrice);
+	cbPurchaseCurrency->Text = R.PurchaseCurrencyCode();
 
 	// Снятый флажок — даты нет; в поле при этом стоит сегодняшняя дата.
 	dtPurchaseDate->Date    = (double)R.PurchaseDate == 0.0 ? Date() : R.PurchaseDate;
@@ -168,6 +190,25 @@ void TfmCoinEdit::LoadFrom(const TCoinRecord &R)
 //---------------------------------------------------------------------------
 // Число с разделителем из настроек Windows; точка тоже принимается.
 // Пробелы (разделители разрядов) игнорируются.
+bool TfmCoinEdit::TryParseMintage(const String &AText, __int64 &AValue)
+{
+	String text = StringReplace(AText.Trim(), L" ", L"", TReplaceFlags() << rfReplaceAll);
+	text = StringReplace(text, L"\u00A0", L"", TReplaceFlags() << rfReplaceAll);
+	text = StringReplace(text, L",", L"", TReplaceFlags() << rfReplaceAll);
+	text = StringReplace(text, L".", L"", TReplaceFlags() << rfReplaceAll);
+	AValue = -1;
+	if (text.IsEmpty())
+		return true;
+	return TryStrToInt64(text, AValue) && AValue >= 0;
+}
+//---------------------------------------------------------------------------
+// Валюта цены покупки: код ISO из трёх латинских букв; пусто — UAH.
+String TfmCoinEdit::PurchaseCurrency() const
+{
+	const String code = cbPurchaseCurrency->Text.Trim().UpperCase();
+	return code.IsEmpty() ? String(L"UAH") : code;
+}
+//---------------------------------------------------------------------------
 bool TfmCoinEdit::TryParseNumber(const String &AText, double &AValue)
 {
 	String text = StringReplace(AText.Trim(), L" ", L"", TReplaceFlags() << rfReplaceAll);
@@ -224,6 +265,15 @@ bool TfmCoinEdit::Validate()
 		return Fail(edCatalogValue, Format(Tr(L"CoinEdit.Error.NotNegative"), ARRAYOFCONST((FieldName(lblCatalogValue)))));
 	if (!TryParseNumber(edMyValue->Text, value) || value < 0.0)
 		return Fail(edMyValue, Format(Tr(L"CoinEdit.Error.NotNegative"), ARRAYOFCONST((FieldName(lblMyValue)))));
+	const String currency = PurchaseCurrency();
+	bool currencyOk = currency.Length() == 3;
+	for (int i = 1; i <= currency.Length() && currencyOk; ++i)
+		currencyOk = currency[i] >= L'A' && currency[i] <= L'Z';
+	if (!currencyOk)
+		return Fail(cbPurchaseCurrency, Tr(L"CoinEdit.Error.Currency"));
+	__int64 mintage = 0;
+	if (!TryParseMintage(edMintage->Text, mintage))
+		return Fail(edMintage, Format(Tr(L"CoinEdit.Error.Mintage"), ARRAYOFCONST((FieldName(lblMintage)))));
 
 	const int quantity = StrToIntDef(edQuantity->Text.Trim(), 0);
 	if (quantity < 1 || quantity > 999)
@@ -253,13 +303,17 @@ void TfmCoinEdit::SaveTo(TCoinRecord &R) const
 	R.CatalogNumber = edCatalogNumber->Text.Trim();
 	R.Subject       = edSubject->Text.Trim();
 	R.NumistaQuery  = edNumistaQuery->Text.Trim();
+	__int64 mintage = -1;
+	R.MintageManual     = TryParseMintage(edMintage->Text, mintage) ? mintage : -1;
+	R.CompositionManual = cbComposition->Text.Trim();
 
 	const int condition = cbCondition->ItemIndex;
 	R.Condition       = condition > 0 && condition <= (int)FConditions.size() ? FConditions[condition - 1].Code : String();
 	R.Quantity        = StrToIntDef(edQuantity->Text.Trim(), 1);
 	R.NeedToReplace   = chkNeedToReplace->Checked;
 	R.CatalogValueUah = TryParseNumber(edCatalogValue->Text, value) ? value : 0.0;
-	R.MyValueUah      = TryParseNumber(edMyValue->Text, value) ? value : 0.0;
+	R.PurchasePrice   = TryParseNumber(edMyValue->Text, value) ? value : 0.0;
+	R.PurchaseCurrency = R.PurchasePrice > 0.0 ? PurchaseCurrency() : String();
 	R.PurchaseDate    = dtPurchaseDate->Checked ? TDateTime((int)dtPurchaseDate->Date) : TDateTime(0.0);
 	R.PublishedDate   = dtPublishedDate->Checked ? TDateTime((int)dtPublishedDate->Date) : TDateTime(0.0);
 	R.Color           = edColor->Text.Trim();
